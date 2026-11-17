@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.site-build/
+*.tsbuildinfo
+.DS_Store
+.env.local
+playwright-report/
+test-results*/
+web/public/models/**
+!web/public/models/README.md
+web/public/runtime/
+web/public/licenses/

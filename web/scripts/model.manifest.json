@@ -1,0 +1,98 @@
+{
+  "model": "onnx-community/Qwen3.5-0.8B-ONNX",
+  "upstream": "Qwen/Qwen3.5-0.8B",
+  "huggingFaceRevision": "8fe9dbe3fb39fe902e18df9be84b6a0ac77ae0f6",
+  "directory": "qwen3.5-0.8b",
+  "dtype": {
+    "embed_tokens": "q4",
+    "vision_encoder": "fp16",
+    "decoder_model_merged": "q4"
+  },
+  "bytes": 873485707,
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 51235,
+      "sha256": "43b84c9d2560375e7d2c7f53a748a6045c81a75eee11900e9e68cd4da1bc28ab",
+      "revision": "a9e93b64250b4a2aff8365eff4131f5ca3d02a3d"
+    },
+    {
+      "path": "chat_template.jinja",
+      "bytes": 7755,
+      "sha256": "273d8e0e683b885071fb17e08d71e5f2a5ddfb5309756181681de4f5a1822d80",
+      "revision": "e4e5b2a844aeeea50fc825bcb2c4276f7cd8c25c"
+    },
+    {
+      "path": "config.json",
+      "bytes": 2849,
+      "sha256": "36fed6a902ccd06ef19a452bd5a0750bd88fe347d06ab75ef515615bac5b296d",
+      "revision": "e4e5b2a844aeeea50fc825bcb2c4276f7cd8c25c"
+    },
+    {
+      "path": "generation_config.json",
+      "bytes": 248,
+      "sha256": "dc0cbe66543f310896469b7b1448af792f403293a1080baaf04d586c57b23e48",
+      "revision": "e4e5b2a844aeeea50fc825bcb2c4276f7cd8c25c"
+    },
+    {
+      "path": "onnx/decoder_model_merged_q4.onnx",
+      "bytes": 876359,
+      "sha256": "cfb338c5112e11e2a123d6d03d8870cd800883ee333ec0a25289482b609a16f8",
+      "revision": "e13c04c676962bb69e12b849406111f42800529a"
+    },
+    {
+      "path": "onnx/decoder_model_merged_q4.onnx_data",
+      "bytes": 485425152,
+      "sha256": "fb38200610a2206aa4c10f4c5f41c08107e2b0b44968166943b3937a1eb11f84",
+      "revision": "e4e5b2a844aeeea50fc825bcb2c4276f7cd8c25c"
+    },
+    {
+      "path": "onnx/embed_tokens_q4.onnx",
+      "bytes": 857,
+      "sha256": "8773dcf4858f855bfce13def4356ca17e0bc516a477154496b6ffb6dd6d084dc",
+      "revision": "e4e5b2a844aeeea50fc825bcb2c4276f7cd8c25c"
+    },
+    {
+      "path": "onnx/embed_tokens_q4.onnx_data",
+      "bytes": 162897920,
+      "sha256": "9210b1d26eb14136d3522584d17da14cc5f4b82b6f5607e6d80d59424a8cbe99",
+      "revision": "e4e5b2a844aeeea50fc825bcb2c4276f7cd8c25c"
+    },
+    {
+      "path": "onnx/vision_encoder_fp16.onnx",
+      "bytes": 187052,
+      "sha256": "eaf24c4d6e512300d6d8d47dc96ce144e2a2ed334b5e58f3463c6a284ac53a4a",
+      "revision": "e4e5b2a844aeeea50fc825bcb2c4276f7cd8c25c"
+    },
+    {
+      "path": "onnx/vision_encoder_fp16.onnx_data",
+      "bytes": 204798464,
+      "sha256": "83a2b4babd9a146dd28cb925609413422f0ba0f47474c3e4704620f1190fbd25",
+      "revision": "e4e5b2a844aeeea50fc825bcb2c4276f7cd8c25c"
+    },
+    {
+      "path": "preprocessor_config.json",
+      "bytes": 336,
+      "sha256": "6a970fd06f30e6943b3e2c14d5d3b42d49b06cf99b99103d56689bef462d90f8",
+      "revision": "e4e5b2a844aeeea50fc825bcb2c4276f7cd8c25c"
+    },
+    {
+      "path": "processor_config.json",
+      "bytes": 1300,
+      "sha256": "14932921ca485d458a04dafd8069fbb0a4505622a48208d19ed247115801385b",
+      "revision": "e4e5b2a844aeeea50fc825bcb2c4276f7cd8c25c"
+    },
+    {
+      "path": "tokenizer.json",
+      "bytes": 19226111,
+      "sha256": "89da80cc6689bef4d90cc1028249436975ffb0814618f1d93c65310e05801a9b",
+      "revision": "e4e5b2a844aeeea50fc825bcb2c4276f7cd8c25c"
+    },
+    {
+      "path": "tokenizer_config.json",
+      "bytes": 10069,
+      "sha256": "5dcac2c1306b11d1e18ec4c024a174bded2ca3178ce87b0aa590711696407f3d",
+      "revision": "e658aecc933a22f4a6bd5163f109523f035bc0c5"
+    }
+  ]
+}

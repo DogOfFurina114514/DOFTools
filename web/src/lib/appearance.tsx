@@ -1,0 +1,263 @@
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
+import { useStoredState } from './storage'
+import { flushSync } from 'react-dom'
+import { translate, type Locale } from './locale'
+import { FluentProvider, webDarkTheme, webLightTheme } from '@fluentui/react-components'
+
+export const STYLE_PRESETS = [
+  {
+    id: 'default',
+    name: '默认',
+    english: 'DogOfFurina Toolbox',
+    description: '薄荷绿与暖白，轻巧、安静。',
+    game: false,
+    opening: '',
+  },
+  {
+    id: 'material',
+    name: '原生 Material 3',
+    english: 'MATERIAL DESIGN 3',
+    description: '柔和色调、圆润形状与原生组件。',
+    game: false,
+    opening: '',
+  },
+  {
+    id: 'fluent',
+    name: 'Fluent Design',
+    english: 'FLUENT DESIGN',
+    description: '清晰层级、细腻材质与蓝色点缀。',
+    game: false,
+    opening: '',
+  },
+  {
+    id: 'glass',
+    name: '液态玻璃',
+    english: 'LIQUID GLASS',
+    description: '流动光色、通透表面与柔和高光。',
+    game: false,
+    opening: '',
+  },
+  {
+    id: 'genshin',
+    name: '原神',
+    english: 'A JOURNEY AMONG STARS',
+    description: '蓝白金、星轨与云间的冒险。',
+    game: true,
+    opening: '星门开启',
+  },
+  {
+    id: 'zenless',
+    name: '绝区零',
+    english: 'WELCOME TO YOUR ZONE',
+    description: '荧光绿、街头排版与唱片节奏。',
+    game: true,
+    opening: '频道接入',
+  },
+  {
+    id: 'endfield',
+    name: '终末地',
+    english: 'YOUR NEXT FRONTIER',
+    description: '工业黄、坐标网格与功能主义。',
+    game: true,
+    opening: '终端启动',
+  },
+  {
+    id: 'minecraft',
+    name: 'Minecraft',
+    english: 'BUILD YOUR WORKSPACE',
+    description: '方块纹理、像素边框与草地上的新起点。',
+    game: true,
+    opening: '世界准备',
+  },
+] as const
+
+export type StyleId = (typeof STYLE_PRESETS)[number]['id']
+export type ThemeMode = 'light' | 'dark'
+export type ThemePreference = ThemeMode | 'system'
+export const isStyleId = (value: unknown): value is StyleId =>
+  STYLE_PRESETS.some((style) => style.id === value)
+export const presetFor = (id: StyleId) => STYLE_PRESETS.find((style) => style.id === id)!
+const englishStyles = {
+  default: ['Default', 'Mint green and warm white. Light and quiet.', ''],
+  material: ['Native Material 3', 'Soft colors, rounded shapes and native components.', ''],
+  fluent: ['Fluent Design', 'Clear hierarchy, subtle materials and a blue accent.', ''],
+  glass: ['Liquid Glass', 'Flowing colors, translucent surfaces and soft highlights.', ''],
+  genshin: [
+    'Genshin Impact',
+    'Blue, white and gold, stars and adventures above the clouds.',
+    'Celestial gate',
+  ],
+  zenless: [
+    'Zenless Zone Zero',
+    'Neon green, street typography and vinyl rhythms.',
+    'Channel connection',
+  ],
+  endfield: [
+    'Arknights: Endfield',
+    'Industrial yellow, coordinate grids and functional panels.',
+    'Terminal startup',
+  ],
+  minecraft: [
+    'Minecraft',
+    'Block textures, pixel borders and a fresh start on the grass.',
+    'World preparation',
+  ],
+} as const
+export const styleName = (id: StyleId, locale: Locale) =>
+  translate(locale, presetFor(id).name, englishStyles[id][0])
+export const styleDescription = (id: StyleId, locale: Locale) =>
+  translate(locale, presetFor(id).description, englishStyles[id][1])
+export const styleOpening = (id: StyleId, locale: Locale) =>
+  translate(locale, presetFor(id).opening, englishStyles[id][2])
+
+interface Appearance {
+  style: StyleId
+  setStyle: (style: StyleId) => void
+  mode: ThemeMode
+  theme: ThemePreference
+  setMode: (mode: ThemePreference) => void
+  openings: boolean
+  setOpenings: (enabled: boolean) => void
+  reducedMotion: boolean
+  materialReady: boolean
+}
+const AppearanceContext = createContext<Appearance>(null!)
+export const useAppearance = () => useContext(AppearanceContext)
+
+export function AppearanceProvider({ children }: { children: ReactNode }) {
+  const [style, setStyle] = useStoredState<StyleId>('style', 'default', isStyleId)
+  const [theme, updateTheme] = useStoredState<ThemePreference>(
+    'theme',
+    'system',
+    (value): value is ThemePreference =>
+      value === 'light' || value === 'dark' || value === 'system',
+  )
+  const [systemMode, setSystemMode] = useState<ThemeMode>(() =>
+    matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
+  )
+  const mode = theme === 'system' ? systemMode : theme
+  const [openings, setOpenings] = useStoredState(
+    'openings',
+    true,
+    (value): value is boolean => typeof value === 'boolean',
+  )
+  const [reducedMotion, setReducedMotion] = useState(
+    () => matchMedia('(prefers-reduced-motion: reduce)').matches,
+  )
+  const [materialReady, setMaterialReady] = useState(false)
+  const themeTransition = useRef<ViewTransition | null>(null)
+  const themeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const transitionTheme = (update: () => void) => {
+    themeTransition.current?.skipTransition()
+    if (themeTimer.current) clearTimeout(themeTimer.current)
+    delete document.documentElement.dataset.themeTransition
+    if (reducedMotion) update()
+    else if (document.startViewTransition) {
+      const transition = document.startViewTransition(() => flushSync(update))
+      themeTransition.current = transition
+      void transition.finished
+        .catch(() => {})
+        .finally(() => {
+          if (themeTransition.current === transition) themeTransition.current = null
+        })
+    } else {
+      document.documentElement.dataset.themeTransition = 'true'
+      update()
+      themeTimer.current = setTimeout(() => {
+        delete document.documentElement.dataset.themeTransition
+        themeTimer.current = null
+      }, 320)
+    }
+  }
+  const setMode = (next: ThemePreference) => {
+    if (next === theme) return
+    const resolved = next === 'system' ? systemMode : next
+    if (resolved === mode) updateTheme(next)
+    else transitionTheme(() => updateTheme(next))
+  }
+  useEffect(() => {
+    const media = matchMedia('(prefers-color-scheme: dark)')
+    const change = () => {
+      const next = media.matches ? 'dark' : 'light'
+      if (theme === 'system') transitionTheme(() => setSystemMode(next))
+      else setSystemMode(next)
+    }
+    media.addEventListener('change', change)
+    return () => media.removeEventListener('change', change)
+  }, [theme, reducedMotion])
+  useEffect(
+    () => () => {
+      themeTransition.current?.skipTransition()
+      if (themeTimer.current) clearTimeout(themeTimer.current)
+      delete document.documentElement.dataset.themeTransition
+    },
+    [],
+  )
+
+  useLayoutEffect(() => {
+    document.documentElement.dataset.style = style
+    document.documentElement.dataset.theme = mode
+    const background = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', background)
+  }, [style, mode])
+
+  useEffect(() => {
+    const media = matchMedia('(prefers-reduced-motion: reduce)')
+    const update = () => setReducedMotion(media.matches)
+    media.addEventListener('change', update)
+    return () => media.removeEventListener('change', update)
+  }, [])
+
+  useEffect(() => {
+    if (style === 'material' && !materialReady) {
+      let active = true
+      import('../components/material-register')
+        .then(() => {
+          if (active) setMaterialReady(true)
+        })
+        .catch(() => {
+          /* CSS controls remain usable if the optional chunk fails to load. */
+        })
+      return () => {
+        active = false
+      }
+    }
+  }, [style, materialReady])
+
+  return (
+    <AppearanceContext.Provider
+      value={{
+        style,
+        setStyle,
+        mode,
+        theme,
+        setMode,
+        openings,
+        setOpenings,
+        reducedMotion,
+        materialReady,
+      }}
+    >
+      <FluentProvider
+        className="fluent-root"
+        theme={mode === 'dark' ? webDarkTheme : webLightTheme}
+        style={{
+          background: 'transparent',
+          color: 'inherit',
+          fontFamily: 'inherit',
+          minHeight: '100vh',
+        }}
+      >
+        {children}
+      </FluentProvider>
+    </AppearanceContext.Provider>
+  )
+}

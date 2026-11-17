@@ -1,0 +1,699 @@
+.style-groups {
+  display: grid;
+  gap: 28px;
+}
+.style-group-heading {
+  display: flex;
+  gap: 16px;
+  align-items: baseline;
+  margin-bottom: 14px;
+}
+.style-group-heading h3 {
+  font-size: 16px;
+  font-weight: 600;
+}
+.style-group-heading > span {
+  font-size: 12px;
+  color: var(--muted);
+}
+.style-group .style-picker {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.style-choice {
+  min-width: 0;
+}
+.style-choice-label strong {
+  overflow-wrap: anywhere;
+}
+.setup-dialog .style-group-heading {
+  margin-top: 8px;
+}
+
+/* Fluent 2: neutral layers, four-pixel controls, restrained blue selection. */
+[data-style='fluent'] {
+  --bg: #f3f5f9;
+  --surface: #ffffff;
+  --sidebar: #f0f3f8;
+  --text: #242424;
+  --secondary: #424242;
+  --muted: #616161;
+  --line: #dedfe3;
+  --green: #0f6cbd;
+  --green-dark: #115ea3;
+  --soft-green: #e5f1fb;
+  --hover: #ebeff5;
+  --accent: #0f6cbd;
+  --radius: 8px;
+  --on-primary: #fff;
+}
+[data-style='fluent'][data-theme='dark'] {
+  --bg: #202124;
+  --surface: #2b2c30;
+  --sidebar: #25262a;
+  --text: #f5f5f5;
+  --secondary: #d1d1d1;
+  --muted: #adadad;
+  --line: #45464c;
+  --green: #75b6e7;
+  --green-dark: #96cbf1;
+  --soft-green: #183f5d;
+  --hover: #35363b;
+  --accent: #75b6e7;
+  --on-primary: #fff;
+}
+[data-style='fluent'] body {
+  background-image: radial-gradient(ellipse at 15% 0, #5594ec0c, transparent 50%);
+}
+[data-style='fluent'] .sidebar {
+  padding-top: 28px;
+  border-right: 0;
+}
+[data-style='fluent'] .main-shell {
+  margin: 8px 8px 8px 242px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+[data-style='fluent'] .topbar {
+  background: var(--surface);
+  border-bottom-color: var(--line);
+  border-radius: 10px 10px 0 0;
+}
+[data-style='fluent'] .nav-item {
+  position: relative;
+  border-radius: 4px;
+  min-height: 40px;
+}
+[data-style='fluent'] .nav-item.active {
+  background: var(--hover);
+  color: var(--text);
+}
+[data-style='fluent'] .nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--green);
+}
+[data-style='fluent'] .category-card,
+[data-style='fluent'] .settings-panel,
+[data-style='fluent'] .home-style-banner,
+[data-style='fluent'] .ai-workspace {
+  background: var(--surface);
+  border-color: var(--line);
+  box-shadow: 0 1px 2px #00000007;
+}
+[data-style='fluent'] .category-card:hover {
+  border-color: var(--green);
+  background: var(--hover);
+}
+[data-style='fluent'] .page-heading h1 {
+  font-size: 30px;
+  font-weight: 600;
+}
+[data-style='fluent'] .button {
+  border-radius: 4px;
+}
+[data-style='fluent'] .native-fluent-button {
+  min-height: 36px;
+  gap: 8px;
+  font-size: 13px;
+}
+[data-style='fluent'] .ui-field .fui-Input,
+[data-style='fluent'] .ui-field .fui-Textarea,
+[data-style='fluent'] .ui-field .fui-Select {
+  width: 100%;
+}
+[data-style='fluent'] .ui-field .fui-Input input,
+[data-style='fluent'] .ui-field .fui-Textarea textarea,
+[data-style='fluent'] .ui-field .fui-Select select {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: inherit;
+  font: inherit;
+  outline: none;
+}
+[data-style='fluent'] .ui-field .fui-Input input {
+  padding: 0;
+  min-height: 38px;
+}
+[data-style='fluent'] .ui-field .fui-Textarea textarea {
+  min-height: 90px;
+}
+[data-style='fluent'] .ui-slider .fui-Slider {
+  flex: 1;
+}
+[data-style='fluent'] .language-slider {
+  border-radius: 6px;
+  background: var(--hover);
+}
+[data-style='fluent'] .language-thumb,
+[data-style='fluent'] .language-slider button {
+  border-radius: 4px;
+}
+[data-style='fluent'] .setup-dialog {
+  background: var(--surface);
+  border-radius: 12px;
+}
+.preview-fluent {
+  background: #f3f6fb;
+  border-color: #ccd5e0;
+  border-radius: 6px;
+}
+.preview-fluent .preview-rail {
+  background: #edf1f6;
+}
+.preview-fluent .preview-title,
+.preview-fluent .preview-accent {
+  background: #0f6cbd;
+  border-radius: 2px;
+}
+.preview-fluent .preview-content i {
+  background: #fff;
+  border: 1px solid #dce3eb;
+  border-radius: 3px;
+}
+
+/* Liquid glass: local color fields behind translucent, softly edged surfaces. */
+[data-style='glass'] {
+  --bg: #e6eef8;
+  --surface: #ffffff80;
+  --sidebar: #ffffff65;
+  --text: #23364c;
+  --secondary: #455970;
+  --muted: #617188;
+  --line: #ffffffbc;
+  --green: #2864af;
+  --green-dark: #1c5196;
+  --soft-green: #ffffffb8;
+  --hover: #ffffff93;
+  --accent: #3770b2;
+  --radius: 24px;
+  --on-primary: #fff;
+}
+[data-style='glass'][data-theme='dark'] {
+  --bg: #101e32;
+  --surface: #26364a94;
+  --sidebar: #20304789;
+  --text: #eff5fc;
+  --secondary: #d1deec;
+  --muted: #a9bfd5;
+  --line: #ffffff32;
+  --green: #99c8ff;
+  --green-dark: #b9dcff;
+  --soft-green: #698bb640;
+  --hover: #7299c439;
+  --accent: #9acaef;
+  --on-primary: #102742;
+}
+[data-style='glass'] body {
+  background:
+    radial-gradient(ellipse at 12% 12%, #a7d0ff83, transparent 45%),
+    radial-gradient(ellipse at 87% 26%, #f0bbd884, transparent 42%),
+    radial-gradient(ellipse at 60% 95%, #9ce4cf80, transparent 50%), var(--bg);
+  background-attachment: fixed;
+}
+[data-style='glass'][data-theme='dark'] body {
+  background:
+    radial-gradient(ellipse at 12% 12%, #255a9470, transparent 45%),
+    radial-gradient(ellipse at 87% 26%, #612d654f, transparent 42%),
+    radial-gradient(ellipse at 60% 95%, #23615d65, transparent 50%), var(--bg);
+  background-attachment: fixed;
+}
+[data-style='glass'] .sidebar,
+[data-style='glass'] .topbar,
+[data-style='glass'] .category-card,
+[data-style='glass'] .settings-panel,
+[data-style='glass'] .home-style-banner,
+[data-style='glass'] .ai-workspace,
+[data-style='glass'] .search-dialog,
+[data-style='glass'] .setup-dialog,
+[data-style='glass'] .tour-card {
+  backdrop-filter: blur(24px) saturate(155%);
+  -webkit-backdrop-filter: blur(24px) saturate(155%);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow:
+    inset 0 1px 0 #ffffff66,
+    0 8px 28px #2b4a7310;
+}
+[data-style='glass'] .sidebar {
+  background: var(--sidebar);
+  margin: 12px;
+  height: calc(100dvh - 24px);
+  border-radius: 28px;
+  width: 230px;
+}
+[data-style='glass'] .main-shell {
+  margin-left: 254px;
+}
+[data-style='glass'] .topbar {
+  margin: 12px 20px 0;
+  border-radius: 28px;
+}
+[data-style='glass'] .nav-item {
+  border-radius: 16px;
+}
+[data-style='glass'] .nav-item.active {
+  background: var(--soft-green);
+  box-shadow:
+    inset 0 1px 0 #ffffff77,
+    0 3px 10px #214c7010;
+}
+[data-style='glass'] .button,
+[data-style='glass'] .language-slider {
+  border-radius: 22px;
+}
+[data-style='glass'] .button.primary {
+  box-shadow:
+    inset 0 1px 0 #ffffff6a,
+    0 4px 12px #234f7d20;
+}
+[data-style='glass'] .category-card {
+  padding-block: 30px;
+}
+[data-style='glass'] .category-card:hover {
+  background: var(--hover);
+  box-shadow:
+    inset 0 1px 0 #ffffffaa,
+    0 10px 30px #234f7d20;
+}
+[data-style='glass'] .ai-message,
+[data-style='glass'] .ai-input-area,
+[data-style='glass'] .ai-session-actions,
+[data-style='glass'] .ai-transcript {
+  background: transparent;
+}
+[data-style='glass'] .message-user {
+  background: var(--soft-green);
+}
+[data-style='glass'] .setup-backdrop {
+  background: color-mix(in srgb, var(--bg) 45%, #00000028);
+}
+[data-style='glass'] .setup-dialog {
+  background: color-mix(in srgb, var(--bg) 78%, transparent);
+}
+.preview-glass {
+  border-radius: 18px;
+  border: 1px solid #ffffffb0;
+  background:
+    radial-gradient(circle at 80% 15%, #edb7dc, transparent 65%),
+    linear-gradient(145deg, #add2f4, #a5e1da);
+}
+.preview-glass .preview-rail {
+  background: #ffffff45;
+  border-right: 1px solid #ffffff60;
+}
+.preview-glass .preview-title {
+  background: #4476a6;
+}
+.preview-glass .preview-content i {
+  background: #ffffff69;
+  border: 1px solid #ffffffaa;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px #4d80ad18;
+}
+.preview-glass .preview-accent {
+  background: #ffffffb0;
+  border-radius: 10px;
+}
+
+/* Minecraft: original pixel textures and the bevels of its menu controls. */
+[data-style='minecraft'] {
+  --bg: #d5dec7;
+  --surface: #eef1e7;
+  --sidebar: #d9e1cc;
+  --text: #25321d;
+  --secondary: #405333;
+  --muted: #596849;
+  --line: #7b8a68;
+  --green: #49752d;
+  --green-dark: #31571e;
+  --soft-green: #c7ddb3;
+  --hover: #d4e5c5;
+  --accent: #547938;
+  --radius: 0px;
+  --on-primary: #fff;
+  --heading-font: 'VT323', 'Microsoft YaHei', monospace;
+}
+[data-style='minecraft'][data-theme='dark'] {
+  --bg: #182314;
+  --surface: #303a29;
+  --sidebar: #222d1c;
+  --text: #e6eddc;
+  --secondary: #c4d3b4;
+  --muted: #9eaf8b;
+  --line: #61724e;
+  --green: #a6cb77;
+  --green-dark: #bee08f;
+  --soft-green: #455c32;
+  --hover: #3b4c2e;
+  --accent: #a1c375;
+  --on-primary: #223117;
+}
+[data-style='minecraft'] body {
+  background-image:
+    repeating-linear-gradient(0deg, #47633108 0 8px, transparent 8px 16px),
+    repeating-linear-gradient(90deg, #47633108 0 8px, transparent 8px 16px);
+}
+[data-style='minecraft'] .sidebar {
+  border-right: 3px solid #344228;
+  background-image: repeating-linear-gradient(90deg, #00000005 0 10px, transparent 10px 20px);
+}
+[data-style='minecraft'] .topbar {
+  border-bottom: 3px solid var(--line);
+  background: var(--sidebar);
+}
+[data-style='minecraft'] .brand-mark {
+  border-radius: 0;
+  image-rendering: pixelated;
+}
+[data-style='minecraft'] .page-heading h1 {
+  font-family: var(--heading-font);
+  font-weight: 400;
+  font-size: 38px;
+  line-height: 1.25;
+}
+[data-style='minecraft'] .nav-item.active,
+[data-style='minecraft'] .button,
+[data-style='minecraft'] .category-card,
+[data-style='minecraft'] .settings-panel,
+[data-style='minecraft'] .home-style-banner,
+[data-style='minecraft'] .style-choice,
+[data-style='minecraft'] .ai-workspace,
+[data-style='minecraft'] .setup-dialog,
+[data-style='minecraft'] .tour-card {
+  border: 2px solid var(--line);
+  border-radius: 0;
+  box-shadow:
+    inset 2px 2px 0 #ffffff56,
+    inset -2px -2px 0 #00000025,
+    2px 2px 0 #00000015;
+}
+[data-style='minecraft'] .category-card:hover {
+  background: var(--hover);
+  box-shadow:
+    inset 2px 2px 0 #ffffff80,
+    inset -2px -2px 0 #00000035,
+    3px 3px 0 #00000025;
+}
+[data-style='minecraft'] .button.primary {
+  border-color: var(--green-dark);
+}
+[data-style='minecraft'] .button:active {
+  box-shadow: inset 2px 2px 0 #00000030;
+  transform: translateY(1px);
+}
+[data-style='minecraft'] .language-slider,
+[data-style='minecraft'] .language-thumb,
+[data-style='minecraft'] .language-slider button,
+[data-style='minecraft'] .themed-scrollbar,
+[data-style='minecraft'] .themed-scroll-thumb,
+[data-style='minecraft'] .toggle,
+[data-style='minecraft'] .toggle > span {
+  border-radius: 0;
+}
+[data-style='minecraft'] .section-note,
+[data-style='minecraft'] .eyebrow {
+  font-family: 'VT323', monospace;
+  font-size: 17px;
+  letter-spacing: 1px;
+}
+.preview-minecraft {
+  border-radius: 0;
+  background: #adcdeb;
+  border: 2px solid #475b32;
+}
+.preview-minecraft .preview-rail {
+  background: repeating-linear-gradient(0deg, #63954c 0 8px, #588441 8px 16px);
+}
+.preview-minecraft .preview-title {
+  background: #435d34;
+  border-radius: 0;
+}
+.preview-minecraft .preview-content i {
+  background: #cec6b6;
+  border: 2px solid #716859;
+  border-radius: 0;
+  box-shadow:
+    inset 2px 2px #f3edde,
+    inset -2px -2px #8b8171;
+}
+.preview-minecraft .preview-symbol {
+  color: #47683a;
+  font-size: 36px;
+}
+.preview-minecraft .preview-accent {
+  border-radius: 0;
+  background: #81aa57;
+}
+
+.opening-minecraft {
+  display: grid;
+  place-items: center;
+  background: #66aee4;
+  color: #fff;
+  font-family: 'VT323', 'Microsoft YaHei', monospace;
+}
+.minecraft-panorama {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: linear-gradient(#559ddb, #b8dcf5);
+}
+.minecraft-sun {
+  position: absolute;
+  right: 18%;
+  top: 15%;
+  width: 64px;
+  height: 64px;
+  background: #fff8cc;
+  box-shadow: 0 0 0 12px #fff4bf22;
+}
+.minecraft-cloud {
+  position: absolute;
+  width: 150px;
+  height: 35px;
+  background: #ffffffc9;
+  box-shadow:
+    30px -22px #ffffffc9,
+    70px 15px #ffffffc9;
+}
+.minecraft-cloud.cloud-a {
+  left: 12%;
+  top: 18%;
+}
+.minecraft-cloud.cloud-b {
+  right: 12%;
+  top: 32%;
+  transform: scale(1.3);
+}
+.minecraft-hills {
+  position: absolute;
+  inset: 43% -5% -5%;
+  background: repeating-linear-gradient(0deg, #639e4414 0 25px, transparent 25px 50px), #568e3d;
+  clip-path: polygon(
+    0 30%,
+    10% 30%,
+    10% 12%,
+    19% 12%,
+    19% 20%,
+    28% 20%,
+    28% 3%,
+    40% 3%,
+    40% 16%,
+    52% 16%,
+    52% 28%,
+    63% 28%,
+    63% 0,
+    74% 0,
+    74% 21%,
+    85% 21%,
+    85% 15%,
+    100% 15%,
+    100% 100%,
+    0 100%
+  );
+}
+.minecraft-ground {
+  background-color: #876044;
+  position: absolute;
+  inset: 78% 0 0;
+  border-top: 24px solid #6b9e3b;
+  background:
+    repeating-linear-gradient(90deg, #553b291c 0 24px, transparent 24px 48px),
+    repeating-linear-gradient(0deg, #9d785926 0 24px, #71523b 24px 48px);
+  box-shadow: inset 0 5px #395f25;
+  background-color: #876044;
+}
+.minecraft-opening-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+  padding: 20px;
+  width: min(760px, 95vw);
+}
+.minecraft-wordmark {
+  font-size: clamp(50px, 8vw, 104px);
+  line-height: 0.77;
+  color: #deddd7;
+  text-shadow:
+    2px 2px #f8f6e8,
+    4px 5px #535854,
+    6px 8px #323c32,
+    7px 10px #182914;
+  letter-spacing: 1px;
+}
+.minecraft-wordmark small {
+  font-size: 0.67em;
+  letter-spacing: 12px;
+}
+.minecraft-opening-content h1 {
+  font-size: 18px;
+  margin-top: 18px;
+  font-weight: 400;
+  text-shadow: 2px 2px #263d20;
+}
+.minecraft-opening-content p {
+  font-size: 16px;
+  text-shadow: 1px 2px #24391e;
+}
+.minecraft-loading-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  width: 224px;
+  padding: 8px;
+  background: #26321ec9;
+  border: 3px solid #17230e;
+  box-shadow:
+    inset 2px 2px #9aac7744,
+    3px 3px #00000025;
+}
+.minecraft-loading-grid > span {
+  aspect-ratio: 1;
+  background: #ffffff0c;
+  border: 1px solid #ffffff15;
+}
+.minecraft-loading-grid > .is-loaded {
+  background: #9bc35f;
+  border-color: #d0e894;
+  box-shadow:
+    inset 2px 2px #bdda82,
+    inset -2px -2px #578632;
+}
+.minecraft-progress-number {
+  font-size: 30px;
+  font-weight: 400;
+  text-shadow: 2px 2px #17280f;
+}
+.opening-minecraft .opening-skip {
+  color: #fff;
+  background: #24381e95;
+  border-radius: 0;
+  border: 2px solid #b3c997;
+  font-family: inherit;
+}
+.opening-minecraft .opening-load-status {
+  color: #fff;
+  text-shadow: 1px 1px #17280f;
+}
+.minecraft-opening-cover {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background: #182914;
+  opacity: 0;
+}
+.opening-minecraft.is-complete .minecraft-opening-cover {
+  animation: minecraft-cover 650ms ease-in both;
+}
+.opening-minecraft.is-exiting {
+  animation: minecraft-exit var(--opening-fade-duration) ease-out both;
+}
+.opening-minecraft.is-exiting .minecraft-opening-cover {
+  opacity: 1;
+}
+@keyframes minecraft-cover {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes minecraft-exit {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@media (max-width: 1080px) {
+  .style-group .style-picker {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 800px) {
+  [data-style='fluent'] .main-shell {
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+  }
+  [data-style='glass'] .main-shell {
+    margin-left: 0;
+  }
+  [data-style='glass'] .sidebar {
+    width: 242px;
+    margin: 0;
+    height: 100dvh;
+    border-radius: 0 24px 24px 0;
+  }
+  [data-style='glass'] .topbar {
+    margin: 8px 8px 0;
+    padding-inline: 12px;
+  }
+  .minecraft-wordmark {
+    font-size: clamp(42px, 10vw, 64px);
+  }
+  .minecraft-wordmark small {
+    letter-spacing: 6px;
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  [data-style='glass'] {
+    --surface: #f0f4fa;
+    --sidebar: #e7eef7;
+  }
+  [data-style='glass'][data-theme='dark'] {
+    --surface: #26364a;
+    --sidebar: #203047;
+  }
+}
+@supports not (backdrop-filter: blur(1px)) {
+  [data-style='glass'] {
+    --surface: #f0f4fa;
+    --sidebar: #e7eef7;
+  }
+  [data-style='glass'][data-theme='dark'] {
+    --surface: #26364a;
+    --sidebar: #203047;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .opening-minecraft.is-complete .minecraft-opening-cover,
+  .opening-minecraft.is-exiting {
+    animation-duration: 140ms;
+  }
+}

@@ -1,0 +1,78 @@
+/* Scrolling stays native; only its chrome is drawn by ThemeScrollbars. */
+* {
+  scrollbar-width: none;
+  -webkit-tap-highlight-color: transparent;
+}
+*::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+:focus:not(:focus-visible) {
+  outline: none;
+}
+:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 3px;
+}
+.theme-scrollbars {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 180;
+}
+.themed-scrollbar {
+  position: absolute;
+  pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--green) 7%, transparent);
+}
+.axis-y {
+  width: 10px;
+}
+.axis-x {
+  height: 10px;
+}
+.themed-scroll-thumb {
+  position: absolute;
+  display: block;
+  background: color-mix(in srgb, var(--green) 55%, var(--surface));
+  border: 2px solid var(--surface);
+  border-radius: 9px;
+  transition: background 160ms;
+}
+.axis-y .themed-scroll-thumb {
+  width: 10px;
+  top: 0;
+}
+.axis-x .themed-scroll-thumb {
+  height: 10px;
+  left: 0;
+}
+.themed-scrollbar:hover .themed-scroll-thumb,
+.themed-scrollbar:focus-visible .themed-scroll-thumb,
+.themed-scrollbar.is-dragging .themed-scroll-thumb {
+  background: var(--green);
+}
+[data-style='genshin'] .themed-scroll-thumb {
+  background: var(--green);
+  border-color: color-mix(in srgb, var(--surface) 80%, var(--green));
+}
+[data-style='zenless'] .themed-scrollbar,
+[data-style='zenless'] .themed-scroll-thumb,
+[data-style='endfield'] .themed-scrollbar,
+[data-style='endfield'] .themed-scroll-thumb {
+  border-radius: 0;
+}
+.ai-storage-notice .icon-button,
+.ai-storage-notice md-icon-button {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .themed-scroll-thumb {
+    transition: none;
+  }
+}

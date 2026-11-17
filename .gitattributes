@@ -1,0 +1,8 @@
+* text=auto
+docs/models/** -text
+*.onnx binary
+*.onnx_data binary
+*.part-* binary
+*.wasm binary
+*.png binary
+*.woff2 binary

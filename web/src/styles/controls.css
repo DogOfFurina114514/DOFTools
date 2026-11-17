@@ -1,0 +1,289 @@
+:root {
+  --control-height: 44px;
+  --control-radius: var(--radius, 9px);
+  --control-focus: var(--green);
+  --control-border: var(--line);
+}
+.ui-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.ui-field > label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.ui-field > small,
+.ui-checkbox > small,
+.ui-switch-wrap > small {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.ui-field input:not([type='range']):not([type='file']),
+.ui-field textarea,
+.ui-field select {
+  width: 100%;
+  border: 1px solid var(--control-border);
+  border-radius: var(--control-radius);
+  background: var(--surface);
+  color: var(--text);
+  min-height: var(--control-height);
+  padding: 11px 13px;
+  font-size: 14px;
+  line-height: 1.5;
+  font-family: inherit;
+  outline: none;
+}
+.ui-field textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+.ui-field input:focus,
+.ui-field textarea:focus,
+.ui-field select:focus {
+  border-color: var(--control-focus);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--control-focus) 20%, transparent);
+}
+.ui-field.invalid input,
+.ui-field.invalid textarea,
+.ui-field.invalid select {
+  border-color: #b94d48;
+}
+.ui-field.invalid > small {
+  color: #b94d48;
+}
+.ui-field :disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.ui-field md-outlined-text-field,
+.ui-field md-outlined-select {
+  width: 100%;
+  --md-outlined-text-field-container-shape: var(--control-radius);
+}
+.ui-slider {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  min-height: 44px;
+}
+.ui-slider input,
+.ui-slider md-slider {
+  width: 100%;
+  flex: 1;
+  accent-color: var(--green);
+}
+.ui-slider output {
+  color: var(--text);
+  font:
+    14px Consolas,
+    monospace;
+  min-width: 30px;
+  text-align: right;
+}
+.ui-checkbox > label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+}
+.ui-checkbox input {
+  width: 19px;
+  height: 19px;
+  accent-color: var(--green-dark);
+}
+.ui-checkbox > small {
+  margin: 6px 0 0 29px;
+  display: block;
+}
+.ui-switch-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+.ui-switch-wrap .toggle {
+  flex: none;
+}
+.ui-file-picker {
+  padding: 18px;
+  border: 1px dashed var(--line);
+  border-radius: var(--control-radius);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.ui-file-picker > span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.ui-file-row {
+  display: flex;
+  flex: 1 0 100%;
+  justify-content: space-between;
+  min-width: 0;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+}
+.ui-file-row > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ui-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin: 16px 0;
+}
+.ui-progress > span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--secondary);
+}
+.ui-progress progress {
+  width: 100%;
+  height: 7px;
+  border: 0;
+  border-radius: 3px;
+  overflow: hidden;
+  accent-color: var(--green-dark);
+  background: var(--line);
+}
+.ui-progress progress::-webkit-progress-bar {
+  background: var(--line);
+}
+.ui-progress progress::-webkit-progress-value {
+  background: var(--green-dark);
+}
+.ui-progress md-linear-progress {
+  width: 100%;
+}
+.ui-panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 26px;
+}
+.ui-panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.ui-panel-heading h2 {
+  font-size: 19px;
+  color: var(--text);
+}
+.ui-panel-description {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0 0 22px;
+}
+.ui-field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+.ui-actions,
+.ui-dialog-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 24px;
+}
+.ui-setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 13px;
+  min-height: 44px;
+}
+.ui-result {
+  border-top: 1px solid var(--line);
+  padding-top: 20px;
+  margin-top: 24px;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.ui-result .button {
+  margin-top: 15px;
+}
+.ui-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--line);
+  gap: 5px;
+}
+.ui-tabs > button {
+  padding: 12px 18px;
+  border-bottom: 3px solid transparent;
+  color: var(--secondary);
+  font-size: 13px;
+}
+.ui-tabs > button[aria-selected='true'] {
+  color: var(--green-dark);
+  border-bottom-color: var(--green-dark);
+  background: var(--hover);
+}
+.ui-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  padding: 26px;
+  width: min(500px, calc(100vw - 36px));
+  max-height: 85vh;
+  overflow: auto;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 20px 100px #0004;
+}
+.ui-dialog::backdrop {
+  background: #10182077;
+  backdrop-filter: blur(4px);
+}
+[data-style='endfield'] .ui-panel,
+[data-style='endfield'] .ui-dialog {
+  border-top: 3px solid var(--text);
+}
+[data-style='endfield'] .ui-tabs > button[aria-selected='true'] {
+  background: #fffa00;
+  color: #222;
+  border-color: #222;
+}
+[data-style='zenless'] .ui-panel,
+[data-style='zenless'] .ui-dialog {
+  border: 2px solid var(--text);
+  box-shadow: 4px 4px 0 var(--line);
+}
+[data-style='genshin'] .ui-panel,
+[data-style='genshin'] .ui-dialog {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 4px color-mix(in srgb, var(--accent) 6%, transparent);
+}
+@media (max-width: 600px) {
+  .ui-field-grid {
+    grid-template-columns: 1fr;
+  }
+  .ui-panel {
+    padding: 20px;
+  }
+  .ui-field input:not([type='range']):not([type='file']),
+  .ui-field select,
+  .ui-field textarea {
+    font-size: 16px;
+  }
+}
