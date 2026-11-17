@@ -33,7 +33,7 @@ async function start(page: Page) {
           ? { id: '1', name: 'show_tools', arguments: { toolIds: ['file-fixture'] } }
           : { id: '1', name: 'run_tool', arguments: { toolId: 'file-fixture', parameters: {} } }
         const markdown =
-          '# 测试标题\n\n- **重点**\n- 第二项\n\n| 名称 | 状态 |\n| --- | --- |\n| 文件 | 完成 |\n\n```js\nconsole.log("hello")\n```\n\n> 引用\n\n[页面](#/settings)\n\n<script>window.badMarkdown = true</script>\n\n[危险链接](javascript:alert(1))'
+          '# 测试标题\n\n- **重点**\n- 第二项\n\n| 名称 | 状态 |\n| --- | --- |\n| 文件 | 完成 |\n\n```js\nconsole.log("hello")\n```\n\n> 引用\n\n[页面](/settings)\n\n<script>window.badMarkdown = true</script>\n\n[危险链接](javascript:alert(1))'
         setTimeout(
           () =>
             emit({
@@ -65,7 +65,7 @@ async function start(page: Page) {
       }
     }
   })
-  await page.goto('/#/ai')
+  await page.goto('/ai')
   await page.evaluate(async () => {
     const { registerAssistantFixture } = await import('/tests/fixtures/assistant-tool.ts')
     registerAssistantFixture()
@@ -88,7 +88,7 @@ test('text-only requests show navigable tools without execution and navigation r
     await page.evaluate(() => (window as unknown as { fileExecutions: number }).fileExecutions),
   ).toBe(0)
   await page.locator('.ai-tool-card').click()
-  await expect(page).toHaveURL(/#\/tool\/file-fixture$/)
+  await expect(page).toHaveURL(/\/tool\/file-fixture$/)
   await expect(page.getByRole('link', { name: 'AI 助手', exact: true })).toBeVisible()
   expect(
     await page.evaluate(() => (window as unknown as { workerStops: number }).workerStops),

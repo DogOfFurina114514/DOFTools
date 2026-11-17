@@ -92,7 +92,7 @@ const definition: ToolDefinition = {
 
 所有已注册工具自动进入 AI 工具目录，目录使用当前界面语言，包含工具 ID、双语名称与说明、字段、选项、默认值及输入 schema。
 
-- 纯文字请求只提供 `show_tools({toolIds})`，聊天展示卡片并通过 HashRouter 前往 `/tool/<id>`。执行层也拒绝对纯文字请求执行，即使模型错误返回 `run_tool`。
+- 纯文字请求只提供 `show_tools({toolIds})`，聊天展示卡片并通过 BrowserRouter 前往 `/tool/<id>`。执行层也拒绝对纯文字请求执行，即使模型错误返回 `run_tool`。
 - 本次上传文件时额外提供 `run_tool({toolId, parameters, fileBindings?})`。`parameters` 为标量参数，与 `initialValues` 合并；`fileBindings` 为文件字段名到附件 ID 数组的映射，如 `{files: ['file-1']}`。只有一个文件字段时，可按 `accept` 自动绑定当前附件。
 - 附件 ID 只引用本次消息中的真实 File，不接受路径、URL 或模型生成的文件数据。模型参数经工具的 `inputSchema` 校验，再通过同一 `toolRegistry.run()` 执行。必填字段、数量、格式、未知文件引用或取消信号错误都会停止执行。
 - `ToolResult.summary` 用于聊天说明，`files` 中的 Blob 用于预览和下载；只将摘要、文件名、类型和大小送回模型，不序列化 Blob 或预览 ReactNode。需要视觉处理的工具可读取文件字段中的真实图片。

@@ -2,6 +2,8 @@
 
 纯前端工具箱框架，支持中文 / EN、五个工具分类、八种主题与电脑端本地 AI。当前只完成框架，尚未启用具体工具。
 
+当前正式版本：**26.0.0**。版本格式为「年份.大版本.小版本」，年份使用两位数字。
+
 仓库：https://github.com/DogOfFurina114514/DOFTools
 
 ## 目录
@@ -18,9 +20,9 @@ HTML、JS、CSS 都是网页源码。本项目日常维护 `web/` 中的 TypeScr
 
 在仓库 **Settings → Pages** 选择 **Deploy from a branch → main → /docs** 并保存。
 
-发布后的地址：https://dogoffurina114514.github.io/DOFTools/
+发布后的地址：https://toolbox.owo.lat
 
-网页已使用相对资源路径、HashRouter 与 `.nojekyll`，支持仓库子目录。上传仓库不会自动开启 Pages。
+网页按 `toolbox.owo.lat` 的根目录部署，BrowserRouter 提供 `/settings`、`/category/image` 等无井号、无 `.html` 地址，404 回退支持直接打开与刷新子页面。已有 CNAME 会保留；顶栏在滚动时常驻。
 
 ## 本地开发
 

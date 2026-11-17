@@ -8,7 +8,7 @@
       name="description"
       content="芙芙的狗工具箱：纯前端个人工具箱框架，预留图片、视频、音频、文档与其他分类，支持八种界面风格与电脑端本地 AI 接口。"
     />
-    <link rel="icon" type="image/svg+xml" href="./favicon.svg?v=furina" />
+    <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg?v=furina" />
     <title>芙芙的狗工具箱</title>
     <style>
       #boot-opening {
@@ -47,6 +47,19 @@
     </style>
     <script>
       ;(() => {
+        const base = '%BASE_URL%'
+        const url = new URL(location.href)
+        const restored = url.searchParams.get('__route')
+        const legacy = url.hash.startsWith('#/') ? url.hash.slice(1) : null
+        const route = restored || legacy
+        if (route && route.startsWith('/') && !route.startsWith('//'))
+          history.replaceState(null, '', base.replace(/\/$/, '') + route)
+        if (location.pathname.length > base.length && location.pathname.endsWith('/'))
+          history.replaceState(
+            null,
+            '',
+            location.pathname.replace(/\/+$/, '') + location.search + location.hash,
+          )
         const read = (key) => {
           try {
             return JSON.parse(localStorage.getItem('fufu:' + key))

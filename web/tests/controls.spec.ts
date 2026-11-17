@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test'
 test('shared controls keep their values when switching to native Material components', async ({
   page,
 }) => {
-  await page.goto('/#/settings')
+  await page.goto('/settings')
   await page.evaluate(async () => {
     const { mountControls } = await import('/tests/fixtures/controls.tsx')
     mountControls()

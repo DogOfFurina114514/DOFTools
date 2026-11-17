@@ -24,9 +24,9 @@ test('home removes tools, the dog and avatar, and blocks previous tool routes', 
   await page.goto('/')
   await expect(page.locator('.category-card')).toHaveCount(5)
   await expect(page.locator('.tool-card, .hero-dog, .avatar, .hero-row, .ai-promo')).toHaveCount(0)
-  await expect(page.locator('.sidebar a[href="#/settings"]')).toHaveCount(1)
+  await expect(page.locator('.sidebar a[href="/settings"]')).toHaveCount(1)
   await page.screenshot({ path: 'test-results/home-default.png', fullPage: true })
-  await page.goto('/#/tool/image-compress')
+  await page.goto('/tool/image-compress')
   await expect(page.getByRole('heading', { name: '这个角落，暂时留白。' })).toBeVisible()
   await expect(page.locator('input[type="file"]')).toHaveCount(0)
   expect(errors).toEqual([])
@@ -40,13 +40,13 @@ test('categories remain empty and global search finds pages instead of tools', a
   await expect(dialog.getByRole('textbox')).toBeFocused()
   await dialog.getByRole('textbox').fill('图片')
   await page.keyboard.press('Enter')
-  await expect(page).toHaveURL(/#\/category\/image$/)
+  await expect(page).toHaveURL(/\/category\/image$/)
   await expect(page.getByRole('heading', { name: '这里，先留一个位置。' })).toBeVisible()
   await expect(page.locator('.tool-card')).toHaveCount(0)
 })
 
 test('Material 3 uses real Material Web buttons and switches', async ({ page }) => {
-  await page.goto('/#/settings')
+  await page.goto('/settings')
   await page.getByRole('radio', { name: '原生 Material 3', exact: true }).click()
   await expect(page.locator('html')).toHaveAttribute('data-style', 'material')
   await page.waitForFunction(
@@ -70,7 +70,7 @@ test('Material 3 uses real Material Web buttons and switches', async ({ page }) 
 
 for (const style of styles.filter((item) => item.game)) {
   test(`${style.name}: unique opening plays on selection, replay and reload`, async ({ page }) => {
-    await page.goto('/#/settings')
+    await page.goto('/settings')
     await page.getByRole('radio', { name: style.name, exact: true }).click()
     const opening = page.getByRole('dialog', { name: `${style.name}开屏动画` })
     await expect(opening).toBeVisible()
@@ -96,7 +96,7 @@ for (const style of styles.filter((item) => item.game)) {
 test('opening preference is persistent and a disabled animation can be manually replayed', async ({
   page,
 }) => {
-  await page.goto('/#/settings')
+  await page.goto('/settings')
   await page.getByRole('switch', { name: '游戏风格开屏动画' }).click()
   await page.getByRole('radio', { name: '终末地', exact: true }).click()
   await expect(page.locator('.opening')).toHaveCount(0)
@@ -113,7 +113,7 @@ test('opening preference is persistent and a disabled animation can be manually 
 
 test('reduced motion keeps game opening brief and restores keyboard focus', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
-  await page.goto('/#/settings')
+  await page.goto('/settings')
   const radio = page.getByRole('radio', { name: '原神', exact: true })
   await radio.click()
   await expect(page.locator('.opening')).toHaveCount(0, { timeout: 2000 })
@@ -125,7 +125,7 @@ for (const style of styles) {
   test(`${style.name}: whole-site appearance, light/dark and mobile layout stay usable`, async ({
     page,
   }) => {
-    await page.goto('/#/settings')
+    await page.goto('/settings')
     await page.getByRole('switch', { name: '游戏风格开屏动画' }).click()
     await page.getByRole('radio', { name: style.name, exact: true }).click()
     await expect(page.locator('html')).toHaveAttribute('data-style', style.id)
@@ -161,7 +161,7 @@ for (const style of styles) {
 test('AI exposes the real local model loader and accepts local image attachments', async ({
   page,
 }) => {
-  await page.goto('/#/ai')
+  await page.goto('/ai')
   await expect(page.getByText('Qwen3.5-0.8B', { exact: true })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '开启助手' })).toBeVisible()
   await expect(page.getByRole('button', { name: '发送', exact: true })).toBeDisabled()
@@ -204,7 +204,7 @@ test('mobile devices do not expose an AI entry or image picker', async ({ browse
   const page = await context.newPage()
   await page.goto('http://127.0.0.1:5173/')
   await expect(page.locator('[data-ai-nav], .ai-promo')).toHaveCount(0)
-  await page.goto('http://127.0.0.1:5173/#/ai')
+  await page.goto('http://127.0.0.1:5173/ai')
   await expect(page.getByRole('heading', { name: 'AI 助手仅在电脑端提供' })).toBeVisible()
   await expect(page.locator('input[type="file"]')).toHaveCount(0)
   await context.close()

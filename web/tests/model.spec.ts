@@ -15,7 +15,7 @@ test('real Qwen weights run text, vision and registered function calls locally',
     if (!/^(http:\/\/127\.0\.0\.1:5173|blob:|data:)/.test(request.url()))
       external.push(request.url())
   })
-  await page.goto('/#/ai')
+  await page.goto('/ai')
   await page.evaluate(() => {
     const Original = window.Worker
     Object.assign(window, { modelOutput: [] })
@@ -114,7 +114,7 @@ test('real Qwen weights run text, vision and registered function calls locally',
   await expect(page.getByText('已停止生成', { exact: true })).toBeVisible()
   const unload = page.getByRole('button', { name: '关闭 AI 助手' })
   if (await unload.isVisible()) await unload.click()
-  await page.goto('/#/ai')
+  await page.goto('/ai')
   await expect(page.getByRole('button', { name: '开启助手' })).toBeVisible()
   expect(external).toEqual([])
 })

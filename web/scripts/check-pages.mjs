@@ -43,6 +43,8 @@ for (const file of manifest.files) {
 }
 for (const file of [
   'index.html',
+  '404.html',
+  'CNAME',
   '.nojekyll',
   'favicon.svg',
   'runtime/ort-wasm-simd-threaded.asyncify.mjs',

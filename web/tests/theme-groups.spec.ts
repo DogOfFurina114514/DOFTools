@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 
 test('settings and setup share the two ordered theme groups', async ({ page }) => {
-  await page.goto('/#/settings')
+  await page.goto('/settings')
   const standard = page.getByRole('radiogroup', { name: '普通主题' })
   const games = page.getByRole('radiogroup', { name: '游戏主题' })
   await expect(standard.getByRole('radio')).toHaveCount(4)
@@ -26,7 +26,7 @@ test('settings and setup share the two ordered theme groups', async ({ page }) =
 test('Fluent uses official components and shared values survive a change from Material', async ({
   page,
 }) => {
-  await page.goto('/#/settings')
+  await page.goto('/settings')
   await page.evaluate(async () => {
     const { mountControls } = await import('/tests/fixtures/controls.tsx')
     mountControls()

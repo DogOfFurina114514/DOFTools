@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 
 test('language switches the site and metadata, persists, and removes credits', async ({ page }) => {
-  await page.goto('/#/settings')
+  await page.goto('/settings')
   await page
     .getByRole('group', { name: '网站语言' })
     .getByRole('button', { name: 'English', exact: true })
@@ -26,7 +26,7 @@ test('language switches the site and metadata, persists, and removes credits', a
   await page.keyboard.press('Control+k')
   await page.getByRole('textbox', { name: 'Search keywords' }).fill('图片')
   await page.keyboard.press('Enter')
-  await expect(page).toHaveURL(/#\/category\/image$/)
+  await expect(page).toHaveURL(/\/category\/image$/)
   await expect(page.getByRole('heading', { name: 'Image tools' })).toBeVisible()
   await page.getByRole('button', { name: '中文', exact: true }).click()
   await expect(page.getByRole('heading', { name: '图片工具' })).toBeVisible()
@@ -51,7 +51,7 @@ test('all English styles, AI and mobile layouts have translated text without ove
     'Minecraft',
   ]) {
     await page.setViewportSize({ width: 1440, height: 1000 })
-    await page.goto('/#/settings')
+    await page.goto('/settings')
     await page.getByRole('radio', { name, exact: true }).click()
     expect((await page.locator('body').innerText()).replaceAll('中文', '')).not.toMatch(
       /\p{Script=Han}/u,
@@ -73,7 +73,7 @@ test('all English styles, AI and mobile layouts have translated text without ove
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   }
   await page.setViewportSize({ width: 1440, height: 1000 })
-  await page.goto('/#/ai')
+  await page.goto('/ai')
   await expect(page.getByRole('button', { name: 'Start assistant' })).toBeVisible()
   expect((await page.locator('body').innerText()).replaceAll('中文', '')).not.toMatch(
     /\p{Script=Han}/u,
@@ -91,7 +91,7 @@ test('tool fields, options, result and errors translate while values and files r
     const { registerLocaleFixture } = await import('/tests/fixtures/locale-tool.ts')
     registerLocaleFixture()
   })
-  await page.goto('/#/tool/locale-fixture')
+  await page.goto('/tool/locale-fixture')
   await page.getByRole('textbox', { name: '输入内容' }).fill('my draft')
   await page.getByRole('combobox', { name: '输出格式' }).selectOption('large')
   await page.getByRole('checkbox', { name: '保留元数据' }).check()
@@ -165,7 +165,7 @@ test('system theme follows OS changes, saves its choice and leaves manual choice
   page,
 }) => {
   await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' })
-  await page.goto('/#/settings')
+  await page.goto('/settings')
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
   await expect(page.getByRole('button', { name: '跟随系统', exact: true })).toHaveAttribute(
     'aria-pressed',
@@ -187,7 +187,7 @@ test('system theme follows OS changes, saves its choice and leaves manual choice
 test('language slider uses official M3 segmented controls and supports keyboard switching', async ({
   page,
 }) => {
-  await page.goto('/#/settings')
+  await page.goto('/settings')
   await page.getByRole('button', { name: '中文', exact: true }).focus()
   await page.keyboard.press('ArrowRight')
   await expect(page.locator('html')).toHaveAttribute('lang', 'en')
@@ -229,7 +229,7 @@ test('language slider uses official M3 segmented controls and supports keyboard 
 })
 
 test('native theme transitions keep the AI draft through repeated switches', async ({ page }) => {
-  await page.goto('/#/ai')
+  await page.goto('/ai')
   await page.getByRole('textbox', { name: 'AI 对话内容' }).fill('keep this draft')
   await page.evaluate(() => {
     const original = document.startViewTransition.bind(document)

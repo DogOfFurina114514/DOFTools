@@ -7,9 +7,11 @@
 1. 打开仓库 **Settings → Pages → Build and deployment**。
 2. Source 选择 **Deploy from a branch**。
 3. Branch 选择 **main**，目录选择 **/docs**，点击 **Save**。
-4. GitHub 完成发布后访问 `https://dogoffurina114514.github.io/DOFTools/`。
+4. GitHub 完成发布后访问 `https://toolbox.owo.lat`。
 
-上传仓库不会自动替你开启 Pages。`docs/index.html` 是已构建入口；HashRouter 与相对资源路径适配仓库子目录，`.nojekyll` 保留运行时文件，无需路由重写。
+`docs/index.html` 是已构建入口，站点部署在自定义域名 `toolbox.owo.lat` 的根目录。BrowserRouter 使用 `/settings`、`/category/image` 等干净地址，`.nojekyll` 保留运行时文件。GitHub Pages 的 `404.html` 回退到入口并在页面渲染前恢复原地址，支持直接打开与刷新子页面。
+
+已配置的 CNAME 保存在 `web/public/CNAME`，构建时复制到 `docs/CNAME`，更新网页不会移除域名设置。
 
 ## 模型随网页发布
 
