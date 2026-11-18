@@ -8,4 +8,10 @@ export { useLocale as useToolLocale } from '../lib/i18n'
 export { bilingual, LocalizedError } from '../lib/locale'
 export type { Locale, LocalizedText } from '../lib/locale'
 
-// Future tools register once here; both the workspace and AI use this registry.
+import { toolRegistry } from './registry'
+import { builtinTools } from './builtins'
+const unregisterBuiltins = builtinTools.map((definition) =>
+  toolRegistry.get(definition.id) ? () => {} : toolRegistry.register(definition),
+)
+if (import.meta.hot)
+  import.meta.hot.dispose(() => unregisterBuiltins.forEach((unregister) => unregister()))

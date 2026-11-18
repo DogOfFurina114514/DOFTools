@@ -31,6 +31,7 @@ export interface ToolRunContext {
   locale: Locale
   signal: AbortSignal
   onProgress: (value: number) => void
+  onStatus?: (value: LocalizedText) => void
 }
 export interface ToolDefinition {
   id: string
@@ -156,5 +157,5 @@ function assertLocalized(value: LocalizedText) {
     )
 }
 
-// Add future definitions in src/tools/index.ts. No utilities are enabled at this stage.
+// UI, search and AI share this registry.
 export const toolRegistry = new ToolRegistry()

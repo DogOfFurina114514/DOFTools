@@ -4,6 +4,7 @@ import { categories } from '../data/tools'
 import { useAppearance, styleName } from '../lib/appearance'
 import { useLocale } from '../lib/i18n'
 import { StylePreview } from '../components/UI'
+import { toolRegistry } from '../tools'
 
 const makeCopy = (t: ReturnType<typeof useLocale>['t']) => ({
   default: t('你的日常，轻一点', 'A little lighter, every day'),
@@ -20,10 +21,15 @@ export function Dashboard() {
   const { t, resolve, locale } = useLocale()
   const copy = makeCopy(t)
   const { style } = useAppearance()
+  const tools = toolRegistry.list()
   return (
     <>
       <div className="page-heading welcome-heading">
         <div>
+          <div className="tool-total" aria-label={t('工具总数', 'Total tools')}>
+            <strong>{tools.length}</strong>
+            <span>{t('个工具', 'tools in total')}</span>
+          </div>
           <span className="eyebrow">DogOfFurina Toolbox</span>
           <h1>
             {copy[style]}
@@ -31,20 +37,20 @@ export function Dashboard() {
           </h1>
           <p>
             {t(
-              '欢迎来到芙芙的狗工具箱。先留好位置，再慢慢装进喜欢的东西。',
-              'Welcome to DogOfFurina Toolbox. A place for the tools you want to add.',
+              '选择分类或搜索处理要求，文件在本地浏览器中处理。',
+              'Choose a category or search for a task. Files are processed in your browser.',
             )}
           </p>
         </div>
         <span className="local-badge">
           <span className="status-dot" />
-          {t('框架已就绪', 'Framework ready')}
+          {t('本地处理', 'Local processing')}
         </span>
       </div>
       <section className="category-section">
         <div className="section-heading">
           <div>
-            <h2>{t('先留五个位置', 'Five spaces to start')}</h2>
+            <h2>{t('工具分类', 'Tool categories')}</h2>
             <p>
               {t(
                 '图片、视频、音频、文档，还有日常里的其他小事。',
@@ -67,7 +73,11 @@ export function Dashboard() {
               </span>
               <div>
                 <h3>{resolve(category.label)}</h3>
-                <span>{t('尚未添加工具', 'No tools yet')}</span>
+                <span>
+                  {t('{count} 个工具', '{count} tools', {
+                    count: tools.filter((tool) => tool.category === category.id).length,
+                  })}
+                </span>
               </div>
               <ArrowUpRight size={18} />
             </Link>

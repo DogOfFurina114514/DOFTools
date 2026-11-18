@@ -1,0 +1,362 @@
+import { bilingual as b } from '../lib/locale'
+import type { ToolDefinition, ToolField, ToolValues } from './registry'
+
+const files = (accept: string, multiple = false): ToolField => ({
+  type: 'files',
+  name: 'files',
+  label: b('选择文件', 'Choose files'),
+  accept,
+  multiple,
+  required: true,
+})
+const format = (formats: string[], initialLabel = b('输出格式', 'Output format')): ToolField => ({
+  type: 'select',
+  name: 'format',
+  label: initialLabel,
+  options: formats.map((value) => ({ value, label: b(value.toUpperCase(), value.toUpperCase()) })),
+})
+const mediaAccept = 'video/*,.mp4,.webm,.mov,.mkv,.avi,.m4v,.ts,.ogg'
+const audioAccept = 'audio/*,.mp3,.wav,.m4a,.aac,.ogg,.opus,.flac,.webm,.mp4'
+function define(
+  id: string,
+  title: [string, string],
+  description: [string, string],
+  category: ToolDefinition['category'],
+  fields: ToolField[],
+  initialValues: ToolValues,
+  execute: ToolDefinition['execute'],
+): ToolDefinition {
+  return {
+    id,
+    title: b(...title),
+    description: b(...description),
+    category,
+    fields,
+    initialValues,
+    execute,
+    inputSchema: {
+      type: 'object',
+      additionalProperties: false,
+      properties: Object.fromEntries(
+        fields.map((field) => [
+          field.name,
+          field.type === 'files'
+            ? { type: 'array', minItems: 1, ...(!field.multiple && { maxItems: 1 }) }
+            : field.type === 'select'
+              ? { type: 'string', enum: field.options.map((option) => option.value) }
+              : field.type === 'number' || field.type === 'slider'
+                ? {
+                    type: 'number',
+                    minimum: field.min,
+                    maximum: field.max,
+                    ...(field.step === 1 && { multipleOf: 1 }),
+                  }
+                : { type: 'string' },
+        ]),
+      ),
+      required: fields.map((field) => field.name),
+    },
+  }
+}
+
+export const builtinTools: ToolDefinition[] = [
+  define(
+    'image-convert',
+    ['图片格式转换', 'Image format converter'],
+    [
+      '批量转换为 PNG、JPG 或 WebP。透明背景转 JPG 时填充白色，动图导出第一帧。',
+      'Batch convert to PNG, JPG or WebP. JPEG uses a white background; animations export their first frame.',
+    ],
+    'image',
+    [
+      files('image/*,.svg,.bmp,.gif,.avif', true),
+      format(['png', 'jpg', 'webp']),
+      {
+        type: 'slider',
+        name: 'quality',
+        label: b('图片质量', 'Image quality'),
+        min: 10,
+        max: 100,
+        step: 1,
+        help: b(
+          '仅影响 JPG 和 WebP；原始尺寸保持不变。',
+          'Applies to JPG and WebP; dimensions stay the same.',
+        ),
+      },
+    ],
+    { files: [], format: 'png', quality: 90 },
+    async (values, context) => (await import('./processors/images')).convertImages(values, context),
+  ),
+  define(
+    'video-convert',
+    ['视频格式转换', 'Video format converter'],
+    [
+      '本地转换 MP4、WebM。可用编码取决于浏览器；建议使用新版 Chrome 或 Edge。',
+      'Convert to MP4 or WebM locally. Codec availability depends on your browser; use a recent Chrome or Edge.',
+    ],
+    'video',
+    [
+      files(mediaAccept),
+      format(['mp4', 'webm']),
+      {
+        type: 'select',
+        name: 'resolution',
+        label: b('最大分辨率', 'Maximum resolution'),
+        options: ['original', '1080', '720', '480'].map((value) => ({
+          value,
+          label: value === 'original' ? b('原始尺寸', 'Original') : b(`${value}p`, `${value}p`),
+        })),
+      },
+    ],
+    { files: [], format: 'mp4', resolution: '720' },
+    async (values, context) =>
+      (await import('./processors/media')).convertMedia(values, context, 'video'),
+  ),
+  define(
+    'audio-convert',
+    ['音频格式转换', 'Audio format converter'],
+    [
+      '转换为 MP3、WAV、FLAC、M4A / AAC 或 OGG / Opus。WAV / FLAC 保存解码后的音质，M4A / OGG 取决于浏览器编码支持。',
+      'Convert to MP3, WAV, FLAC, M4A / AAC or OGG / Opus. WAV / FLAC preserve decoded audio; M4A / OGG require browser encoder support.',
+    ],
+    'audio',
+    [
+      files(audioAccept),
+      format(['mp3', 'wav', 'flac', 'm4a', 'ogg']),
+      {
+        type: 'select',
+        name: 'bitrate',
+        label: b('压缩音频比特率', 'Compressed audio bitrate'),
+        options: ['96', '128', '192', '256'].map((value) => ({
+          value,
+          label: b(`${value} kbps`, `${value} kbps`),
+        })),
+      },
+    ],
+    { files: [], format: 'wav', bitrate: '192' },
+    async (values, context) =>
+      (await import('./processors/media')).convertMedia(values, context, 'audio'),
+  ),
+  define(
+    'document-convert',
+    ['文档格式转换', 'Document format converter'],
+    [
+      'PDF、Word（DOCX）、PPT（PPTX）互转，Excel（XLS / XLSX / CSV）与 TXT 可导出为其中任一种。支持文字、表格和图片；复杂排版、图表、公式与动画可能无法完整保留。',
+      'Convert PDF, Word (DOCX) and PowerPoint (PPTX). Export Excel (XLS / XLSX / CSV) or TXT to any of them. Text, tables and images are supported; complex layouts, charts, formulas and animations may not be preserved.',
+    ],
+    'document',
+    [
+      files('.pdf,.docx,.pptx,.xlsx,.xls,.csv,.txt'),
+      format(['pdf', 'docx', 'pptx', 'xlsx', 'csv', 'txt', 'html']),
+      {
+        type: 'select',
+        name: 'pdfMode',
+        label: b('PDF 转 Word / PPT 的方式', 'PDF to Word / PowerPoint mode'),
+        options: [
+          {
+            value: 'appearance',
+            label: b('保留外观（每页为图片）', 'Preserve appearance (page images)'),
+          },
+          {
+            value: 'editable',
+            label: b('可编辑文字（重新排版，无 OCR）', 'Editable text (reflowed, no OCR)'),
+          },
+        ],
+        help: b(
+          '扫描 PDF 请选保留外观。旧版 DOC / PPT 请先另存为 DOCX / PPTX。导出 XLSX / CSV 会提取内容为单元格。',
+          'Use page images for scanned PDFs. Save legacy DOC / PPT as DOCX / PPTX first. XLSX / CSV output extracts content into cells.',
+        ),
+      },
+    ],
+    { files: [], format: 'pdf', pdfMode: 'appearance' },
+    async (values, context) =>
+      (await import('./processors/documents')).convertDocument(values, context),
+  ),
+  define(
+    'images-pdf',
+    ['图片转 PDF', 'Images to PDF'],
+    [
+      '按选择顺序将多张图片合并为 PDF。支持 PNG、JPG、WebP 等浏览器可读取的图片，最多 100 张。',
+      'Combine images into a PDF in selection order. Supports PNG, JPG, WebP and other browser-readable images, up to 100 images.',
+    ],
+    'document',
+    [
+      files('image/*,.svg,.bmp,.gif,.avif', true),
+      {
+        type: 'select',
+        name: 'pageSize',
+        label: b('页面尺寸', 'Page size'),
+        options: [
+          { value: 'a4', label: b('A4（自动横竖向）', 'A4 (automatic orientation)') },
+          { value: 'image', label: b('匹配图片尺寸', 'Match image dimensions') },
+        ],
+      },
+    ],
+    { files: [], pageSize: 'a4' },
+    async (values, context) =>
+      (await import('./processors/images-pdf')).imagesToPdf(values, context),
+  ),
+  define(
+    'video-audio',
+    ['音频提取', 'Extract audio'],
+    [
+      '从视频中提取音轨为 MP3、WAV、FLAC、M4A 或 OGG；可以指定开始时间与时长。',
+      'Extract a video soundtrack to MP3, WAV, FLAC, M4A or OGG, with an optional start time and duration.',
+    ],
+    'video',
+    [
+      files(mediaAccept),
+      format(['mp3', 'wav', 'flac', 'm4a', 'ogg']),
+      {
+        type: 'number',
+        name: 'start',
+        label: b('开始时间（秒）', 'Start time (seconds)'),
+        min: 0,
+        max: 86400,
+        step: 0.1,
+      },
+      {
+        type: 'number',
+        name: 'duration',
+        label: b('提取时长（秒，0 为直到结尾）', 'Duration (seconds; 0 = to end)'),
+        min: 0,
+        max: 86400,
+        step: 0.1,
+      },
+    ],
+    { files: [], format: 'wav', start: 0, duration: 0 },
+    async (values, context) =>
+      (await import('./processors/media')).convertMedia(values, context, 'extract'),
+  ),
+  define(
+    'video-frames',
+    ['帧提取', 'Extract frames'],
+    [
+      '按时间间隔提取视频画面，最多 100 帧，打包为 ZIP。仅支持当前浏览器可播放的视频。',
+      'Extract frames at a time interval and download up to 100 images as a ZIP. The video must be playable in this browser.',
+    ],
+    'video',
+    [
+      files(mediaAccept),
+      format(['png', 'jpg', 'webp']),
+      {
+        type: 'number',
+        name: 'start',
+        label: b('开始时间（秒）', 'Start time (seconds)'),
+        min: 0,
+        max: 86400,
+        step: 0.1,
+      },
+      {
+        type: 'number',
+        name: 'interval',
+        label: b('帧间隔（秒）', 'Frame interval (seconds)'),
+        min: 0.1,
+        max: 3600,
+        step: 0.1,
+      },
+      {
+        type: 'number',
+        name: 'count',
+        label: b('最多提取帧数', 'Maximum frame count'),
+        min: 1,
+        max: 100,
+        step: 1,
+      },
+    ],
+    { files: [], format: 'png', start: 0, interval: 1, count: 10 },
+    async (values, context) => (await import('./processors/frames')).extractFrames(values, context),
+  ),
+  define(
+    'archive-unlock',
+    ['压缩包密码恢复', 'Archive password recovery'],
+    [
+      '恢复 ZIP（ZipCrypto / AES）密码并输出无密码 ZIP。支持已知密码、常见密码、字典和限定范围穷举；不能保证破解强密码，暂不支持 RAR / 7Z。',
+      'Recover ZIP (ZipCrypto / AES) passwords and export an unlocked ZIP. Try a known password, common passwords, a dictionary or a bounded brute-force search. Strong passwords may not be recovered; RAR / 7Z are not supported yet.',
+    ],
+    'other',
+    [
+      files('.zip,application/zip'),
+      {
+        type: 'select',
+        name: 'mode',
+        label: b('恢复方式', 'Recovery method'),
+        options: [
+          {
+            value: 'auto',
+            label: b(
+              '一键恢复（常见密码 + 1–4 位数字）',
+              'One-click recovery (common passwords + 1–4 digits)',
+            ),
+          },
+          { value: 'known', label: b('使用已知密码', 'Use a known password') },
+          { value: 'dictionary', label: b('自定义字典', 'Custom dictionary') },
+          { value: 'brute', label: b('限定范围穷举', 'Bounded brute force') },
+        ],
+      },
+      {
+        type: 'text',
+        name: 'password',
+        label: b('已知密码或优先尝试的密码', 'Known password or first guess'),
+      },
+      {
+        type: 'textarea',
+        name: 'dictionary',
+        label: b('候选密码（每行一个）', 'Candidate passwords (one per line)'),
+        help: b(
+          '不会上传文件或密码。输入的空格属于密码。',
+          'Files and passwords stay local. Spaces are part of the password.',
+        ),
+      },
+      {
+        type: 'text',
+        name: 'charset',
+        label: b('穷举字符集', 'Brute-force character set'),
+        help: b(
+          '只在限定范围穷举时使用，最多 64 个不同字符。',
+          'Used in brute-force mode; at most 64 distinct characters.',
+        ),
+      },
+      {
+        type: 'number',
+        name: 'minLength',
+        label: b('最短密码长度', 'Minimum password length'),
+        min: 1,
+        max: 8,
+        step: 1,
+      },
+      {
+        type: 'number',
+        name: 'maxLength',
+        label: b('最长密码长度', 'Maximum password length'),
+        min: 1,
+        max: 8,
+        step: 1,
+      },
+      {
+        type: 'number',
+        name: 'maxAttempts',
+        label: b('最多尝试次数', 'Attempt limit'),
+        min: 1,
+        max: 1000000,
+        step: 1,
+        help: b(
+          '达到次数上限就停止，可以随时取消。AES 恢复可能较慢。',
+          'Stops at this limit; cancel at any time. AES recovery can be slow.',
+        ),
+      },
+    ],
+    {
+      files: [],
+      mode: 'auto',
+      password: '',
+      dictionary: '',
+      charset: '0123456789',
+      minLength: 1,
+      maxLength: 4,
+      maxAttempts: 20000,
+    },
+    async (values, context) =>
+      (await import('./processors/archive')).recoverArchive(values, context),
+  ),
+]

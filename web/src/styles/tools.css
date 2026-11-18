@@ -1,0 +1,44 @@
+.tool-total {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.tool-total strong {
+  color: var(--accent);
+  font-size: clamp(52px, 8vw, 88px);
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+.tool-total span {
+  font-size: 18px;
+  color: var(--secondary);
+}
+.ui-result {
+  overflow-wrap: anywhere;
+}
+.ui-result .ui-button {
+  margin: 4px;
+}
+.document-render-host {
+  position: fixed;
+  left: -20000px;
+  top: 0;
+  width: 1000px;
+  pointer-events: none;
+  z-index: -1;
+  color: #111;
+  background: #fff;
+  color-scheme: light;
+}
+.document-render-host * {
+  scrollbar-width: auto;
+}
+@media (max-width: 600px) {
+  .ui-field-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .tool-total {
+    margin-top: 8px;
+  }
+}

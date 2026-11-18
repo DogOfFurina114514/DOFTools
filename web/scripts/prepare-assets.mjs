@@ -1,4 +1,4 @@
-import { copyFile, mkdir, writeFile } from 'node:fs/promises'
+import { copyFile, cp, mkdir, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 
 const root = new URL('../', import.meta.url)
@@ -18,6 +18,29 @@ for (const file of [
   )
 }
 await mkdir(new URL('public/licenses/', root), { recursive: true })
+for (const source of ['mediabunny-v1.66.0.zip', 'lame-3.100.tar.gz']) {
+  await copyFile(
+    new URL(`../documentation/third-party/${source}`, root),
+    new URL(`public/licenses/${source}`, root),
+  )
+}
+await cp(
+  new URL('node_modules/@mediabunny/mp3-encoder/licenses/lame/', root),
+  new URL('public/licenses/lame/', root),
+  { recursive: true },
+)
+await cp(
+  new URL('node_modules/@mediabunny/flac-encoder/licenses/libflac/', root),
+  new URL('public/licenses/libflac/', root),
+  { recursive: true },
+)
+for (const directory of ['cmaps', 'standard_fonts', 'wasm']) {
+  await cp(
+    new URL(`node_modules/pdfjs-dist/${directory}/`, root),
+    new URL(`public/runtime/pdf/${directory}/`, root),
+    { recursive: true },
+  )
+}
 for (const font of ['roboto', 'vt323']) {
   await copyFile(
     new URL(`node_modules/@fontsource/${font}/LICENSE`, root),

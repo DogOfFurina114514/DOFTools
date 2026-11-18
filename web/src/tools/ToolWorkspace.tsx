@@ -129,6 +129,7 @@ export function ToolWorkspace({ tool }: { tool: ToolDefinition }) {
   const [result, setResult] = useState<ToolResult | null>(null)
   const [busy, setBusy] = useState(false)
   const [progress, setProgress] = useState(0)
+  const [status, setStatus] = useState<DisplayText>('')
   const [error, setError] = useState<DisplayText>('')
   const controller = useRef<AbortController | null>(null)
   useEffect(
@@ -144,12 +145,16 @@ export function ToolWorkspace({ tool }: { tool: ToolDefinition }) {
     setResult(null)
     setBusy(true)
     setProgress(0)
+    setStatus('')
     const abort = new AbortController()
     controller.current = abort
     try {
       const result = await toolRegistry.run(tool.id, values, {
         locale,
         signal: abort.signal,
+        onStatus: (value) => {
+          if (controller.current === abort && !abort.signal.aborted) setStatus(value)
+        },
         onProgress: (value) => {
           if (controller.current === abort && !abort.signal.aborted) setProgress(value)
         },
@@ -168,7 +173,12 @@ export function ToolWorkspace({ tool }: { tool: ToolDefinition }) {
     <ToolUI.Panel title={resolve(tool.title)}>
       <p className="ui-panel-description">{resolve(tool.description)}</p>
       <ToolFields fields={tool.fields} values={values} onValueChange={setValues} disabled={busy} />
-      {busy && <ToolUI.Progress label={t('正在处理', 'Processing')} value={progress} />}
+      {busy && (
+        <ToolUI.Progress
+          label={status ? resolve(status) : t('正在处理', 'Processing')}
+          value={progress}
+        />
+      )}
       {error && (
         <p className="error-message" role="alert">
           {resolve(error)}

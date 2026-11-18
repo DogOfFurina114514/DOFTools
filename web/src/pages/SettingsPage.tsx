@@ -144,12 +144,12 @@ export function SettingsPage({
             <h3>{t('芙芙的狗工具箱', 'DogOfFurina Toolbox')}</h3>
             <p>
               {t(
-                '五个分类的纯前端框架。当前还没有开放具体工具。',
-                'A browser-only framework with five categories. Individual tools are coming later.',
+                '五个分类，支持格式转换、视频提取和 ZIP 密码恢复。',
+                'Five categories with format conversion, video extraction and ZIP password recovery.',
               )}
             </p>
           </div>
-          <span className="version-badge">v0.2.0</span>
+          <span className="version-badge">v{version}</span>
         </div>
         {detectAICapability().desktop && (
           <div className="settings-row">
@@ -217,3 +217,4 @@ export function SettingsPage({
     </>
   )
 }
+import { version } from '../../package.json'

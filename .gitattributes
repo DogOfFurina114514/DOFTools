@@ -1,5 +1,8 @@
 * text=auto
 docs/models/** -text
+docs/assets/** -text
+docs/runtime/** -text
+docs/licenses/** -text
 *.onnx binary
 *.onnx_data binary
 *.part-* binary

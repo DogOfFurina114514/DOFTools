@@ -12,6 +12,7 @@ import './styles/material.css'
 import './styles/onboarding.css'
 import './styles/scrollbars.css'
 import './styles/extra-themes.css'
+import './styles/tools.css'
 import '@fontsource/vt323/latin-400.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

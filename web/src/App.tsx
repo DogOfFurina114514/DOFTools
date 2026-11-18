@@ -42,6 +42,7 @@ import { toolRegistry, ToolWorkspace } from './tools'
 import { LocaleProvider, useLocale } from './lib/i18n'
 import { localize, translate, type Locale } from './lib/locale'
 import { styleName } from './lib/appearance'
+import { searchScore, toolSearchAliases } from './lib/search'
 import { LanguageSlider } from './components/LanguageSlider'
 import { IconButton } from './components/controls'
 import { SetupWizard, GuidedTour } from './components/Onboarding'
@@ -165,8 +166,8 @@ function UnavailablePage() {
       icon={<Search size={30} />}
       title={t('这个角落，暂时留白。', 'Nothing here just yet.')}
       description={t(
-        '当前版本先准备界面和风格，具体工具暂未开放。',
-        'The interface is ready. Individual tools are coming later.',
+        '找不到这个工具或页面，请通过分类或搜索重新选择。',
+        'This tool or page could not be found. Choose another from categories or search.',
       )}
     />
   )
@@ -229,11 +230,17 @@ function SearchDialog({ onClose }: { onClose: () => void }) {
   useDialogFocus(dialog)
   const pages = navigationPages(detectAICapability().desktop, locale)
   const alternate = navigationPages(detectAICapability().desktop, locale === 'en' ? 'zh-CN' : 'en')
-  const results = pages.filter((page, index) =>
-    `${page.title} ${page.description} ${alternate[index]?.title} ${alternate[index]?.description}`
-      .toLowerCase()
-      .includes(query.trim().toLowerCase()),
-  )
+  const results = pages
+    .map((page, index) => ({
+      page,
+      score: searchScore(
+        query,
+        `${page.title} ${page.description} ${alternate[index]?.title} ${alternate[index]?.description} ${toolSearchAliases[page.path.replace('/tool/', '')] ?? ''}`,
+      ),
+    }))
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .map((item) => item.page)
   const open = (path: string) => {
     navigate(path)
     onClose()
@@ -252,11 +259,17 @@ function SearchDialog({ onClose }: { onClose: () => void }) {
           <Search size={20} />
           <input
             aria-label={t('搜索关键词', 'Search keywords')}
-            placeholder={t('搜索分类、AI 或设置…', 'Search categories, AI or settings…')}
+            placeholder={t(
+              '搜索工具或要求，如 PNG 转 JPG…',
+              'Search tools or tasks, e.g. PNG to JPG…',
+            )}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             onKeyDown={(event) => {
-              if (event.key === 'Enter' && results[0]) open(results[0].path)
+              if (event.key === 'Enter' && results[0]) {
+                event.preventDefault()
+                open(results[0].path)
+              }
             }}
           />
           <button
@@ -332,8 +345,8 @@ function HelpDialog({ onClose }: { onClose: () => void }) {
         <h2 id="help-title">{t('欢迎来到你的小空间。', 'Welcome to your workspace.')}</h2>
         <p>
           {t(
-            '现在先做好框架，留好五个分类的位置。具体工具暂未开放。',
-            'Five categories are ready. Individual tools will be added later.',
+            '从五个分类中选择工具，或搜索“PNG 转 JPG”这样的处理要求。',
+            'Choose a tool from five categories, or search for a task like “PNG to JPG”.',
           )}
         </p>
         <div className="help-steps">
@@ -352,7 +365,7 @@ function HelpDialog({ onClose }: { onClose: () => void }) {
             <p>
               <strong>{t('看一段小小的开屏', 'Watch an opening')}</strong>
               {t(
-                '三种游戏风格分别有开屏动画。可以跳过，也可以在设置里重播。',
+                '四种游戏风格分别有开屏动画。可以跳过，也可以在设置里重播。',
                 'Each game style has an opening. Skip it or replay it in settings.',
               )}
             </p>
@@ -485,7 +498,12 @@ function Application() {
         ? t('设置与外观', 'Settings & appearance')
         : location.pathname === '/'
           ? t('概览', 'Overview')
-          : t('预留空间', 'Reserved space')
+          : location.pathname.startsWith('/tool/')
+            ? resolve(
+                toolRegistry.get(location.pathname.slice('/tool/'.length))?.title ??
+                  t('工具未找到', 'Tool not found'),
+              )
+            : t('页面未找到', 'Page not found')
   useEffect(() => {
     document.title = `${sectionName} · ${brand}`
   }, [sectionName, brand])
@@ -536,7 +554,9 @@ function Application() {
               <NavLink to={`/category/${category.id}`} key={category.id} className="nav-item">
                 <category.icon size={19} />
                 <span>{resolve(category.label)}</span>
-                <span className="nav-count">—</span>
+                <span className="nav-count">
+                  {toolRegistry.list().filter((tool) => tool.category === category.id).length}
+                </span>
               </NavLink>
             ))}
             <div className="nav-divider" />
@@ -590,7 +610,7 @@ function Application() {
                 {t('工具箱', 'Toolbox')}
               </span>
               <ChevronRight size={13} />
-              <span>{sectionName ?? t('预留空间', 'Reserved space')}</span>
+              <span>{sectionName}</span>
             </div>
             <div className="topbar-actions">
               <LanguageSlider />

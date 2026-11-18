@@ -49,6 +49,10 @@ for (const file of [
   'favicon.svg',
   'runtime/ort-wasm-simd-threaded.asyncify.mjs',
   'runtime/ort-wasm-simd-threaded.asyncify.wasm',
+  'runtime/pdf/cmaps/Adobe-GB1-UCS2.bcmap',
+  'licenses/mediabunny-v1.66.0.zip',
+  'licenses/lame-3.100.tar.gz',
+  'licenses/lame/COPYING',
 ]) {
   await stat(new URL(file, root))
 }
