@@ -17,6 +17,10 @@ export default defineConfig({
       '@e965/xlsx',
       '@zip.js/zip.js',
       'html2canvas',
+      '@tonejs/midi',
+      '@spotify/basic-pitch',
+      '@tensorflow/tfjs',
+      '@tensorflow/tfjs-backend-wasm',
     ],
   },
   build: {

@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useLayoutEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useLocation } from 'react-router-dom'
 import { useLocale } from '../lib/i18n'
 
 type Rail = {
@@ -32,8 +33,9 @@ const parentOf = (element: HTMLElement): HTMLElement | null => {
 /** Overlay rails preserve native scrolling, while supplying themeable pointer and keyboard controls. */
 export function ThemeScrollbars() {
   const { t } = useLocale()
+  const { pathname } = useLocation()
   const [rails, setRails] = useState<Rail[]>([])
-  useEffect(() => {
+  useLayoutEffect(() => {
     let frame = 0
     let targets: HTMLElement[] = []
     let discover = true
@@ -128,6 +130,21 @@ export function ThemeScrollbars() {
         }
       }
       setRails(next)
+      // Transforms move scroll areas without triggering ResizeObserver. Keep the
+      // overlay aligned until finite page/sidebar/dialog motion has settled.
+      if (
+        document.getAnimations().some((animation) => {
+          const effect = animation.effect
+          const target = effect instanceof KeyframeEffect ? effect.target : null
+          return (
+            animation.playState === 'running' &&
+            effect?.getComputedTiming().iterations !== Infinity &&
+            target instanceof Element &&
+            !target.closest('.theme-scrollbars')
+          )
+        })
+      )
+        schedule()
     }
     const schedule = () => {
       if (!frame) frame = requestAnimationFrame(update)
@@ -155,11 +172,22 @@ export function ThemeScrollbars() {
     window.addEventListener('scroll', schedule, true)
     window.addEventListener('resize', schedule)
     document.addEventListener('input', schedule, true)
+    const motionEvents = [
+      'animationstart',
+      'animationend',
+      'animationcancel',
+      'transitionrun',
+      'transitionend',
+      'transitioncancel',
+    ]
+    motionEvents.forEach((event) => document.addEventListener(event, schedule, true))
+    document.fonts.addEventListener('loadingdone', schedule)
     const timer = setTimeout(() => {
       discover = true
       schedule()
     }, 800)
-    schedule()
+    // Clear detached targets and measure the new route before its first paint.
+    update()
     return () => {
       clearTimeout(timer)
       cancelAnimationFrame(frame)
@@ -169,8 +197,10 @@ export function ThemeScrollbars() {
       window.removeEventListener('scroll', schedule, true)
       window.removeEventListener('resize', schedule)
       document.removeEventListener('input', schedule, true)
+      motionEvents.forEach((event) => document.removeEventListener(event, schedule, true))
+      document.fonts.removeEventListener('loadingdone', schedule)
     }
-  }, [])
+  }, [pathname])
   const scroll = (rail: Rail, value: number) => {
     const options = {
       [rail.axis === 'y' ? 'top' : 'left']: Math.min(rail.max, Math.max(0, value)),

@@ -20,6 +20,56 @@
 .ui-result .ui-button {
   margin: 4px;
 }
+.share-preview {
+  padding: 18px;
+  margin-block: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--container-radius, 12px);
+  background: var(--surface);
+}
+.share-preview h3,
+.share-preview h4 {
+  margin-bottom: 12px;
+}
+.share-preview dl {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px 16px;
+  margin-bottom: 14px;
+}
+.share-preview dt,
+.share-files small {
+  color: var(--secondary);
+}
+.share-preview dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.share-preview a {
+  color: var(--green);
+  text-decoration: underline;
+}
+.share-files {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0;
+}
+.share-files li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-block: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.share-files li > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.share-files small {
+  display: block;
+}
 .document-render-host {
   position: fixed;
   left: -20000px;

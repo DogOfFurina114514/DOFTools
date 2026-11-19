@@ -68,6 +68,12 @@ export const toolSearchAliases: Record<string, string> = {
   'image-convert': 'image format convert png jpg jpeg webp bmp gif svg avif 图片格式转换',
   'video-convert': 'video format convert mp4 webm mov mkv m4v 视频格式转换',
   'audio-convert': 'audio format convert mp3 wav flac aac m4a ogg opus 音频格式转换',
+  'audio-midi':
+    'audio convert midi transcription mp3 wav flac m4a aac alac ogg opus webm aiff aif wma piano notes melody 音频转MIDI 音乐 旋律 和弦',
+  'midi-audio':
+    'midi convert audio mid mp3 wav flac m4a aac alac ogg opus webm aiff aif wma synth render MIDI转音频 合成',
+  'share-link':
+    'cloud drive share link parse resolver yunx lanzou ilanzou anonymous 网盘 链接 解析 提取码 蓝奏 优享 免登录 云析',
   'document-convert':
     'document format convert pdf docx word ppt pptx powerpoint excel xlsx xls csv txt html 文档格式转换',
   'images-pdf': 'image pdf convert png jpg jpeg webp svg bmp avif combine merge 图片转PDF 多图合并',

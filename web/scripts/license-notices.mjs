@@ -20,4 +20,7 @@ for (const [path, pkg] of Object.entries(lock.packages)) {
     if (contents) notices.push(`${file}\n${contents}`)
   }
 }
-await writeFile(new URL('public/licenses/THIRD-PARTY.txt', root), notices.join('\n') + '\n')
+await writeFile(
+  new URL('public/licenses/THIRD-PARTY.txt', root),
+  notices.join('\n').replace(/\r\n/g, '\n') + '\n',
+)

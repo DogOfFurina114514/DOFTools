@@ -1,6 +1,6 @@
 # 第三方许可核对
 
-核对日期：2026-11-18。依据 `web/package-lock.json`、已安装包的 LICENSE、Transformers.js 浏览器入口与模型卡；没有直接复制游戏参考网站的整站源码。
+核对日期：2026-11-19。依据 `web/package-lock.json`、已安装包的 LICENSE、Transformers.js 浏览器入口与模型卡；没有直接复制游戏参考网站的整站源码。
 
 ## 主要代码与资源
 
@@ -20,8 +20,14 @@
 | PDF.js、docx、docx-preview、SheetJS（@e965/xlsx） | Apache-2.0                         | 文档解析、排版与生成                                                              |
 | pdf-lib、PptxGenJS、html2canvas                   | MIT                                | PDF / PPT 生成和页面绘制                                                          |
 | zip.js                                            | BSD-3-Clause                       | ZIP 读取、密码验证、解密与打包                                                    |
+| Spotify Basic Pitch 1.0.1 与随包模型              | Apache-2.0                         | 浏览器本地音频转 MIDI，模型从同一站点加载                                         |
+| TensorFlow.js 3.21.0 与 WASM 后端                 | Apache-2.0                         | Basic Pitch 的本地 WASM / WebGL / CPU 推理运行时                                  |
+| @tonejs/midi 2.0.28、midi-file                    | MIT                                | MIDI 读取、时间换算与生成                                                         |
+| @ffmpeg/core 0.12.10 与所链接编解码库             | GPL-2.0-or-later                   | MIDI 工具的独立单线程音频编解码运行时，保留完整对应源码和上游许可                 |
 
-代码依赖中没有查到 GPL 或 AGPL。模型原始许可证保存在 `documentation/third-party/Qwen3.5-LICENSE.txt`。生成网页的 `docs/licenses/` 包含第三方通知、模型与字体许可证。视觉参考链接不授予对应游戏素材的使用权。
+自有工具箱代码采用 Apache-2.0；独立 FFmpeg WASM 运行时保留 GPL-2.0-or-later 及其组成库的许可，详见 [源码与重建说明](documentation/third-party/FFmpeg-SOURCES.md)。模型原始许可证保存在 `documentation/third-party/Qwen3.5-LICENSE.txt`。生成网页的 `docs/licenses/` 包含第三方通知、模型与字体许可证。视觉参考链接不授予对应游戏素材的使用权。
+
+网盘解析的交互和支持格式参考 [CYQawa/YunX](https://github.com/CYQawa/YunX)（AGPL-3.0），没有复制或移植其代码。链接识别、服务接口和页面操作由本项目独立实现；YunX 不作为运行时依赖或分发内容。网盘取链通过 [qaiu/netdisk-fast-download](https://github.com/qaiu/netdisk-fast-download) 的公益接口 `lz.qaiu.top`，服务端代码不包含在本项目中。Basic Pitch 模型与上游 LICENSE 由 `prepare-assets.mjs` 从固定 npm 包复制到 `docs/models/basic-pitch/`，TensorFlow.js 与 MIDI 库的通知由现有第三方清单生成流程保留。
 
 ## LGPL 依赖的范围
 

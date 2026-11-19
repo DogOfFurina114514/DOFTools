@@ -1,6 +1,6 @@
 import { bilingual, LocalizedError, toolRegistry } from '../../src/tools'
 
-// Browser test fixture only; production still registers no tools.
+// Registered only by the browser test; never included in production.
 export function registerLocaleFixture() {
   toolRegistry.register({
     id: 'locale-fixture',

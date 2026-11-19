@@ -36,6 +36,8 @@ test('language switches the site and metadata, persists, and removes credits', a
 test('all English styles, AI and mobile layouts have translated text without overflow', async ({
   page,
 }) => {
+  // Eight desktop/mobile theme passes also include cold Vite dependency loading.
+  test.setTimeout(60000)
   await page.addInitScript(() => {
     localStorage.setItem('fufu:language', '"en"')
     localStorage.setItem('fufu:openings', 'false')
@@ -90,8 +92,10 @@ test('tool fields, options, result and errors translate while values and files r
   await page.evaluate(async () => {
     const { registerLocaleFixture } = await import('/tests/fixtures/locale-tool.ts')
     registerLocaleFixture()
+    // Keep the in-memory fixture registration when opening its workspace.
+    history.pushState({}, '', '/tool/locale-fixture')
+    window.dispatchEvent(new PopStateEvent('popstate'))
   })
-  await page.goto('/tool/locale-fixture')
   await page.getByRole('textbox', { name: '输入内容' }).fill('my draft')
   await page.getByRole('combobox', { name: '输出格式' }).selectOption('large')
   await page.getByRole('checkbox', { name: '保留元数据' }).check()

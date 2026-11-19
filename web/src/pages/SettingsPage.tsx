@@ -144,8 +144,8 @@ export function SettingsPage({
             <h3>{t('芙芙的狗工具箱', 'DogOfFurina Toolbox')}</h3>
             <p>
               {t(
-                '五个分类，支持格式转换、视频提取和 ZIP 密码恢复。',
-                'Five categories with format conversion, video extraction and ZIP password recovery.',
+                '五个分类，支持文件转换、音频与 MIDI 转换、网盘链接解析和 ZIP 密码恢复。',
+                'Five categories with file conversion, audio and MIDI conversion, cloud drive link parsing and ZIP password recovery.',
               )}
             </p>
           </div>

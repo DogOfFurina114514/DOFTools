@@ -33,7 +33,9 @@ test('home removes tools, the dog and avatar, and blocks previous tool routes', 
   expect(external).toEqual([])
 })
 
-test('categories remain empty and global search finds pages instead of tools', async ({ page }) => {
+test('categories expose registered tools and global search opens the image category', async ({
+  page,
+}) => {
   await page.goto('/')
   await page.keyboard.press('Control+k')
   const dialog = page.getByRole('dialog', { name: '搜索页面' })
@@ -41,7 +43,9 @@ test('categories remain empty and global search finds pages instead of tools', a
   await dialog.getByRole('textbox').fill('图片')
   await page.keyboard.press('Enter')
   await expect(page).toHaveURL(/\/category\/image$/)
-  await expect(page.getByRole('heading', { name: '这里，先留一个位置。' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '图片工具' })).toBeVisible()
+  await expect(page.locator('.category-grid .category-card')).toHaveCount(1)
+  await expect(page.locator('.category-grid a[href="/tool/image-convert"]')).toBeVisible()
   await expect(page.locator('.tool-card')).toHaveCount(0)
 })
 

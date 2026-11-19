@@ -1,0 +1,166 @@
+{
+  "runtime": "@ffmpeg/core 0.12.10",
+  "licenseOption": "GPL-3.0",
+  "buildCommit": "71aa99d37c02a7b4c435275ca9ef50e612f6efa1",
+  "buildArchiveSha256": "53c5842f160cece0e39345876f9483b56aa84b966637ff6f624353a0fa884219",
+  "sources": [
+    {
+      "repo": "ffmpegwasm/x264",
+      "ref": "4-cores",
+      "pinnedRef": "33cac6b77d5b9259c552156013a817ab23119612",
+      "url": "https://codeload.github.com/ffmpegwasm/x264/tar.gz/33cac6b77d5b9259c552156013a817ab23119612",
+      "path": "x264-4-cores.tar.gz",
+      "bytes": 941908,
+      "sha256": "577def44917d49463d898ca59753780a2b319065a366bb60e2644584718a2555",
+      "sourceTree": "https://github.com/ffmpegwasm/x264/tree/33cac6b77d5b9259c552156013a817ab23119612"
+    },
+    {
+      "repo": "ffmpegwasm/x265",
+      "ref": "3.4",
+      "pinnedRef": "3.4",
+      "url": "https://codeload.github.com/ffmpegwasm/x265/tar.gz/3.4",
+      "path": "x265-3.4.tar.gz",
+      "bytes": 1530201,
+      "sha256": "abd37f4ab99570fcf2272c47239653204b0854ea5ef19df3729112aaa1f6f311",
+      "sourceTree": "https://github.com/ffmpegwasm/x265/tree/3.4"
+    },
+    {
+      "repo": "ffmpegwasm/libvpx",
+      "ref": "v1.13.1",
+      "pinnedRef": "v1.13.1",
+      "url": "https://codeload.github.com/ffmpegwasm/libvpx/tar.gz/v1.13.1",
+      "sourceTree": "https://github.com/ffmpegwasm/libvpx/tree/v1.13.1"
+    },
+    {
+      "repo": "ffmpegwasm/lame",
+      "ref": "master",
+      "pinnedRef": "2badea1974ae36cb8312afe99cff1e6b3b5decee",
+      "url": "https://codeload.github.com/ffmpegwasm/lame/tar.gz/2badea1974ae36cb8312afe99cff1e6b3b5decee",
+      "path": "lame-master.tar.gz",
+      "bytes": 1525181,
+      "sha256": "0d97ba0776988f5730e0ce1fa936e7c5d6836c757993ba55073513fe89cf410a",
+      "sourceTree": "https://github.com/ffmpegwasm/lame/tree/2badea1974ae36cb8312afe99cff1e6b3b5decee"
+    },
+    {
+      "repo": "ffmpegwasm/Ogg",
+      "ref": "v1.3.4",
+      "pinnedRef": "v1.3.4",
+      "url": "https://codeload.github.com/ffmpegwasm/Ogg/tar.gz/v1.3.4",
+      "path": "ogg-v1.3.4.tar.gz",
+      "bytes": 255977,
+      "sha256": "0930b2a6ad5c9a59a4a1e677a1f34188706c96a45a4bc44c01a084ed41004feb",
+      "sourceTree": "https://github.com/ffmpegwasm/Ogg/tree/v1.3.4"
+    },
+    {
+      "repo": "ffmpegwasm/theora",
+      "ref": "v1.1.1",
+      "pinnedRef": "v1.1.1",
+      "url": "https://codeload.github.com/ffmpegwasm/theora/tar.gz/v1.1.1",
+      "path": "theora-v1.1.1.tar.gz",
+      "bytes": 1133124,
+      "sha256": "e82e95391383a05636a5c08ba53ce7da88fd6ddd39d3032ffc5e7ca61a555e63",
+      "sourceTree": "https://github.com/ffmpegwasm/theora/tree/v1.1.1"
+    },
+    {
+      "repo": "ffmpegwasm/opus",
+      "ref": "v1.3.1",
+      "pinnedRef": "v1.3.1",
+      "url": "https://codeload.github.com/ffmpegwasm/opus/tar.gz/v1.3.1",
+      "path": "opus-v1.3.1.tar.gz",
+      "bytes": 829286,
+      "sha256": "e19dd6b5dc72891cbc5be68b47c8243df06bedd93f7e60243db1053966f713e0",
+      "sourceTree": "https://github.com/ffmpegwasm/opus/tree/v1.3.1"
+    },
+    {
+      "repo": "ffmpegwasm/vorbis",
+      "ref": "v1.3.3",
+      "pinnedRef": "v1.3.3",
+      "url": "https://codeload.github.com/ffmpegwasm/vorbis/tar.gz/v1.3.3",
+      "path": "vorbis-v1.3.3.tar.gz",
+      "bytes": 1324598,
+      "sha256": "927931d2360cd2aeb8d9fe513c29f186106abebf482b6b2db16af2023952afd4",
+      "sourceTree": "https://github.com/ffmpegwasm/vorbis/tree/v1.3.3"
+    },
+    {
+      "repo": "ffmpegwasm/zlib",
+      "ref": "v1.2.11",
+      "pinnedRef": "v1.2.11",
+      "url": "https://codeload.github.com/ffmpegwasm/zlib/tar.gz/v1.2.11",
+      "path": "zlib-v1.2.11.tar.gz",
+      "bytes": 645383,
+      "sha256": "8b54b172ae26cf870286283f805ec038e3086fdf3bcf720cc825f4eb448874c7",
+      "sourceTree": "https://github.com/ffmpegwasm/zlib/tree/v1.2.11"
+    },
+    {
+      "repo": "ffmpegwasm/libwebp",
+      "ref": "v1.3.2",
+      "pinnedRef": "ca332209cb5567c9b249c86788cb2dbf8847e760",
+      "path": "libwebp-v1.3.2.tar.gz",
+      "bytes": 3688570,
+      "sha256": "043388aa60965c21d581284c72b732a4e79693c1bf6d030eaebb8c3aca10aef8",
+      "url": "https://codeload.github.com/ffmpegwasm/libwebp/tar.gz/ca332209cb5567c9b249c86788cb2dbf8847e760",
+      "sourceTree": "https://github.com/ffmpegwasm/libwebp/tree/ca332209cb5567c9b249c86788cb2dbf8847e760"
+    },
+    {
+      "repo": "ffmpegwasm/freetype2",
+      "ref": "VER-2-10-4",
+      "pinnedRef": "VER-2-10-4",
+      "url": "https://codeload.github.com/ffmpegwasm/freetype2/tar.gz/VER-2-10-4",
+      "path": "freetype2-VER-2-10-4.tar.gz",
+      "bytes": 2094527,
+      "sha256": "055811bad294d2f75f3be046f075d725534c06b8f93240a93a9d26bd8a39b566",
+      "sourceTree": "https://github.com/ffmpegwasm/freetype2/tree/VER-2-10-4"
+    },
+    {
+      "repo": "fribidi/fribidi",
+      "ref": "v1.0.9",
+      "pinnedRef": "f9e8e71a6fbf4a4619481284c9f484d10e559995",
+      "path": "fribidi-v1.0.9.tar.gz",
+      "bytes": 2088972,
+      "sha256": "2bb9b06957516e4e4642d2d452dacbf67bc7007afb69b24d7143a7dc915088fc",
+      "url": "https://codeload.github.com/fribidi/fribidi/tar.gz/f9e8e71a6fbf4a4619481284c9f484d10e559995",
+      "sourceTree": "https://github.com/fribidi/fribidi/tree/f9e8e71a6fbf4a4619481284c9f484d10e559995"
+    },
+    {
+      "repo": "harfbuzz/harfbuzz",
+      "ref": "5.2.0",
+      "pinnedRef": "5.2.0",
+      "url": "https://codeload.github.com/harfbuzz/harfbuzz/tar.gz/5.2.0",
+      "sourceTree": "https://github.com/harfbuzz/harfbuzz/tree/5.2.0"
+    },
+    {
+      "repo": "libass/libass",
+      "ref": "0.15.0",
+      "pinnedRef": "0.15.0",
+      "url": "https://codeload.github.com/libass/libass/tar.gz/0.15.0",
+      "path": "libass-0.15.0.tar.gz",
+      "bytes": 243197,
+      "sha256": "9cc813aece4e18d58c10074b103cfefe7bbf497a12e10eefcba803c160bfdbd9",
+      "sourceTree": "https://github.com/libass/libass/tree/0.15.0"
+    },
+    {
+      "repo": "sekrit-twc/zimg",
+      "ref": "release-3.0.5",
+      "pinnedRef": "release-3.0.5",
+      "url": "https://codeload.github.com/sekrit-twc/zimg/tar.gz/release-3.0.5",
+      "path": "zimg-release-3.0.5.tar.gz",
+      "bytes": 326691,
+      "sha256": "1b8998f03f4a49e4d730033143722b32bc28a5306ef809ccfb3b4bbb29e4b784",
+      "sourceTree": "https://github.com/sekrit-twc/zimg/tree/release-3.0.5"
+    },
+    {
+      "repo": "FFmpeg/FFmpeg",
+      "ref": "n5.1.4",
+      "pinnedRef": "n5.1.4",
+      "url": "https://codeload.github.com/FFmpeg/FFmpeg/tar.gz/n5.1.4",
+      "sourceTree": "https://github.com/FFmpeg/FFmpeg/tree/n5.1.4"
+    },
+    {
+      "repo": "libsdl-org/SDL",
+      "ref": "release-2.24.2",
+      "pinnedRef": "release-2.24.2",
+      "url": "https://codeload.github.com/libsdl-org/SDL/tar.gz/release-2.24.2",
+      "sourceTree": "https://github.com/libsdl-org/SDL/tree/release-2.24.2"
+    }
+  ]
+}

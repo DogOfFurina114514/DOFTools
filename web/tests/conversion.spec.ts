@@ -46,16 +46,14 @@ test.beforeAll(async () => {
   )
   const slides = new PptxGenJS()
   slides.layout = 'LAYOUT_WIDE'
-  slides
-    .addSlide()
-    .addText('幻灯片测试 PowerPoint sample 123', {
-      x: 1,
-      y: 1,
-      w: 10,
-      h: 1,
-      fontFace: 'Microsoft YaHei',
-      fontSize: 26,
-    })
+  slides.addSlide().addText('幻灯片测试 PowerPoint sample 123', {
+    x: 1,
+    y: 1,
+    w: 10,
+    h: 1,
+    fontFace: 'Microsoft YaHei',
+    fontSize: 26,
+  })
   slides.addSlide().addText('Second slide 456', { x: 1, y: 1, w: 10, h: 1 })
   ppt = new Uint8Array((await slides.write({ outputType: 'arraybuffer' })) as ArrayBuffer)
   const workbook = XLSX.utils.book_new()
@@ -127,13 +125,13 @@ async function zipTexts(bytes: number[], pattern: RegExp) {
 }
 test('overview counts and bilingual fuzzy task search open the actual tools', async ({ page }) => {
   await page.goto('/')
-  await expect(page.locator('.tool-total strong')).toHaveText('8')
+  await expect(page.locator('.tool-total strong')).toHaveText('11')
   for (const [id, count] of [
     ['image', 1],
     ['video', 3],
-    ['audio', 1],
+    ['audio', 3],
     ['document', 2],
-    ['other', 1],
+    ['other', 2],
   ])
     await expect(page.locator(`.category-card[href="/category/${id}"]`)).toContainText(
       `${count} 个工具`,
@@ -182,13 +180,11 @@ test('image UI produces a JPEG with dimensions and keeps options across language
     ctx.fillRect(0, 0, 16, 16)
     return canvas.toDataURL().split(',')[1]
   })
-  await page
-    .locator('input[type="file"]')
-    .setInputFiles({
-      name: 'sample.png',
-      mimeType: 'image/png',
-      buffer: Buffer.from(bytes, 'base64'),
-    })
+  await page.locator('input[type="file"]').setInputFiles({
+    name: 'sample.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(bytes, 'base64'),
+  })
   await page.getByLabel('输出格式', { exact: true }).selectOption('jpg')
   await page.getByRole('button', { name: 'English', exact: true }).click()
   await expect(page.getByLabel('Output format', { exact: true })).toHaveValue('jpg')
@@ -341,13 +337,11 @@ test('ZIP recovery reports exhausted candidates and cancellation produces no res
   page,
 }) => {
   await page.goto('/tool/archive-unlock')
-  await page
-    .locator('input[type="file"]')
-    .setInputFiles({
-      name: 'encrypted.zip',
-      mimeType: 'application/zip',
-      buffer: Buffer.from(await encryptedZip('hard-unlisted-password', false)),
-    })
+  await page.locator('input[type="file"]').setInputFiles({
+    name: 'encrypted.zip',
+    mimeType: 'application/zip',
+    buffer: Buffer.from(await encryptedZip('hard-unlisted-password', false)),
+  })
   await page.getByLabel('最多尝试次数', { exact: true }).fill('2')
   await page.getByRole('button', { name: '开始处理', exact: true }).click()
   await expect(page.getByRole('alert')).toContainText('未能恢复')
@@ -437,15 +431,13 @@ test('images to PDF accepts multiple selections and preserves page order and dim
     }),
   )
   await expect(page.locator('input[type="file"]')).toHaveAttribute('multiple', '')
-  await page
-    .locator('input[type="file"]')
-    .setInputFiles(
-      images.map((image, index) => ({
-        name: `${index + 1}.png`,
-        mimeType: 'image/png',
-        buffer: Buffer.from(image, 'base64'),
-      })),
-    )
+  await page.locator('input[type="file"]').setInputFiles(
+    images.map((image, index) => ({
+      name: `${index + 1}.png`,
+      mimeType: 'image/png',
+      buffer: Buffer.from(image, 'base64'),
+    })),
+  )
   await page.getByLabel('页面尺寸', { exact: true }).selectOption('image')
   await page.getByRole('button', { name: '开始处理', exact: true }).click()
   await expect(page.locator('.ui-result')).toContainText('已将 2 张图片合并为 PDF')

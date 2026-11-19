@@ -12,4 +12,15 @@ describe('bilingual fuzzy task search', () => {
     expect(searchScore('PDF to Word', toolSearchAliases['image-convert'])).toBe(0)
     expect(searchScore('missing-unicorn-tool', toolSearchAliases['document-convert'])).toBe(0)
   })
+  for (const [query, expected, other] of [
+    ['音频转MIDI', 'audio-midi', 'midi-audio'],
+    ['audio to midi', 'audio-midi', 'midi-audio'],
+    ['MIDI转音频', 'midi-audio', 'audio-midi'],
+    ['midi to audio', 'midi-audio', 'audio-midi'],
+  ])
+    it(`preserves conversion direction for ${query}`, () => {
+      expect(searchScore(query, toolSearchAliases[expected])).toBeGreaterThan(
+        searchScore(query, toolSearchAliases[other]),
+      )
+    })
 })

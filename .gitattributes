@@ -1,7 +1,7 @@
 * text=auto
 docs/models/** -text
-docs/assets/** -text
-docs/runtime/** -text
+docs/assets/** -text -whitespace
+docs/runtime/** -text -whitespace
 docs/licenses/** -text
 *.onnx binary
 *.onnx_data binary

@@ -51,11 +51,12 @@ test('page navigation animates lightly and respects reduced motion', async ({ pa
   ).toBe('page-enter')
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.locator('.sidebar-nav a[href="/category/video"]').click()
-  expect(
-    await page
-      .locator('.route-page')
-      .evaluate((element) => getComputedStyle(element).animationName),
-  ).toBe('none')
+  await expect(page.getByRole('heading', { name: '视频工具' })).toBeVisible()
+  await expect
+    .poll(() =>
+      page.locator('.route-page').evaluate((element) => getComputedStyle(element).animationName),
+    )
+    .toBe('none')
 })
 
 test('first visit setup saves preferences, teaches by navigation, and can reopen', async ({
@@ -131,7 +132,7 @@ test('dismissed local chat notice stays hidden across routes, reload and languag
   await expect(page.locator('.ai-storage-notice')).toHaveCount(0)
 })
 
-test('audio follows video in navigation and search, with no enabled tools', async ({ page }) => {
+test('audio follows video in navigation and search, with three enabled tools', async ({ page }) => {
   await page.goto('/')
   await expect(page.locator('.category-card')).toHaveCount(5)
   const labels = await page.locator('.sidebar-nav .nav-item').allTextContents()
@@ -144,7 +145,8 @@ test('audio follows video in navigation and search, with no enabled tools', asyn
   await page.keyboard.press('Enter')
   await expect(page).toHaveURL(/\/category\/audio$/)
   await expect(page.getByRole('heading', { name: '音频工具' })).toBeVisible()
-  await expect(page.locator('.category-grid')).toHaveCount(0)
+  await expect(page.locator('.category-grid')).toHaveCount(1)
+  await expect(page.locator('.category-grid .category-card')).toHaveCount(3)
   await page.getByRole('button', { name: 'English', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Audio tools' })).toBeVisible()
 })
@@ -194,4 +196,51 @@ test('mobile setup uses a themed draggable overflow rail and keeps touch highlig
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   await page.getByRole('button', { name: '关闭向导' }).click()
   await expect(page.locator('.setup-dialog')).toHaveCount(0)
+})
+
+test('scroll overlays follow CSS transforms and clear detached areas without a wheel event', async ({
+  page,
+}) => {
+  await page.goto('/settings')
+  await page.evaluate(() => {
+    const wrapper = document.createElement('div')
+    wrapper.id = 'moving-scroll-wrapper'
+    wrapper.style.cssText =
+      'position:fixed;left:350px;top:160px;transition:transform 250ms linear;z-index:100'
+    const area = document.createElement('div')
+    area.id = 'moving-scroll-area'
+    area.dataset.scrollArea = ''
+    area.style.cssText = 'width:180px;height:160px;overflow:auto;background:white'
+    const content = document.createElement('div')
+    content.style.height = '800px'
+    area.append(content)
+    wrapper.append(area)
+    document.body.append(wrapper)
+  })
+  const rail = page.locator('.themed-scrollbar[aria-controls="moving-scroll-area"].axis-y')
+  await expect(rail).toBeVisible()
+  await page.evaluate(async () => {
+    const wrapper = document.getElementById('moving-scroll-wrapper')!
+    await new Promise<void>((resolve) => {
+      wrapper.addEventListener('transitionend', () => resolve(), { once: true })
+      wrapper.style.transform = 'translateX(320px)'
+    })
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+  })
+  const area = await page.locator('#moving-scroll-area').boundingBox()
+  const overlay = await rail.boundingBox()
+  expect(Math.abs(overlay!.x + overlay!.width - (area!.x + area!.width - 2))).toBeLessThan(1)
+  await page.evaluate(() => document.getElementById('moving-scroll-wrapper')!.remove())
+  await expect(rail).toHaveCount(0)
+  await page.locator('.sidebar-nav a[href="/category/audio"]').click()
+  await expect(page.getByRole('heading', { name: '音频工具' })).toBeVisible()
+  expect(
+    await page
+      .locator('.themed-scrollbar')
+      .evaluateAll((rails) =>
+        rails.every(
+          (rail) => document.getElementById(rail.getAttribute('aria-controls')!)?.isConnected,
+        ),
+      ),
+  ).toBe(true)
 })

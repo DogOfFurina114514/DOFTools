@@ -1,5 +1,6 @@
 import { bilingual as b } from '../lib/locale'
 import type { ToolDefinition, ToolField, ToolValues } from './registry'
+import { midiAudioAccept, midiAudioFormats } from './processors/midi-formats'
 
 const files = (accept: string, multiple = false): ToolField => ({
   type: 'files',
@@ -138,6 +139,106 @@ export const builtinTools: ToolDefinition[] = [
       (await import('./processors/media')).convertMedia(values, context, 'audio'),
   ),
   define(
+    'audio-midi',
+    ['音频转 MIDI', 'Audio to MIDI'],
+    [
+      '支持 MP3、WAV、FLAC、M4A / AAC / ALAC、OGG、Opus、WebM、AIFF 和 WMA，本地识别旋律与和弦生成 MIDI。独奏效果较好，完整歌曲可能需要人工修正；最长 3 分钟。',
+      'Transcribe MP3, WAV, FLAC, M4A / AAC / ALAC, OGG, Opus, WebM, AIFF and WMA melodies and chords to MIDI locally. Solo instruments work best; full songs may need editing. Up to 3 minutes.',
+    ],
+    'audio',
+    [
+      files(midiAudioAccept),
+      {
+        type: 'slider',
+        name: 'sensitivity',
+        label: b('音符识别灵敏度', 'Note detection sensitivity'),
+        min: 10,
+        max: 90,
+        step: 1,
+        help: b(
+          '越高越容易识别弱音，也可能增加误识别。',
+          'Higher values detect softer notes but may add false notes.',
+        ),
+      },
+      {
+        type: 'number',
+        name: 'minDuration',
+        label: b('最短音符（毫秒）', 'Minimum note length (milliseconds)'),
+        min: 30,
+        max: 1000,
+        step: 1,
+      },
+    ],
+    { files: [], sensitivity: 65, minDuration: 100 },
+    async (values, context) => (await import('./processors/midi')).audioToMidi(values, context),
+  ),
+  define(
+    'midi-audio',
+    ['MIDI 转音频', 'MIDI to audio'],
+    [
+      '本地合成为 MP3、WAV、FLAC、M4A / AAC / ALAC、OGG、Opus、WebM、AIFF 或 WMA，可选择音色。原乐器使用近似合成音色；最长 3 分钟。',
+      'Render MIDI locally to MP3, WAV, FLAC, M4A / AAC / ALAC, OGG, Opus, WebM, AIFF or WMA with a choice of approximate synthesized timbres. Up to 3 minutes.',
+    ],
+    'audio',
+    [
+      files('.mid,.midi,audio/midi,audio/x-midi'),
+      {
+        type: 'select',
+        name: 'format',
+        label: b('输出格式', 'Output format'),
+        options: Object.keys(midiAudioFormats).map((value) => ({
+          value,
+          label: b(
+            value === 'alac' ? 'M4A / ALAC（无损）' : value.toUpperCase(),
+            value === 'alac' ? 'M4A / ALAC (lossless)' : value.toUpperCase(),
+          ),
+        })),
+      },
+      {
+        type: 'select',
+        name: 'bitrate',
+        label: b('压缩音频比特率', 'Compressed audio bitrate'),
+        options: ['96', '128', '192', '256', '320'].map((value) => ({
+          value,
+          label: b(`${value} kbps`, `${value} kbps`),
+        })),
+        help: b(
+          'WAV、FLAC、AIFF 和 ALAC 为无损格式，不使用此设置。',
+          'WAV, FLAC, AIFF and ALAC are lossless and ignore this setting.',
+        ),
+      },
+      {
+        type: 'select',
+        name: 'instrument',
+        label: b('合成音色', 'Synthesized timbre'),
+        options: [
+          {
+            value: 'original',
+            label: b('跟随 MIDI 乐器（近似音色）', 'Follow MIDI instruments (approximate)'),
+          },
+          { value: 'piano', label: b('钢琴', 'Piano') },
+          { value: 'sine', label: b('纯正弦音', 'Sine wave') },
+          { value: 'strings', label: b('弦乐', 'Strings') },
+        ],
+      },
+      {
+        type: 'select',
+        name: 'sampleRate',
+        label: b('采样率', 'Sample rate'),
+        help: b(
+          'Opus 和 WebM 使用 48000 Hz；其他格式使用所选采样率。',
+          'Opus and WebM use 48000 Hz; other formats use the selected rate.',
+        ),
+        options: ['22050', '44100', '48000'].map((value) => ({
+          value,
+          label: b(`${value} Hz`, `${value} Hz`),
+        })),
+      },
+    ],
+    { files: [], format: 'wav', bitrate: '192', instrument: 'original', sampleRate: '44100' },
+    async (values, context) => (await import('./processors/midi')).midiToAudio(values, context),
+  ),
+  define(
     'document-convert',
     ['文档格式转换', 'Document format converter'],
     [
@@ -266,6 +367,43 @@ export const builtinTools: ToolDefinition[] = [
     ],
     { files: [], format: 'png', start: 0, interval: 1, count: 10 },
     async (values, context) => (await import('./processors/frames')).extractFrames(values, context),
+  ),
+  define(
+    'share-link',
+    ['网盘链接解析', 'Cloud drive link parser'],
+    [
+      '免登录解析蓝奏云、蓝奏云优享版的公开分享，浏览文件并获取不超过 100 MiB 的小文件直链。',
+      'Resolve public Lanzou Cloud and Lanzou Premium shares without login, browse files and get download URLs for files up to 100 MiB.',
+    ],
+    'other',
+    [
+      {
+        type: 'textarea',
+        name: 'text',
+        required: true,
+        label: b('分享链接或分享文案', 'Share links or share text'),
+        placeholder: b(
+          '粘贴分享链接，可包含提取码；多个链接请分行。',
+          'Paste share links with optional access codes; use one link per line.',
+        ),
+        help: b(
+          '开始处理后，链接与提取码会发送到 lz.qaiu.top 公益解析服务；无需网盘账号。',
+          'Processing sends links and access codes to the lz.qaiu.top public resolver; no drive account is needed.',
+        ),
+      },
+      {
+        type: 'text',
+        name: 'password',
+        label: b('提取码（可选）', 'Access code (optional)'),
+        help: b(
+          '手动填写会覆盖文案和链接中的提取码。',
+          'Overrides access codes found in the text or URL.',
+        ),
+      },
+    ],
+    { text: '', password: '' },
+    async (values, context) =>
+      (await import('./processors/share-links')).resolveShareLinks(values, context),
   ),
   define(
     'archive-unlock',
