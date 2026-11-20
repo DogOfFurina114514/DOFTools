@@ -1,7 +1,22 @@
 import { copyFile, cp, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
+import { modelManifest, readModelAssets, verifyModelFile } from './model-resources.mjs'
 
 const root = new URL('../', import.meta.url)
+const modelRoot = new URL(`public/models/${modelManifest.directory}/`, root)
+// Preserve the committed part manifest. Replacing it with an empty object makes
+// Transformers.js request raw weights that do not exist in a fresh checkout.
+const modelAssets = await readModelAssets(modelRoot)
+for (const file of modelManifest.files) {
+  try {
+    await verifyModelFile(modelRoot, file, modelAssets, false)
+  } catch (error) {
+    throw new Error(
+      `Local model is incomplete (${file.path}). Run npm run model:download to repair it.`,
+      { cause: error },
+    )
+  }
+}
 // Generated assets are marked -text in Git; normalize copied text explicitly
 // so a Windows checkout produces the same license bytes as other platforms.
 async function copyText(source, target) {
@@ -36,10 +51,6 @@ for (const file of [
     new URL(`public/runtime/tfjs/${file}`, root),
   )
 }
-await writeFile(
-  new URL('public/models/qwen3.5-0.8b/asset-manifest.json', root),
-  JSON.stringify({ version: 1, files: {} }) + '\n',
-)
 for (const file of [
   'ort-wasm-simd-threaded.asyncify.mjs',
   'ort-wasm-simd-threaded.asyncify.wasm',

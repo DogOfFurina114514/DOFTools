@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { ToolRegistry, type ToolDefinition } from '../tools/registry'
-import { assistantDefinitions, executeAssistantCall } from './assistant-tools'
+import { assistantCatalog, assistantDefinitions, executeAssistantCall } from './assistant-tools'
 import { bilingual } from './locale'
 
 function fixture() {
@@ -56,6 +56,26 @@ function fixture() {
   return { registry, execute, definition, context, call }
 }
 describe('assistant file routing', () => {
+  it('keeps recommendations compact and includes options only for current compatible attachments', () => {
+    const { registry } = fixture()
+    const summaries = assistantCatalog('en', registry)
+    expect(summaries).toEqual([
+      { id: 'file-fixture', title: 'File fixture', description: 'Process text files' },
+    ])
+    expect(
+      assistantCatalog('en', registry, [new File([''], 'wrong.png', { type: 'image/png' })]),
+    ).toEqual(summaries)
+    const catalog = assistantCatalog('en', registry, [
+      new File([''], 'input.txt', { type: 'text/plain' }),
+    ])
+    expect(catalog[0]).toMatchObject({
+      fields: [
+        { name: 'files', type: 'files', accept: '.txt' },
+        { name: 'format', type: 'select', options: ['text'], default: 'text' },
+      ],
+    })
+    expect(catalog[0]).not.toHaveProperty('schema')
+  })
   it('recommends a tool without executing even if a model returns an execution call for a text-only request', async () => {
     const { registry, execute, context, call } = fixture()
     expect(assistantDefinitions('en', [], registry).map((tool) => tool.function.name)).toEqual([

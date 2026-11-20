@@ -20,29 +20,39 @@ export interface AssistantToolOutput {
 }
 export const attachmentId = (index: number) => `file-${index + 1}`
 
-export function assistantCatalog(locale: Locale, registry: ToolRegistry = toolRegistry) {
-  return registry.list().map((tool) => ({
-    id: tool.id,
-    title: localize(locale, tool.title),
-    description: localize(locale, tool.description),
-    fields: tool.fields.map((field) => ({
-      ...field,
-      label: localize(locale, field.label),
-      help: field.help && localize(locale, field.help),
-      ...('options' in field
-        ? {
-            options: field.options.map((option) => ({
-              value: option.value,
-              label: localize(locale, option.label),
-            })),
-          }
-        : {}),
-    })),
-    defaults: Object.fromEntries(
-      Object.entries(tool.initialValues).filter(([, value]) => !Array.isArray(value)),
-    ),
-    schema: tool.inputSchema,
-  }))
+export function assistantCatalog(
+  locale: Locale,
+  registry: ToolRegistry = toolRegistry,
+  files: File[] = [],
+) {
+  return registry.list().map((tool) => {
+    const summary = {
+      id: tool.id,
+      title: localize(locale, tool.title),
+      description: localize(locale, tool.description),
+    }
+    // Recommendations need only the catalog. Include processing options only
+    // for tools that can handle this turn's files; UI text and duplicate JSON
+    // schemas used to exhaust the context before even a one-line question.
+    const relevant = tool.fields.some(
+      (field) => field.type === 'files' && files.some((file) => acceptsFile(file, field.accept)),
+    )
+    if (!relevant) return summary
+    return {
+      ...summary,
+      fields: tool.fields.map((field) => ({
+        name: field.name,
+        type: field.type,
+        ...('options' in field ? { options: field.options.map((option) => option.value) } : {}),
+        ...('min' in field ? { min: field.min } : {}),
+        ...('max' in field ? { max: field.max } : {}),
+        ...('accept' in field ? { accept: field.accept } : {}),
+        ...(!Array.isArray(tool.initialValues[field.name])
+          ? { default: tool.initialValues[field.name] }
+          : {}),
+      })),
+    }
+  })
 }
 export function assistantDefinitions(
   locale: Locale,

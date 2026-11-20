@@ -4,11 +4,13 @@ import { copyFile, mkdir, readFile, rename, stat, truncate } from 'node:fs/promi
 import { pipeline } from 'node:stream/promises'
 import { Readable, Transform } from 'node:stream'
 import { fileURLToPath } from 'node:url'
+import { packageModel, readModelAssets, verifyModelFile } from './model-resources.mjs'
 
 const manifest = JSON.parse(
   await readFile(new URL('./model.manifest.json', import.meta.url), 'utf8'),
 )
 const root = new URL(`../public/models/${manifest.directory}/`, import.meta.url)
+const localAssets = await readModelAssets(root)
 const publishedRoot = new URL(`../../docs/models/${manifest.directory}/`, import.meta.url)
 const publishedAssets = await readFile(new URL('asset-manifest.json', publishedRoot), 'utf8')
   .then(JSON.parse)
@@ -25,6 +27,13 @@ async function download(file) {
   const target = new URL(file.path, root)
   const part = fileURLToPath(target) + '.part'
   await mkdir(new URL('./', target), { recursive: true })
+  try {
+    await verifyModelFile(root, file, localAssets)
+    console.log(`Verified ${file.path} from local model resources`)
+    return
+  } catch {
+    // Repair missing or corrupt local resources from the published model first.
+  }
   if ((await size(target)) === file.bytes && (await hash(target)) === file.sha256) {
     console.log(`Verified ${file.path}`)
     return
@@ -116,5 +125,6 @@ await Promise.all(
     while (queue.length) await download(queue.shift())
   }),
 )
+await packageModel(root)
 await import('./prepare-assets.mjs')
 console.log('Model and runtime are ready for local browser inference.')

@@ -1,8 +1,9 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { retainAssets } from './scripts/retain-assets'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), retainAssets()],
   base: '/',
   optimizeDeps: {
     include: [

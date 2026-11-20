@@ -1,0 +1,1 @@
+import{i as t}from"./shared-BVNLMfum.js";import{r as i}from"./worker-client-DBHlnc2L.js";import"./index-CcjOU_MD.js";function s(r,e,o){return t(r),i(new Worker(new URL("/assets/media.worker-DP0KoHdO.js",import.meta.url),{type:"module"}),{...r,mode:o},e)}export{s as convertMedia};

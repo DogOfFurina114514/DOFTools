@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "files": {
+    "onnx/decoder_model_merged_q4.onnx_data": {
+      "bytes": 485425152,
+      "parts": [
+        {
+          "path": "onnx/decoder_model_merged_q4.onnx_data.part-000",
+          "bytes": 50331648
+        },
+        {
+          "path": "onnx/decoder_model_merged_q4.onnx_data.part-001",
+          "bytes": 50331648
+        },
+        {
+          "path": "onnx/decoder_model_merged_q4.onnx_data.part-002",
+          "bytes": 50331648
+        },
+        {
+          "path": "onnx/decoder_model_merged_q4.onnx_data.part-003",
+          "bytes": 50331648
+        },
+        {
+          "path": "onnx/decoder_model_merged_q4.onnx_data.part-004",
+          "bytes": 50331648
+        },
+        {
+          "path": "onnx/decoder_model_merged_q4.onnx_data.part-005",
+          "bytes": 50331648
+        },
+        {
+          "path": "onnx/decoder_model_merged_q4.onnx_data.part-006",
+          "bytes": 50331648
+        },
+        {
+          "path": "onnx/decoder_model_merged_q4.onnx_data.part-007",
+          "bytes": 50331648
+        },
+        {
+          "path": "onnx/decoder_model_merged_q4.onnx_data.part-008",
+          "bytes": 50331648
+        },
+        {
+          "path": "onnx/decoder_model_merged_q4.onnx_data.part-009",
+          "bytes": 32440320
+        }
+      ]
+    },
+    "onnx/embed_tokens_q4.onnx_data": {
+      "bytes": 162897920,
+      "parts": [
+        {
+          "path": "onnx/embed_tokens_q4.onnx_data.part-000",
+          "bytes": 50331648
+        },
+        {
+          "path": "onnx/embed_tokens_q4.onnx_data.part-001",
+          "bytes": 50331648
+        },
+        {
+          "path": "onnx/embed_tokens_q4.onnx_data.part-002",
+          "bytes": 50331648
+        },
+        {
+          "path": "onnx/embed_tokens_q4.onnx_data.part-003",
+          "bytes": 11902976
+        }
+      ]
+    },
+    "onnx/vision_encoder_fp16.onnx_data": {
+      "bytes": 204798464,
+      "parts": [
+        {
+          "path": "onnx/vision_encoder_fp16.onnx_data.part-000",
+          "bytes": 50331648
+        },
+        {
+          "path": "onnx/vision_encoder_fp16.onnx_data.part-001",
+          "bytes": 50331648
+        },
+        {
+          "path": "onnx/vision_encoder_fp16.onnx_data.part-002",
+          "bytes": 50331648
+        },
+        {
+          "path": "onnx/vision_encoder_fp16.onnx_data.part-003",
+          "bytes": 50331648
+        },
+        {
+          "path": "onnx/vision_encoder_fp16.onnx_data.part-004",
+          "bytes": 3471872
+        }
+      ]
+    }
+  }
+}

@@ -6,7 +6,7 @@ dist/
 .env.local
 playwright-report/
 test-results*/
-web/public/models/**
-!web/public/models/README.md
+web/public/models/**/*.onnx_data
+web/public/models/**/*.part
 web/public/runtime/
 web/public/licenses/

@@ -252,7 +252,8 @@ export function AISessionProvider({
       : userText + attachmentInfo
     const user: AIMessage = { role: 'user', content }
     const instruction = system(locale)
-    instruction.content += '\nTool catalog: ' + JSON.stringify(assistantCatalog(locale))
+    instruction.content +=
+      '\nTool catalog: ' + JSON.stringify(assistantCatalog(locale, undefined, files))
     instruction.content += files.length
       ? '\nCurrent attachments may be processed when requested.'
       : '\nNo files attached in this turn. Only recommend tools; do not execute.'

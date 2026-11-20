@@ -2,7 +2,7 @@
 
 纯前端工具箱，支持中文 / EN、五个工具分类、八种主题与电脑端本地 AI。已提供十一个工具，包括格式转换、音频与 MIDI 转换、网盘链接解析、视频提取、图片转 PDF 和 ZIP 密码恢复。
 
-当前正式版本：**26.0.3**。版本格式为「年份.大版本.小版本」，年份使用两位数字。
+当前正式版本：**26.0.4**。版本格式为「年份.大版本.小版本」，年份使用两位数字。
 
 仓库：https://github.com/DogOfFurina114514/DOFTools
 
@@ -31,11 +31,10 @@ HTML、JS、CSS 都是网页源码。本项目日常维护 `web/` 中的 TypeScr
 ```sh
 cd web
 npm ci
-npm run model:download
 npm run dev
 ```
 
-开发地址：`http://127.0.0.1:5173`。`model:download` 优先从 `docs/models/` 恢复已经提交的完整模型，校验 SHA-256；仅在资源缺失时联网下载。
+开发地址：`http://127.0.0.1:5173`。完整 Qwen 和 Basic Pitch 模型已提交到 `web/public/models/`，克隆后无需额外下载模型。若本地资源缺失或损坏，运行 `npm run model:download`：优先从 `docs/models/` 修复并校验 SHA-256，仅在仓库资源缺失时联网下载。
 
 ```sh
 npm test
@@ -44,7 +43,9 @@ npm run pages:check
 npm run preview
 ```
 
-构建只更新 `docs/`，不会清空 `web/` 中的开发文件。模型按最多 48 MiB 分块，浏览器从同一站点顺序读取，保持真实字节下载进度。提交更新时一并提交开发源码和重建后的网页。
+构建只更新 `docs/`，不会清空 `web/` 中的开发文件。开发目录与发布目录均保存完整模型，权重按最多 48 MiB 分块，浏览器从同一站点顺序读取，保持真实字节下载进度。准备运行时不会覆盖模型分块清单；构建直接校验已提交分块，无需未跟踪的原始大权重。提交更新时一并提交开发源码和重建后的网页。
+
+发布时保留前两次构建的带哈希资源及其依赖，旧页面缓存或尚未关闭的标签页仍能加载音频转换等工具模块；连续构建相同资源不会提前淘汰旧文件。
 
 浏览器检查：`npm run test:e2e`。Windows 安装 Edge 时可先设置 `$env:PLAYWRIGHT_CHANNEL = 'msedge'`。`npm run test:model` 使用真实权重检查 WebGPU，普通浏览器检查跳过此耗时项目。
 
