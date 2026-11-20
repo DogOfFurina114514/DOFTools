@@ -8,11 +8,18 @@ import {
   StoppingCriteria,
   Tensor,
 } from '@huggingface/transformers'
-import { LOCAL_MODEL, type AIWorkerEvent, type AIWorkerRequest, type AIMessage } from './ai'
+import {
+  LOCAL_MODEL,
+  type AIWorkerEvent,
+  type AIWorkerRequest,
+  type AIMessage,
+  type AILoadStage,
+} from './ai'
 import { parseToolCalls, visibleAIText } from './ai-output'
 import { bilingual, errorMessage, LocalizedError } from './locale'
-import { createModelFetch, type ModelAssetManifest } from './model-assets'
+import { createDownloadPool, createModelFetch, type ModelAssetManifest } from './model-assets'
 import { resourceBase } from './site-resources'
+import { createModelRequest } from './model-network'
 
 let model: Qwen3_5ForConditionalGeneration | null = null
 let processor: Awaited<ReturnType<typeof AutoProcessor.from_pretrained>> | null = null
@@ -85,12 +92,35 @@ self.onmessage = async ({ data }: MessageEvent<AIWorkerRequest>) => {
   try {
     if (data.type === 'load') {
       if (!model) {
+        let stage: AILoadStage | undefined
+        const reportStage = (value: AILoadStage) => {
+          if (stage !== value) {
+            stage = value
+            send({ id, type: 'stage', stage: value })
+          }
+        }
+        reportStage('gpu')
         const gpu = (
           self.navigator as Navigator & {
             gpu?: { requestAdapter(): Promise<{ features: Set<string> } | null> }
           }
         ).gpu
-        const adapter = await gpu?.requestAdapter()
+        let gpuTimer: ReturnType<typeof setTimeout> | undefined
+        const adapter = await Promise.race([
+          gpu?.requestAdapter(),
+          new Promise<never>((_, reject) => {
+            gpuTimer = setTimeout(
+              () =>
+                reject(
+                  new LocalizedError(
+                    '显卡检测超时，请开启硬件加速并重新启动浏览器。',
+                    'GPU detection timed out. Enable hardware acceleration and restart your browser.',
+                  ),
+                ),
+              20_000,
+            )
+          }),
+        ]).finally(() => clearTimeout(gpuTimer))
         if (!adapter)
           throw new LocalizedError(
             '未找到可用的 WebGPU 显卡。请开启浏览器硬件加速，并更新 Chrome 或 Edge。',
@@ -110,34 +140,73 @@ self.onmessage = async ({ data }: MessageEvent<AIWorkerRequest>) => {
         // The weights are shipped with the site. Browser disk cache writes for
         // large ONNX responses can fail; keep them in the active model session.
         env.useBrowserCache = false
+        reportStage('connecting')
+        const request = createModelRequest()
         const modelRoot = new URL(`models/${LOCAL_MODEL.localId}/`, assetsBase)
-        const assetsResponse = await fetch(new URL('asset-manifest.json', modelRoot), {
+        const assetsResponse = await request(new URL('asset-manifest.json', modelRoot), {
           cache: 'no-store',
         })
         if (!assetsResponse.ok)
           throw new LocalizedError('模型资源清单缺失。', 'The model resource manifest is missing.')
         const assets = (await assetsResponse.json()) as ModelAssetManifest
+        const pool = createDownloadPool(4)
+        const downloadSizes = new Map(
+          Object.entries(assets.files).map(([name, asset]) => [name, asset.bytes]),
+        )
+        downloadSizes.set(LOCAL_MODEL.runtimeFile, LOCAL_MODEL.runtimeBytes)
+        const downloadBytes = [...downloadSizes.values()].reduce((sum, bytes) => sum + bytes, 0)
         const downloaded = new Map<string, number>()
         const reportProgress = (file: string, loaded: number) => {
-          downloaded.set(file, Math.max(loaded, downloaded.get(file) ?? 0))
+          const size = downloadSizes.get(file)
+          if (size === undefined) return
+          downloaded.set(file, Math.min(size, Math.max(loaded, downloaded.get(file) ?? 0)))
+          if (
+            Object.entries(assets.files).every(
+              ([name, asset]) => (downloaded.get(name) ?? 0) >= asset.bytes,
+            )
+          )
+            reportStage('initializing')
           send({
             id,
             type: 'progress',
             progress: Math.min(
-              0.99,
-              [...downloaded.values()].reduce((a, b) => a + b, 0) / LOCAL_MODEL.bytes,
+              1,
+              [...downloaded.values()].reduce((a, b) => a + b, 0) / downloadBytes,
             ),
             file,
           })
         }
-        env.fetch = createModelFetch(modelRoot.href, assets, fetch, {
+        env.fetch = createModelFetch(modelRoot.href, assets, request, {
           concurrency: 4,
+          pool,
           onProgress: reportProgress,
           localRoot: new URL(`models/${LOCAL_MODEL.localId}/`, data.baseUrl).href,
         })
         env.backends.onnx.wasm!.wasmPaths = new URL('runtime/', assetsBase).href
         env.backends.onnx.wasm!.numThreads = 1
-        const configResponse = await fetch(
+        env.backends.onnx.wasm!.initTimeout = 60_000
+        reportStage('runtime')
+        const runtimeRoot = new URL('runtime/', assetsBase)
+        const runtime = LOCAL_MODEL.runtimeFile
+        const fetchRuntime = createModelFetch(
+          runtimeRoot.href,
+          {
+            version: 1,
+            files: {
+              [runtime]: {
+                bytes: LOCAL_MODEL.runtimeBytes,
+                parts: [{ path: runtime, bytes: LOCAL_MODEL.runtimeBytes }],
+              },
+            },
+          },
+          request,
+          { pool, onProgress: reportProgress },
+        )
+        env.backends.onnx.wasm!.wasmBinary = await (
+          await fetchRuntime(new URL(runtime, runtimeRoot))
+        ).arrayBuffer()
+        reportStage('config')
+        const configResponse = await request(
           new URL(`models/${LOCAL_MODEL.localId}/config.json`, assetsBase),
         )
         if (!configResponse.ok || !configResponse.headers.get('content-type')?.includes('json'))
@@ -157,10 +226,12 @@ self.onmessage = async ({ data }: MessageEvent<AIWorkerRequest>) => {
               event.loaded ?? event.total ?? downloaded.get(event.file) ?? 0,
             )
         }
+        reportStage('tokenizer')
         processor = await AutoProcessor.from_pretrained(LOCAL_MODEL.localId, {
           local_files_only: true,
           progress_callback,
         })
+        reportStage('weights')
         model = (await Qwen3_5ForConditionalGeneration.from_pretrained(LOCAL_MODEL.localId, {
           device: 'webgpu',
           dtype: LOCAL_MODEL.dtype,

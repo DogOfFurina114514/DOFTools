@@ -475,20 +475,30 @@ export function FilePicker({
     </ControlFrame>
   )
 }
-export function Progress({ label, value }: { label: string; value?: number }) {
+export function Progress({
+  label,
+  value,
+  decimals = 0,
+}: {
+  label: string
+  value?: number
+  decimals?: 0 | 1 | 2
+}) {
   const normalized = value === undefined ? undefined : Math.max(0, Math.min(1, value))
+  const percent =
+    normalized === undefined ? undefined : Number((normalized * 100).toFixed(decimals))
   return (
     <div className="ui-progress">
       <span>
         {label}
-        {normalized !== undefined && <b>{Math.round(normalized * 100)}%</b>}
+        {percent !== undefined && <b>{percent.toFixed(decimals)}%</b>}
       </span>
       <div
         role="progressbar"
         aria-label={label}
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-valuenow={normalized === undefined ? undefined : Math.round(normalized * 100)}
+        aria-valuenow={percent}
         className={`ui-progress-track ${normalized === undefined ? 'indeterminate' : ''}`}
       >
         <span style={normalized === undefined ? undefined : { width: `${normalized * 100}%` }} />

@@ -1,6 +1,15 @@
 {
   "version": 1,
   "files": {
+    "onnx/decoder_model_merged_q4.onnx": {
+      "bytes": 876359,
+      "parts": [
+        {
+          "path": "onnx/decoder_model_merged_q4.onnx",
+          "bytes": 876359
+        }
+      ]
+    },
     "onnx/decoder_model_merged_q4.onnx_data": {
       "bytes": 485425152,
       "parts": [
@@ -181,6 +190,51 @@
         {
           "path": "onnx/vision_encoder_fp16.onnx_data.part-009",
           "bytes": 16054784
+        }
+      ]
+    },
+    "tokenizer.json": {
+      "bytes": 19226111,
+      "parts": [
+        {
+          "path": "tokenizer.json.part-000",
+          "bytes": 2097152
+        },
+        {
+          "path": "tokenizer.json.part-001",
+          "bytes": 2097152
+        },
+        {
+          "path": "tokenizer.json.part-002",
+          "bytes": 2097152
+        },
+        {
+          "path": "tokenizer.json.part-003",
+          "bytes": 2097152
+        },
+        {
+          "path": "tokenizer.json.part-004",
+          "bytes": 2097152
+        },
+        {
+          "path": "tokenizer.json.part-005",
+          "bytes": 2097152
+        },
+        {
+          "path": "tokenizer.json.part-006",
+          "bytes": 2097152
+        },
+        {
+          "path": "tokenizer.json.part-007",
+          "bytes": 2097152
+        },
+        {
+          "path": "tokenizer.json.part-008",
+          "bytes": 2097152
+        },
+        {
+          "path": "tokenizer.json.part-009",
+          "bytes": 351743
         }
       ]
     }

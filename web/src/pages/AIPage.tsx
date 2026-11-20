@@ -146,9 +146,20 @@ export function AIPage() {
     )
   const busy = ai.status === 'generating'
   const loading = ai.status === 'loading'
+  const loadLabel = {
+    starting: t('正在启动助手', 'Starting the assistant'),
+    gpu: t('正在检测显卡', 'Checking your GPU'),
+    connecting: t('正在连接模型资源', 'Connecting to model resources'),
+    config: t('正在读取模型配置', 'Reading the model configuration'),
+    runtime: t('正在下载运行环境', 'Downloading the runtime'),
+    tokenizer: t('正在下载词表', 'Downloading the tokenizer'),
+    weights: t('正在下载模型权重', 'Downloading model weights'),
+    initializing: t('正在初始化模型', 'Initializing the model'),
+  }[ai.loadStage]
+  const downloading = ['runtime', 'tokenizer', 'weights'].includes(ai.loadStage)
   const ready = ai.status === 'ready' || busy
   const statusText = loading
-    ? t('正在准备', 'Preparing')
+    ? loadLabel
     : busy
       ? t('正在处理', 'Working')
       : ready
@@ -197,11 +208,7 @@ export function AIPage() {
             <div>
               <Sparkles size={23} />
               <div>
-                <h2>
-                  {loading
-                    ? t('正在准备助手', 'Preparing the assistant')
-                    : t('准备好就开始吧', 'Ready when you are')}
-                </h2>
+                <h2>{loading ? loadLabel : t('准备好就开始吧', 'Ready when you are')}</h2>
                 <p>
                   {t(
                     '对话和文件都留在这台电脑上。',
@@ -213,10 +220,9 @@ export function AIPage() {
             {loading ? (
               <>
                 <ToolUI.Progress
-                  label={
-                    ai.progress >= 0.98 ? t('即将就绪', 'Almost ready') : t('正在准备', 'Preparing')
-                  }
-                  value={ai.progress}
+                  label={downloading ? t('总下载进度', 'Total download progress') : loadLabel}
+                  value={downloading ? ai.progress : undefined}
+                  decimals={2}
                 />
                 <ToolUI.Button variant="secondary" onClick={ai.unload}>
                   {t('取消准备', 'Cancel')}

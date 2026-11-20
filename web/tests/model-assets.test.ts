@@ -16,6 +16,113 @@ const manifest: ModelAssetManifest = {
 }
 
 describe('static Pages model transport', () => {
+  it('keeps downloading when isolated connection failures occur between successful ranges', async () => {
+    const bytes = new Uint8Array(512 * 1024 + 17).fill(42)
+    let failed = false
+    const request = vi.fn<typeof fetch>().mockImplementation(async (_, init) => {
+      if (!failed) {
+        failed = true
+        throw new TypeError('Temporary connection failure')
+      }
+      failed = false
+      const range = new Headers(init?.headers).get('Range')!.match(/^bytes=(\d+)-(\d+)$/)!
+      return new Response(bytes.slice(Number(range[1]), Number(range[2]) + 1), { status: 206 })
+    })
+    const response = await createModelFetch(
+      root,
+      {
+        version: 1,
+        files: {
+          weight: { bytes: bytes.length, parts: [{ path: 'weight', bytes: bytes.length }] },
+        },
+      },
+      request,
+      { concurrency: 1 },
+    )(root + 'weight')
+    expect(new Uint8Array(await response.arrayBuffer())).toEqual(bytes)
+    expect(request.mock.calls.length).toBeGreaterThan(6)
+    const ranges = request.mock.calls
+      .slice(2)
+      .map(([, init]) => new Headers(init?.headers).get('Range')!)
+    expect(
+      ranges.every((range) => {
+        const [start, end] = range.replace('bytes=', '').split('-').map(Number)
+        return end - start + 1 <= 128 * 1024
+      }),
+    ).toBe(true)
+  })
+
+  it('retries an interrupted range without duplicating bytes or final progress', async () => {
+    let first = true
+    const request = vi.fn<typeof fetch>().mockImplementation(async (_, init) => {
+      if (first) {
+        first = false
+        let sent = false
+        return new Response(
+          new ReadableStream<Uint8Array>({
+            pull(controller) {
+              if (!sent) {
+                sent = true
+                controller.enqueue(new Uint8Array([1]))
+              } else controller.error(new TypeError('Failed to fetch'))
+            },
+          }),
+          { status: 206 },
+        )
+      }
+      const range = new Headers(init?.headers).get('Range')!.match(/^bytes=(\d+)-(\d+)$/)!
+      return new Response(
+        new Uint8Array([1, 2, 3, 4]).slice(Number(range[1]), Number(range[2]) + 1),
+        { status: 206 },
+      )
+    })
+    const progress = vi.fn()
+    const response = await createModelFetch(
+      root,
+      { version: 1, files: { weight: { bytes: 4, parts: [{ path: 'weight', bytes: 4 }] } } },
+      request,
+      { rangeBytes: 2, onProgress: progress },
+    )(root + 'weight')
+    expect([...new Uint8Array(await response.arrayBuffer())]).toEqual([1, 2, 3, 4])
+    expect(progress.mock.calls.at(-1)).toEqual(['weight', 4])
+    expect(Math.max(...progress.mock.calls.map(([, bytes]) => bytes))).toBe(4)
+  })
+
+  it('assembles byte ranges and decodes JSON correctly across UTF-8 boundaries', async () => {
+    const value = { vocabulary: ['你好', '芙芙', 'hello'] }
+    const bytes = new TextEncoder().encode(JSON.stringify(value))
+    const request = vi.fn<typeof fetch>().mockImplementation(async (_, init) => {
+      const range = new Headers(init?.headers).get('Range')!.match(/^bytes=(\d+)-(\d+)$/)!
+      const start = Number(range[1]),
+        end = Number(range[2])
+      await new Promise((resolve) => setTimeout(resolve, start === 0 ? 20 : 1))
+      return new Response(bytes.slice(start, end + 1), { status: 206 })
+    })
+    const asset = { bytes: bytes.length, parts: [{ path: 'tokenizer.json', bytes: bytes.length }] }
+    const transport = createModelFetch(
+      root,
+      { version: 1, files: { 'tokenizer.json': asset } },
+      request,
+      { rangeBytes: 8 },
+    )
+    const response = await transport(root + 'tokenizer.json')
+    expect(request).not.toHaveBeenCalled()
+    expect(await response.json()).toEqual(value)
+    expect(response.headers.get('content-length')).toBe(String(bytes.length))
+    expect(request.mock.calls.every(([, init]) => new Headers(init?.headers).has('Range'))).toBe(
+      true,
+    )
+  })
+
+  it('rejects a server that ignores byte ranges instead of accepting corrupted data', async () => {
+    const request = vi.fn<typeof fetch>().mockResolvedValue(new Response(new Uint8Array([1, 2, 3])))
+    const response = await createModelFetch(root, manifest, request, { rangeBytes: 1 })(
+      root + 'onnx/model.onnx_data',
+    )
+    await expect(response.arrayBuffer()).rejects.toThrow('requested byte range')
+    expect(request.mock.calls.every(([, init]) => init?.signal?.aborted)).toBe(true)
+  })
+
   it('streams ordered parts at a repository subpath and retains actual download length', async () => {
     const request = vi
       .fn<typeof fetch>()

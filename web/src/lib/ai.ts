@@ -6,6 +6,8 @@ export const LOCAL_MODEL = {
   precision: 'Q4 + FP16 vision',
   dtype: { embed_tokens: 'q4', vision_encoder: 'fp16', decoder_model_merged: 'q4' },
   bytes: 873485707,
+  runtimeFile: 'ort-wasm-simd-threaded.asyncify.wasm',
+  runtimeBytes: 26861777,
   localId: 'qwen3.5-0.8b',
   directory: `${import.meta.env.BASE_URL}models/qwen3.5-0.8b/`,
   runtime: 'WebGPU',
@@ -47,7 +49,11 @@ export type AIMessage =
 // All tool execution must resolve through an explicit local registry. No tools are enabled yet.
 export const AVAILABLE_AI_TOOLS: AIToolDefinition[] = []
 export interface LocalAIAdapter {
-  load(onProgress: (progress: number) => void, signal?: AbortSignal): Promise<void>
+  load(
+    onProgress: (progress: number) => void,
+    signal?: AbortSignal,
+    onStage?: (stage: AILoadStage) => void,
+  ): Promise<void>
   generate(request: {
     messages: AIMessage[]
     tools: AIToolDefinition[]
@@ -59,6 +65,16 @@ export interface LocalAIAdapter {
   interrupt(): void
   dispose(): Promise<void>
 }
+
+export type AILoadStage =
+  | 'starting'
+  | 'gpu'
+  | 'connecting'
+  | 'config'
+  | 'runtime'
+  | 'tokenizer'
+  | 'weights'
+  | 'initializing'
 
 export interface AIResponse {
   text: string
@@ -80,6 +96,7 @@ export type AIWorkerRequest =
   | { type: 'interrupt' }
 
 export type AIWorkerEvent =
+  | { id: number; type: 'stage'; stage: AILoadStage }
   | { id: number; type: 'progress'; progress: number; file: string }
   | { id: number; type: 'loaded' }
   | { id: number; type: 'token'; text: string }

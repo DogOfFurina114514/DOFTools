@@ -8,6 +8,10 @@ export const modelManifest = JSON.parse(
 )
 // Below ESA's decimal 25 MB per-file limit as well as GitHub's Git file limit.
 export const maxPartBytes = 20 * 1024 * 1024
+// Tokenizers are loaded before weights. Keep their JSON download requests small
+// so a cold Pages CDN request cannot block the entire model at zero percent.
+export const tokenizerPartBytes = 2 * 1024 * 1024
+const partBytes = (file) => (file.path === 'tokenizer.json' ? tokenizerPartBytes : maxPartBytes)
 
 export async function readModelAssets(root) {
   try {
@@ -23,10 +27,12 @@ export async function readModelAssets(root) {
 
 export function modelParts(file) {
   const parts = []
-  for (let start = 0; start < file.bytes; start += maxPartBytes) {
+  const limit = partBytes(file)
+  if (file.bytes <= limit) return [{ path: file.path, bytes: file.bytes }]
+  for (let start = 0; start < file.bytes; start += limit) {
     parts.push({
       path: `${file.path}.part-${String(parts.length).padStart(3, '0')}`,
-      bytes: Math.min(maxPartBytes, file.bytes - start),
+      bytes: Math.min(limit, file.bytes - start),
     })
   }
   return parts
@@ -66,9 +72,9 @@ export async function packageModel(root) {
       },
     )
     await verifyModelFile(root, file, rawExists ? { files: {} } : existing)
-    if (file.bytes <= maxPartBytes) continue
+    if (file.bytes <= 512 * 1024) continue
     const parts = modelParts(file)
-    if (rawExists) {
+    if (rawExists && file.bytes > partBytes(file)) {
       let start = 0
       for (const part of parts) {
         await pipeline(
@@ -82,13 +88,14 @@ export async function packageModel(root) {
   }
   // Publish the matching manifest before removing raw copies.
   await writeFile(new URL('asset-manifest.json', root), JSON.stringify(assets, null, 2) + '\n')
-  for (const path of Object.keys(assets.files)) {
+  for (const [path, asset] of Object.entries(assets.files)) {
+    if (asset.parts.length === 1 && asset.parts[0].path === path) continue
     await unlink(new URL(path, root)).catch((error) => {
       if (error.code !== 'ENOENT') throw error
     })
   }
   console.log(
-    `Complete model verified: ${Object.values(assets.files).reduce((sum, asset) => sum + asset.parts.length, 0)} parts, at most 20 MiB each`,
+    `Complete model verified: ${Object.entries(assets.files).reduce((sum, [path, asset]) => sum + asset.parts.filter((part) => part.path !== path).length, 0)} physical parts, at most 20 MiB each`,
   )
   return assets
 }

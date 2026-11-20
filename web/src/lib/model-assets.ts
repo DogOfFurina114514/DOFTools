@@ -1,3 +1,5 @@
+import { LocalizedError } from './locale'
+
 export interface ModelAssetManifest {
   version: 1
   files: Record<string, { bytes: number; parts: { path: string; bytes: number }[] }>
@@ -7,11 +9,13 @@ interface ModelFetchOptions {
   concurrency?: number
   onProgress?: (file: string, loaded: number) => void
   localRoot?: string
+  rangeBytes?: number
+  pool?: ReturnType<typeof createDownloadPool>
 }
 
 // Share slots across all logical weights, including simultaneous runtime
 // requests. A slot stays occupied until the body has finished downloading.
-function downloadPool(limit: number) {
+export function createDownloadPool(limit: number) {
   let active = 0
   const queue: (() => void)[] = []
   return async <T>(signal: AbortSignal, task: () => Promise<T>): Promise<T> => {
@@ -56,7 +60,11 @@ export function createModelFetch(
   const concurrency = options.concurrency ?? 4
   if (!Number.isInteger(concurrency) || concurrency < 1 || concurrency > 8)
     throw new Error('Model download concurrency must be between 1 and 8')
-  const download = downloadPool(concurrency)
+  const rangeBytes = options.rangeBytes ?? 512 * 1024
+  if (!Number.isSafeInteger(rangeBytes) || rangeBytes < 1)
+    throw new Error('Invalid model range size')
+  const download = options.pool ?? createDownloadPool(concurrency)
+  let currentRangeBytes = rangeBytes
 
   return async (input, init) => {
     let url = new URL(input instanceof Request ? input.url : String(input), localRoot)
@@ -85,6 +93,24 @@ export function createModelFetch(
         throw new Error('Invalid model part location')
       return location
     })
+    // Bound each HTTP response while keeping the physical files and original
+    // output ordering. Range is a CORS-safelisted header for a single range.
+    const slices = asset.parts.flatMap<{ location: URL; bytes: number; range?: string }>(
+      (part, partIndex) => {
+        if (part.bytes <= rangeBytes)
+          return [{ location: locations[partIndex], bytes: part.bytes, range: undefined }]
+        const result = []
+        for (let start = 0; start < part.bytes; start += rangeBytes) {
+          const end = Math.min(part.bytes, start + rangeBytes) - 1
+          result.push({
+            location: locations[partIndex],
+            bytes: end - start + 1,
+            range: `bytes=${start}-${end}`,
+          })
+        }
+        return result
+      },
+    )
     const externalSignal = init?.signal ?? (input instanceof Request ? input.signal : undefined)
     const abort = new AbortController()
     const stop = () => abort.abort(externalSignal?.reason)
@@ -110,40 +136,80 @@ export function createModelFetch(
       streamController.error(error)
     }
     const prefetch = () => {
-      while (scheduled < asset.parts.length && scheduled < index + concurrency) {
+      while (scheduled < slices.length && scheduled < index + concurrency) {
         const partIndex = scheduled++
-        const part = asset.parts[partIndex]
+        const part = slices[partIndex]
         const task = download(abort.signal, async () => {
-          const response = await request(locations[partIndex], {
-            ...init,
-            signal: abort.signal,
-            cache: 'no-store',
-          })
-          if (!response.ok || !response.body)
-            throw new Error(`Model part unavailable: ${part.path} (HTTP ${response.status})`)
-          const reader = response.body.getReader()
           const bytes = new Uint8Array(part.bytes)
           let offset = 0
-          try {
-            while (true) {
-              abort.signal.throwIfAborted()
-              const chunk = await reader.read()
-              if (chunk.done) break
-              if (offset + chunk.value.byteLength > part.bytes)
-                throw new Error(`Invalid model part size: ${part.path}`)
-              bytes.set(chunk.value, offset)
-              offset += chunk.value.byteLength
-              received += chunk.value.byteLength
-              options.onProgress?.(relative, received)
+          let retries = 0
+          let requestBytes = Math.min(part.bytes, currentRangeBytes)
+          const start = Number(part.range?.match(/^bytes=(\d+)-/)?.[1] ?? 0)
+          while (offset < part.bytes) {
+            abort.signal.throwIfAborted()
+            requestBytes = Math.min(requestBytes, currentRangeBytes)
+            const length = Math.min(requestBytes, part.bytes - offset)
+            const ranged = !!part.range || retries > 0 || length < part.bytes || offset > 0
+            const headers = new Headers(
+              init?.headers ?? (input instanceof Request ? input.headers : undefined),
+            )
+            if (ranged)
+              headers.set('Range', `bytes=${start + offset}-${start + offset + length - 1}`)
+            let reader: ReadableStreamDefaultReader<Uint8Array> | undefined
+            let read = 0
+            try {
+              const response = await request(part.location, {
+                ...init,
+                ...(ranged ? { headers } : {}),
+                signal: abort.signal,
+                cache: 'no-store',
+              })
+              if (response.status >= 500 || response.status === 429)
+                throw new TypeError(`Model CDN temporarily unavailable: HTTP ${response.status}`)
+              if (!response.ok || !response.body)
+                throw new Error(
+                  `Model part unavailable: ${part.location.pathname} (HTTP ${response.status})`,
+                )
+              if (ranged && response.status !== 206)
+                throw new Error('The model CDN did not return the requested byte range')
+              reader = response.body.getReader()
+              while (true) {
+                abort.signal.throwIfAborted()
+                const chunk = await reader.read()
+                if (chunk.done) break
+                if (read + chunk.value.byteLength > length)
+                  throw new Error(`Invalid model part size: ${part.location.pathname}`)
+                bytes.set(chunk.value, offset + read)
+                read += chunk.value.byteLength
+                received += chunk.value.byteLength
+                options.onProgress?.(relative, received)
+              }
+              if (read !== length)
+                throw new Error(`Incomplete model part: ${part.location.pathname}`)
+              offset += read
+              retries = 0
+            } catch (error) {
+              await reader?.cancel(error).catch(() => {})
+              received -= read
+              if (
+                !abort.signal.aborted &&
+                (error instanceof TypeError ||
+                  (error instanceof Error && error.name === 'TimeoutError'))
+              ) {
+                if (++retries >= 3)
+                  throw new LocalizedError(
+                    '模型分段下载失败，请检查网络后重新开启助手。',
+                    'The model download failed after retries. Check your connection and start the assistant again.',
+                  )
+                requestBytes = Math.min(requestBytes, 128 * 1024)
+                currentRangeBytes = Math.min(currentRangeBytes, requestBytes)
+                await new Promise((resolve) => setTimeout(resolve, 250 * retries))
+              } else throw error
+            } finally {
+              reader?.releaseLock()
             }
-            if (offset !== part.bytes) throw new Error(`Incomplete model part: ${part.path}`)
-            return bytes
-          } catch (error) {
-            await reader.cancel(error).catch(() => {})
-            throw error
-          } finally {
-            reader.releaseLock()
           }
+          return bytes
         })
         pending.set(partIndex, task)
         // Observe prefetch failures immediately, including later parts that
@@ -165,7 +231,7 @@ export function createModelFetch(
             if (failed) return
             pending.delete(index++)
             controller.enqueue(bytes)
-            if (index === asset.parts.length) {
+            if (index === slices.length) {
               finished = true
               cleanup()
               controller.close()
@@ -185,7 +251,11 @@ export function createModelFetch(
     )
     return new Response(body, {
       headers: {
-        'content-type': 'application/octet-stream',
+        'content-type': relative.endsWith('.json')
+          ? 'application/json'
+          : relative.endsWith('.wasm')
+            ? 'application/wasm'
+            : 'application/octet-stream',
         'content-length': String(asset.bytes),
       },
     })

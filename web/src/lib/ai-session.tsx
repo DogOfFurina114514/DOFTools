@@ -1,7 +1,13 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { BrowserLocalAI } from './ai-client'
 import { visibleAIText } from './ai-output'
-import { detectAICapability, type AIContentPart, type AIMessage, type LocalAIAdapter } from './ai'
+import {
+  detectAICapability,
+  type AIContentPart,
+  type AIMessage,
+  type LocalAIAdapter,
+  type AILoadStage,
+} from './ai'
 import {
   assistantCatalog,
   assistantDefinitions,
@@ -39,6 +45,7 @@ type AIStatus = 'idle' | 'loading' | 'ready' | 'generating' | 'error'
 interface AISession {
   status: AIStatus
   progress: number
+  loadStage: AILoadStage
   error: DisplayText
   chat: ChatItem[]
   load: () => Promise<void>
@@ -83,6 +90,7 @@ export function AISessionProvider({
   const stopTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [status, setStatus] = useState<AIStatus>('idle')
   const [progress, setProgress] = useState(0)
+  const [loadStage, setLoadStage] = useState<AILoadStage>('starting')
   const [error, setError] = useState<DisplayText>('')
   const [chat, setChat] = useState<ChatItem[]>([])
   const [draft, setDraft] = useState('')
@@ -174,13 +182,20 @@ export function AISessionProvider({
     active.current = true
     const token = ++generation.current
     setStatus('loading')
+    setLoadStage('starting')
     setError('')
     setProgress(0)
     adapter.current = createAdapter()
     try {
-      await adapter.current.load((value) => {
-        if (token === generation.current) setProgress(value)
-      })
+      await adapter.current.load(
+        (value) => {
+          if (token === generation.current) setProgress(value)
+        },
+        undefined,
+        (stage) => {
+          if (token === generation.current) setLoadStage(stage)
+        },
+      )
       if (token === generation.current) {
         setProgress(1)
         setStatus('ready')
@@ -407,6 +422,7 @@ export function AISessionProvider({
       value={{
         status,
         progress,
+        loadStage,
         error,
         chat,
         load,

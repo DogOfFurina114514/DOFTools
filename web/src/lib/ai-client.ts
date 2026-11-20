@@ -3,6 +3,7 @@ import {
   type AIWorkerEvent,
   type AIWorkerRequest,
   type LocalAIAdapter,
+  type AILoadStage,
 } from './ai'
 import { LocalizedError } from './locale'
 
@@ -11,6 +12,8 @@ type Pending = {
   reject: (error: Error) => void
   onProgress?: (progress: number) => void
   onToken?: (text: string) => void
+  onStage?: (stage: AILoadStage) => void
+  onStarted: () => void
 }
 
 export class BrowserLocalAI implements LocalAIAdapter {
@@ -23,7 +26,9 @@ export class BrowserLocalAI implements LocalAIAdapter {
       this.worker.onmessage = ({ data }: MessageEvent<AIWorkerEvent>) => {
         const pending = this.requests.get(data.id)
         if (!pending) return
-        if (data.type === 'progress') pending.onProgress?.(data.progress)
+        pending.onStarted()
+        if (data.type === 'stage') pending.onStage?.(data.stage)
+        else if (data.type === 'progress') pending.onProgress?.(data.progress)
         else if (data.type === 'token') pending.onToken?.(data.text)
         else {
           this.requests.delete(data.id)
@@ -36,15 +41,26 @@ export class BrowserLocalAI implements LocalAIAdapter {
           else pending.resolve(data.type === 'result' ? data.response : undefined)
         }
       }
-      this.worker.onerror = () => {
-        void this.dispose()
-      }
+      this.worker.onerror = () =>
+        this.fail(
+          new LocalizedError(
+            '助手运行环境加载失败，请刷新网页后重试。',
+            'The assistant runtime could not load. Refresh the page and try again.',
+          ),
+        )
+      this.worker.onmessageerror = () =>
+        this.fail(
+          new LocalizedError(
+            '无法读取助手返回的数据，请重新开启助手。',
+            'The assistant response could not be read. Start the assistant again.',
+          ),
+        )
     }
     return this.worker
   }
   private request(
     data: AIWorkerRequest & { id: number },
-    callbacks: Pick<Pending, 'onProgress' | 'onToken'>,
+    callbacks: Pick<Pending, 'onProgress' | 'onToken' | 'onStage'>,
     signal?: AbortSignal,
   ) {
     return new Promise<AIResponse | undefined>((resolve, reject) => {
@@ -56,9 +72,26 @@ export class BrowserLocalAI implements LocalAIAdapter {
         void this.dispose()
       }
       signal?.addEventListener('abort', abort, { once: true })
-      const cleanup = () => signal?.removeEventListener('abort', abort)
+      const startup =
+        data.type === 'load'
+          ? setTimeout(
+              () =>
+                this.fail(
+                  new LocalizedError(
+                    '助手启动超时，请检查网络并刷新网页后重试。',
+                    'The assistant startup timed out. Check your connection, refresh the page and try again.',
+                  ),
+                ),
+              45_000,
+            )
+          : undefined
+      const cleanup = () => {
+        clearTimeout(startup)
+        signal?.removeEventListener('abort', abort)
+      }
       this.requests.set(data.id, {
         ...callbacks,
+        onStarted: () => clearTimeout(startup),
         resolve: (value) => {
           cleanup()
           resolve(value)
@@ -68,12 +101,26 @@ export class BrowserLocalAI implements LocalAIAdapter {
           reject(error)
         },
       })
-      this.ensureWorker().postMessage(data)
+      try {
+        this.ensureWorker().postMessage(data)
+      } catch (error) {
+        this.requests.delete(data.id)
+        cleanup()
+        reject(error)
+      }
     })
   }
-  async load(onProgress: (progress: number) => void, signal?: AbortSignal) {
+  async load(
+    onProgress: (progress: number) => void,
+    signal?: AbortSignal,
+    onStage?: (stage: AILoadStage) => void,
+  ) {
     const baseUrl = new URL(import.meta.env.BASE_URL, document.baseURI).href
-    await this.request({ id: ++this.sequence, type: 'load', baseUrl }, { onProgress }, signal)
+    await this.request(
+      { id: ++this.sequence, type: 'load', baseUrl },
+      { onProgress, onStage },
+      signal,
+    )
   }
   async generate(request: Parameters<LocalAIAdapter['generate']>[0]) {
     const result = await this.request(
@@ -96,13 +143,12 @@ export class BrowserLocalAI implements LocalAIAdapter {
     this.worker?.postMessage({ type: 'interrupt' } satisfies AIWorkerRequest)
   }
   async dispose() {
+    this.fail(new DOMException('The model was unloaded or the task was cancelled.', 'AbortError'))
+  }
+  private fail(error: Error) {
     this.worker?.terminate()
     this.worker = null
-    this.requests.forEach((pending) =>
-      pending.reject(
-        new DOMException('The model was unloaded or the task was cancelled.', 'AbortError'),
-      ),
-    )
+    this.requests.forEach((pending) => pending.reject(error))
     this.requests.clear()
   }
 }
