@@ -5,10 +5,12 @@ import { bytesBlob, outputName } from './shared'
 import { parseMidi, synthesizeMidi } from './midi-synth'
 import { decodeMidiAudio, encodeMidiAudio } from './midi-codecs'
 import { midiAudioFormats, type MidiAudioFormat } from './midi-formats'
+import { resourceBase } from '../../lib/site-resources'
 
 self.onmessage = async ({ data }: MessageEvent<{ values: ToolValues }>) => {
   const values = data.values,
     file = (values.files as File[])[0]
+  const assetsBase = resourceBase(new URL(import.meta.env.BASE_URL, self.location.href).href)
   const progress = (value: number) => self.postMessage({ type: 'progress', value })
   const status = (zh: string, en: string) => self.postMessage({ type: 'status', value: b(zh, en) })
   try {
@@ -24,7 +26,7 @@ self.onmessage = async ({ data }: MessageEvent<{ values: ToolValues }>) => {
         await import('@spotify/basic-pitch')
       try {
         const wasm = await import('@tensorflow/tfjs-backend-wasm')
-        wasm.setWasmPaths(`${import.meta.env.BASE_URL}runtime/tfjs/`)
+        wasm.setWasmPaths(new URL('runtime/tfjs/', assetsBase).href)
         if (!(await tf.setBackend('wasm'))) throw new Error('WASM is unavailable')
         await tf.ready()
       } catch {
@@ -35,7 +37,7 @@ self.onmessage = async ({ data }: MessageEvent<{ values: ToolValues }>) => {
         }
         await tf.ready()
       }
-      const pitch = new BasicPitch(`${import.meta.env.BASE_URL}models/basic-pitch/model.json`)
+      const pitch = new BasicPitch(new URL('models/basic-pitch/model.json', assetsBase).href)
       const model = await pitch.model
       const frames: number[][] = [],
         onsets: number[][] = []

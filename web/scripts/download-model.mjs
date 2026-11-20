@@ -15,7 +15,35 @@ const publishedRoot = new URL(`../../docs/models/${manifest.directory}/`, import
 const publishedAssets = await readFile(new URL('asset-manifest.json', publishedRoot), 'utf8')
   .then(JSON.parse)
   .catch(() => null)
-const source = process.env.FUFU_MODEL_SOURCE === 'huggingface' ? 'huggingface' : 'modelscope'
+// The github.io site redirects to this HTTPS Pages CNAME. Never repair model
+// resources from the GitHub repository host or an upstream model hub.
+const pagesRoot = new URL(`https://toolbox.owo.lat/models/${manifest.directory}/`)
+let pagesAssets
+async function remoteParts(file) {
+  pagesAssets ??= fetch(new URL('asset-manifest.json', pagesRoot), {
+    cache: 'no-store',
+    signal: AbortSignal.timeout(60_000),
+  }).then(async (response) => {
+    if (!response.ok) throw new Error(`Pages model manifest: HTTP ${response.status}`)
+    return response.json()
+  })
+  const assets = await pagesAssets
+  const asset = assets.files?.[file.path]
+  const parts = asset?.parts ?? [{ path: file.path, bytes: file.bytes }]
+  if (
+    assets.version !== 1 ||
+    (asset && asset.bytes !== file.bytes) ||
+    parts.some((entry) => !Number.isSafeInteger(entry.bytes) || entry.bytes <= 0) ||
+    parts.reduce((sum, entry) => sum + entry.bytes, 0) !== file.bytes
+  )
+    throw new Error(`Invalid Pages model manifest: ${file.path}`)
+  for (const entry of parts) {
+    const url = new URL(entry.path, pagesRoot)
+    if (url.origin !== pagesRoot.origin || !url.pathname.startsWith(pagesRoot.pathname))
+      throw new Error('Invalid Pages model part location')
+  }
+  return parts
+}
 const size = async (file) => (await stat(file).catch(() => ({ size: 0 }))).size
 const hash = async (file) => {
   const digest = createHash('sha256')
@@ -39,7 +67,7 @@ async function download(file) {
     return
   }
   // A clone includes the complete model in docs/. Reuse those resources before
-  // contacting an external mirror, including for a future desktop build.
+  // contacting the published Pages CDN, including for a future desktop build.
   if (publishedAssets) {
     try {
       const parts = publishedAssets.files[file.path]?.parts
@@ -59,7 +87,7 @@ async function download(file) {
       console.log(`Restored and verified ${file.path} from docs/`)
       return
     } catch (error) {
-      console.warn(`Cannot restore ${file.path} from docs/: ${error.message}; using ${source}`)
+      console.warn(`Cannot restore ${file.path} from docs/: ${error.message}; using Pages CDN`)
       if (await size(part)) await truncate(part, 0)
     }
   }
@@ -71,19 +99,34 @@ async function download(file) {
         offset = 0
       }
       if (offset < file.bytes) {
-        const url =
-          source === 'huggingface'
-            ? `https://huggingface.co/${manifest.model}/resolve/${manifest.huggingFaceRevision}/${file.path}`
-            : `https://modelscope.cn/models/${manifest.model}/resolve/${file.revision}/${file.path}`
-        console.log(`Downloading ${file.path} (${(file.bytes / 1024 / 1024).toFixed(1)} MiB)`)
-        const response = await fetch(url, {
-          headers: offset ? { Range: `bytes=${offset}-` } : {},
-          signal: AbortSignal.timeout(600_000),
-        })
-        if (!response.ok) throw new Error(`HTTP ${response.status}`)
-        if (offset && response.status !== 206) {
-          await truncate(part, 0)
-          offset = 0
+        const parts = await remoteParts(file)
+        console.log(
+          `Downloading ${file.path} from Pages CDN (${(file.bytes / 1024 / 1024).toFixed(1)} MiB)`,
+        )
+        async function* chunks() {
+          let start = 0
+          for (const entry of parts) {
+            const skip = Math.max(0, offset - start)
+            start += entry.bytes
+            if (skip >= entry.bytes) continue
+            const response = await fetch(new URL(entry.path, pagesRoot), {
+              headers: skip ? { Range: `bytes=${skip}-` } : {},
+              signal: AbortSignal.timeout(600_000),
+            })
+            if (!response.ok || !response.body)
+              throw new Error(`HTTP ${response.status}: ${entry.path}`)
+            let discard = response.status === 206 ? 0 : skip
+            const expected = response.status === 206 ? entry.bytes - skip : entry.bytes
+            let received = 0
+            for await (const chunk of Readable.fromWeb(response.body)) {
+              received += chunk.length
+              if (received > expected) throw new Error(`Oversized Pages part: ${entry.path}`)
+              const dropped = Math.min(discard, chunk.length)
+              discard -= dropped
+              if (dropped < chunk.length) yield chunk.subarray(dropped)
+            }
+            if (received !== expected) throw new Error(`Incomplete Pages part: ${entry.path}`)
+          }
         }
         let received = offset
         let logged = offset
@@ -98,7 +141,7 @@ async function download(file) {
           },
         })
         await pipeline(
-          Readable.fromWeb(response.body),
+          Readable.from(chunks()),
           progress,
           createWriteStream(part, { flags: offset ? 'a' : 'w' }),
         )
@@ -117,7 +160,7 @@ async function download(file) {
   }
 }
 
-console.log(`${manifest.model}, ${(manifest.bytes / 1024 / 1024).toFixed(1)} MiB, ${source}`)
+console.log(`${manifest.model}, ${(manifest.bytes / 1024 / 1024).toFixed(1)} MiB, Pages CDN`)
 // Independent files download two at a time; completed files are verified and reused.
 const queue = [...manifest.files]
 await Promise.all(

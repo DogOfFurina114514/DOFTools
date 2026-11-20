@@ -2,7 +2,7 @@
 
 核对日期：2026-11-20。
 
-网页源码与开发脚本位于 `web/`，以下源码路径均相对于该目录。发布模型位于 `docs/models/`，超过 48 MiB 的文件使用分块；浏览器顺序拼接成真实权重流，原始 SHA-256 在构建与 Pages 检查时验证。
+网页源码与开发脚本位于 `web/`，以下源码路径均相对于该目录。发布模型位于 `docs/models/`，超过 20 MiB 的文件使用分块；浏览器通过共享 4 路并发池下载，再按顺序拼接成真实权重流，原始 SHA-256 在构建与 Pages 检查时验证。
 
 ## 已接入：Qwen3.5-0.8B
 
@@ -36,9 +36,9 @@
 
 图像在 Worker 内解码为 RGB，并等比例限制最长边为 512 像素；视觉 processor 生成真实 pixel_values 与图像位置张量。聊天模板使用原生图片 token 与工具 schema，关闭 thinking。每轮最多生成 384 token，输入超过 4096 token 提示清空或缩短内容。
 
-运行时仅请求当前站点的 `/models/` 和 `/runtime/`。远程模型请求关闭；关闭模型 CacheStorage，并使用 `env.fetch` 对 ONNX 权重发送 `cache: no-store`，避免实测出现的大文件 `ERR_CACHE_WRITE_FAILURE`。模型在当前 Worker 会话中保留，卸载或刷新后需重新读取站内权重；配置与普通界面资源仍使用浏览器 HTTP 缓存。移动设备不加载 Worker；桌面加载时实际检查 WebGPU adapter 与 shader-f16。
+生产环境的 `/models/` 和 `/runtime/` 来自 `https://toolbox.owo.lat/` 的 GitHub Pages CDN，阿里云备用网址使用相同地址；开发环境使用本地资源。Hub 远程模型发现关闭；关闭模型 CacheStorage，并使用 `env.fetch` 对 ONNX 权重发送 `cache: no-store`，避免实测出现的大文件 `ERR_CACHE_WRITE_FAILURE`。模型在当前 Worker 会话中保留，卸载或刷新后需重新读取站内权重；配置与普通界面资源仍使用浏览器 HTTP 缓存。移动设备不加载 Worker；桌面加载时实际检查 WebGPU adapter 与 shader-f16。
 
-Transformers.js 4.3.2 的 tokenizer 文件发现逻辑需要本地 URL 路径，项目使用包含部署子目录的 pathname，而非完整 URL。运行时的 asyncify WASM/MJS 均由 npm 包复制到站内资源目录，不依赖 CDN。
+Transformers.js 4.3.2 的 tokenizer 文件发现逻辑需要本地 pathname。项目保留包含部署子目录的 pathname，再由 `env.fetch` 将本地元数据与权重路径映射到 Pages CDN，兼容备用网址跨域加载。asyncify WASM/MJS 来自锁定的 npm 包，在 GitHub Pages 发布；ESA 构建移除超出 25 MB 的 WASM 副本，继续从 Pages CDN 加载。
 
 ## 会话与工具执行
 
@@ -51,6 +51,10 @@ Transformers.js 4.3.2 的 tokenizer 文件发现逻辑需要本地 URL 路径，
 当前注册表提供工具说明列出的十一个工具；测试还通过临时注册表验证调用，不在产品中增加测试工具。
 
 ## 实机证据与边界
+
+26.0.5 将三份权重改为 42 个 20 MiB 分块，拼接 SHA-256 与锁定清单完全一致。独立 Worker 共享 4 路下载池，乱序完成后按清单顺序输出；真实接收字节驱动进度。响应流使用零预读缓冲，文件大小探测只读取响应头，开始消费权重时才下载，避免元数据探测重复下载首批分块。
+
+最终 ESA 产物约 859.2 MiB、394 个文件，每个文件低于 25 MB。Windows / Edge 用生产构建加载真实权重，42 块各请求一次并显示「已就绪」，没有页面错误。测试在 Pages 的 HTTPS 资源地址下返回仓库内完整资源，验证备用网址的跨域路径映射与加载；在线 CDN 的完整下载耗时受网络影响。相同生产构建实际完成 MP3、Opus、WMA 导出，以及 WMA 转 MIDI，识别到 60、64、67 三个和弦音高。Qwen、Basic Pitch、TFJS、FFmpeg 与 ORT 的生产请求地址均指向 `toolbox.owo.lat` 的 Pages CDN。
 
 26.0.4 将完整 Qwen 和 Basic Pitch 模型提交到 `web/public/models/`，Qwen 的三份大权重使用 19 个分块。开发准备脚本保留分块清单，构建可以直接使用已提交的分块并校验 SHA-256，无需原始大权重或额外下载。Windows / Edge 实测开发服务器读取全部分块后显示「已就绪」，没有外部模型请求或网络错误。
 

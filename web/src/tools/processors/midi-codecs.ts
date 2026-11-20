@@ -1,5 +1,6 @@
 import { LocalizedError } from '../../lib/locale'
 import { midiAudioFormats, type MidiAudioFormat } from './midi-formats'
+import { resourceBase } from '../../lib/site-resources'
 
 interface FFmpegCore {
   FS: {
@@ -13,18 +14,24 @@ interface FFmpegCore {
   setProgress: (callback: (event: { time: number }) => void) => void
 }
 
-// Load the unmodified, single-thread runtime from this site inside the existing
+// Load the unmodified, single-thread runtime from Pages inside the existing
 // cancellable worker. It requires neither a server nor cross-origin isolation.
 let corePromise: Promise<FFmpegCore> | undefined
 async function getCore() {
   if (!corePromise) {
-    const base = new URL(`${import.meta.env.BASE_URL}runtime/ffmpeg/`, self.location.href)
+    const siteBase = new URL(import.meta.env.BASE_URL, self.location.href).href
+    const base = new URL('runtime/ffmpeg/', resourceBase(siteBase))
     const script = new URL('ffmpeg-core.js', base).href
-    corePromise = import(/* @vite-ignore */ script).then(({ default: createCore }) =>
-      createCore({
-        mainScriptUrlOrBlob: `${script}#${btoa(JSON.stringify({ wasmURL: new URL('ffmpeg-core.wasm', base).href }))}`,
-      }),
-    )
+    corePromise = import(/* @vite-ignore */ script)
+      .then(({ default: createCore }) =>
+        createCore({
+          mainScriptUrlOrBlob: `${script}#${btoa(JSON.stringify({ wasmURL: new URL('ffmpeg-core.wasm', base).href }))}`,
+        }),
+      )
+      .catch((error) => {
+        corePromise = undefined
+        throw error
+      })
   }
   return corePromise
 }

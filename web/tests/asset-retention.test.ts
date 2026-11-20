@@ -46,9 +46,15 @@ test('cached entries retain their dynamic processors across releases and repeate
   )
   expect(await release(3)).toEqual(third)
   const fourth = await release(4)
-  expect(fourth).toHaveLength(3)
-  expect(fourth[2]).toEqual(third[1])
+  expect(fourth).toHaveLength(4)
+  expect(fourth[3]).toEqual(first)
+  expect(await Promise.all(first.map((name) => readFile(join(output, 'assets', name))))).toEqual(
+    firstBytes,
+  )
+  const fifth = await release(5)
+  expect(fifth).toHaveLength(4)
+  expect(fifth[3]).toEqual(third[1])
   const retained = await readdir(join(output, 'assets'))
-  for (const name of first.filter((name) => !fourth.flat().includes(name)))
+  for (const name of first.filter((name) => !fifth.flat().includes(name)))
     expect(retained).not.toContain(name)
 }, 30000)

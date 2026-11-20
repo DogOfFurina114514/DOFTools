@@ -2,7 +2,7 @@
 
 纯前端工具箱，支持中文 / EN、五个工具分类、八种主题与电脑端本地 AI。已提供十一个工具，包括格式转换、音频与 MIDI 转换、网盘链接解析、视频提取、图片转 PDF 和 ZIP 密码恢复。
 
-当前正式版本：**26.0.4**。版本格式为「年份.大版本.小版本」，年份使用两位数字。
+当前正式版本：**26.0.5**。版本格式为「年份.大版本.小版本」，年份使用两位数字。
 
 仓库：https://github.com/DogOfFurina114514/DOFTools
 
@@ -34,7 +34,7 @@ npm ci
 npm run dev
 ```
 
-开发地址：`http://127.0.0.1:5173`。完整 Qwen 和 Basic Pitch 模型已提交到 `web/public/models/`，克隆后无需额外下载模型。若本地资源缺失或损坏，运行 `npm run model:download`：优先从 `docs/models/` 修复并校验 SHA-256，仅在仓库资源缺失时联网下载。
+开发地址：`http://127.0.0.1:5173`。完整 Qwen 和 Basic Pitch 模型已提交到 `web/public/models/`，克隆后无需额外下载模型。若本地资源缺失或损坏，运行 `npm run model:download`：优先从 `docs/models/` 修复并校验 SHA-256，仓库资源缺失时只从已发布的 GitHub Pages CDN 下载。
 
 ```sh
 npm test
@@ -43,9 +43,11 @@ npm run pages:check
 npm run preview
 ```
 
-构建只更新 `docs/`，不会清空 `web/` 中的开发文件。开发目录与发布目录均保存完整模型，权重按最多 48 MiB 分块，浏览器从同一站点顺序读取，保持真实字节下载进度。准备运行时不会覆盖模型分块清单；构建直接校验已提交分块，无需未跟踪的原始大权重。提交更新时一并提交开发源码和重建后的网页。
+构建只更新 `docs/`，不会清空 `web/` 中的开发文件。开发目录与发布目录均保存完整模型，三份权重共 42 块，每块最多 20 MiB。模型在独立 Worker 中使用共享的 4 路并发下载池，按清单顺序提供给运行时，下载进度来自实际接收字节，取消或失败会中止其余请求。准备运行时不会覆盖模型分块清单；构建直接校验已提交分块，无需未跟踪的原始大权重。
 
-发布时保留前两次构建的带哈希资源及其依赖，旧页面缓存或尚未关闭的标签页仍能加载音频转换等工具模块；连续构建相同资源不会提前淘汰旧文件。
+生产网页（包括阿里云备用网址）从 `https://toolbox.owo.lat/` 的 GitHub Pages CDN 获取 Qwen、Basic Pitch 与音频 / AI 运行时；github.io 地址会重定向到这个 CNAME，不请求 GitHub 原站或第三方模型仓库。开发环境使用本地资源。阿里云 ESA 使用 `npm --prefix web run build:esa`，静态资源目录仍为 `docs`；此构建移除超出 25 MB 的 WASM 副本，运行时从 Pages CDN 获取，并校验单文件大小、文件数、总大小和模型 SHA-256。详见 [ESA 部署说明](documentation/ALIYUN_ESA.md)。
+
+发布时保留前三次构建的带哈希资源及其依赖，旧页面缓存或尚未关闭的标签页仍能加载音频转换等工具模块；连续构建相同资源不会提前淘汰旧文件。
 
 浏览器检查：`npm run test:e2e`。Windows 安装 Edge 时可先设置 `$env:PLAYWRIGHT_CHANNEL = 'msedge'`。`npm run test:model` 使用真实权重检查 WebGPU，普通浏览器检查跳过此耗时项目。
 

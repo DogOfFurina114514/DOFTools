@@ -3,6 +3,8 @@ import { createReadStream } from 'node:fs'
 import { readdir, readFile, stat } from 'node:fs/promises'
 
 const root = new URL('../../docs/', import.meta.url)
+const esa = process.argv.includes('--esa')
+let files = 0
 const manifest = JSON.parse(
   await readFile(new URL('./model.manifest.json', import.meta.url), 'utf8'),
 )
@@ -15,7 +17,10 @@ async function size(directory) {
     const path = new URL(entry.name + (entry.isDirectory() ? '/' : ''), directory)
     if (entry.isDirectory()) bytes += await size(path)
     else {
+      files++
       const fileBytes = (await stat(path)).size
+      if (esa && fileBytes > 25_000_000)
+        throw new Error(`File exceeds the ESA 25 MB file limit: ${path.pathname}`)
       if (fileBytes > 100 * 1024 * 1024)
         throw new Error(`File exceeds the GitHub Git file limit: ${path.pathname}`)
       bytes += fileBytes
@@ -65,11 +70,19 @@ for (const file of [
   'licenses/lame-3.100.tar.gz',
   'licenses/lame/COPYING',
 ]) {
+  if (
+    esa &&
+    ['runtime/ffmpeg/ffmpeg-core.wasm', 'runtime/ort-wasm-simd-threaded.asyncify.wasm'].includes(
+      file,
+    )
+  )
+    continue
   await stat(new URL(file, root))
 }
 const bytes = await size(root)
+if (esa && files > 2000) throw new Error(`ESA site exceeds the 2000 file limit: ${files}`)
 if (bytes >= 1_000_000_000)
   throw new Error(`Pages site exceeds the 1 GB published-site limit: ${bytes} bytes`)
 console.log(
-  `Pages artifact ready: ${(bytes / 1024 / 1024).toFixed(1)} MiB, model and runtime included, below 1 GB`,
+  `${esa ? 'ESA' : 'Pages'} artifact ready: ${(bytes / 1024 / 1024).toFixed(1)} MiB, ${files} files, below 1 GB${esa ? ', each file below 25 MB' : ', model and runtime included'}`,
 )

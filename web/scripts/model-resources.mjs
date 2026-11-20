@@ -6,7 +6,8 @@ import { pipeline } from 'node:stream/promises'
 export const modelManifest = JSON.parse(
   await readFile(new URL('./model.manifest.json', import.meta.url), 'utf8'),
 )
-export const maxPartBytes = 48 * 1024 * 1024
+// Below ESA's decimal 25 MB per-file limit as well as GitHub's Git file limit.
+export const maxPartBytes = 20 * 1024 * 1024
 
 export async function readModelAssets(root) {
   try {
@@ -87,7 +88,7 @@ export async function packageModel(root) {
     })
   }
   console.log(
-    `Complete model verified: ${Object.values(assets.files).reduce((sum, asset) => sum + asset.parts.length, 0)} parts, at most 48 MiB each`,
+    `Complete model verified: ${Object.values(assets.files).reduce((sum, asset) => sum + asset.parts.length, 0)} parts, at most 20 MiB each`,
   )
   return assets
 }

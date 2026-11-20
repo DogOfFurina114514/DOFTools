@@ -12,6 +12,7 @@ import { LOCAL_MODEL, type AIWorkerEvent, type AIWorkerRequest, type AIMessage }
 import { parseToolCalls, visibleAIText } from './ai-output'
 import { bilingual, errorMessage, LocalizedError } from './locale'
 import { createModelFetch, type ModelAssetManifest } from './model-assets'
+import { resourceBase } from './site-resources'
 
 let model: Qwen3_5ForConditionalGeneration | null = null
 let processor: Awaited<ReturnType<typeof AutoProcessor.from_pretrained>> | null = null
@@ -102,38 +103,23 @@ self.onmessage = async ({ data }: MessageEvent<AIWorkerRequest>) => {
           )
         env.allowRemoteModels = false
         env.allowLocalModels = true
-        // Transformers.js metadata discovery treats same-origin URL paths as local files.
+        const assetsBase = resourceBase(data.baseUrl)
+        // Metadata discovery requires a local pathname. The fetch adapter maps
+        // that pathname to Pages, also when the UI runs on another origin.
         env.localModelPath = new URL('models/', data.baseUrl).pathname
         // The weights are shipped with the site. Browser disk cache writes for
         // large ONNX responses can fail; keep them in the active model session.
         env.useBrowserCache = false
-        const modelRoot = new URL(`models/${LOCAL_MODEL.localId}/`, data.baseUrl)
-        const assetsResponse = await fetch(new URL('asset-manifest.json', modelRoot))
+        const modelRoot = new URL(`models/${LOCAL_MODEL.localId}/`, assetsBase)
+        const assetsResponse = await fetch(new URL('asset-manifest.json', modelRoot), {
+          cache: 'no-store',
+        })
         if (!assetsResponse.ok)
           throw new LocalizedError('模型资源清单缺失。', 'The model resource manifest is missing.')
         const assets = (await assetsResponse.json()) as ModelAssetManifest
-        env.fetch = createModelFetch(modelRoot.href, assets)
-        env.backends.onnx.wasm!.wasmPaths = new URL('runtime/', data.baseUrl).href
-        env.backends.onnx.wasm!.numThreads = 1
-        const configResponse = await fetch(
-          new URL(`models/${LOCAL_MODEL.localId}/config.json`, data.baseUrl),
-        )
-        if (!configResponse.ok || !configResponse.headers.get('content-type')?.includes('json'))
-          throw new LocalizedError(
-            '模型资源缺失，请使用包含模型文件的完整工具箱。',
-            'Model resources are missing. Use the complete toolbox with model files included.',
-          )
         const downloaded = new Map<string, number>()
-        const progress_callback = (event: {
-          status: string
-          file?: string
-          loaded?: number
-          total?: number
-        }) => {
-          if (event.file && event.status === 'progress')
-            downloaded.set(event.file, event.loaded ?? 0)
-          if (event.file && event.status === 'done')
-            downloaded.set(event.file, event.total ?? downloaded.get(event.file) ?? 0)
+        const reportProgress = (file: string, loaded: number) => {
+          downloaded.set(file, Math.max(loaded, downloaded.get(file) ?? 0))
           send({
             id,
             type: 'progress',
@@ -141,8 +127,35 @@ self.onmessage = async ({ data }: MessageEvent<AIWorkerRequest>) => {
               0.99,
               [...downloaded.values()].reduce((a, b) => a + b, 0) / LOCAL_MODEL.bytes,
             ),
-            file: event.file ?? '',
+            file,
           })
+        }
+        env.fetch = createModelFetch(modelRoot.href, assets, fetch, {
+          concurrency: 4,
+          onProgress: reportProgress,
+          localRoot: new URL(`models/${LOCAL_MODEL.localId}/`, data.baseUrl).href,
+        })
+        env.backends.onnx.wasm!.wasmPaths = new URL('runtime/', assetsBase).href
+        env.backends.onnx.wasm!.numThreads = 1
+        const configResponse = await fetch(
+          new URL(`models/${LOCAL_MODEL.localId}/config.json`, assetsBase),
+        )
+        if (!configResponse.ok || !configResponse.headers.get('content-type')?.includes('json'))
+          throw new LocalizedError(
+            '模型资源缺失，请使用包含模型文件的完整工具箱。',
+            'Model resources are missing. Use the complete toolbox with model files included.',
+          )
+        const progress_callback = (event: {
+          status: string
+          file?: string
+          loaded?: number
+          total?: number
+        }) => {
+          if (event.file && ['progress', 'done'].includes(event.status))
+            reportProgress(
+              event.file,
+              event.loaded ?? event.total ?? downloaded.get(event.file) ?? 0,
+            )
         }
         processor = await AutoProcessor.from_pretrained(LOCAL_MODEL.localId, {
           local_files_only: true,

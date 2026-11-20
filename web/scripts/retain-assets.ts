@@ -2,7 +2,7 @@ import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import type { Plugin } from 'vite'
 
-// Keep the previous two builds' hashed assets so open tabs and cached HTML can
+// Keep the previous three builds' hashed assets so open tabs and cached HTML can
 // still import processors and their workers after a Pages deployment.
 export function retainAssets(): Plugin {
   let output = ''
@@ -33,7 +33,8 @@ export function retainAssets(): Plugin {
             .sort(),
         ]
       }
-      for (const name of new Set(previous.slice(0, 3).flat())) {
+      previous = previous.filter((build) => build.length > 0)
+      for (const name of new Set(previous.slice(0, 4).flat())) {
         if (typeof name !== 'string' || !/^[\w.-]+$/.test(name) || name.startsWith('.'))
           throw new Error('Invalid retained asset path')
         saved.set(name, await readFile(join(folder, name)))
@@ -48,8 +49,8 @@ export function retainAssets(): Plugin {
         .sort()
       const builds =
         JSON.stringify(current) === JSON.stringify(previous[0])
-          ? [current, ...previous.slice(1, 3)]
-          : [current, ...previous.slice(0, 2)]
+          ? [current, ...previous.slice(1, 4)]
+          : [current, ...previous.slice(0, 3)]
       await mkdir(folder, { recursive: true })
       const emitted = new Set(current)
       for (const name of new Set(builds.slice(1).flat())) {

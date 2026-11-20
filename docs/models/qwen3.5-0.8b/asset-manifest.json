@@ -6,43 +6,99 @@
       "parts": [
         {
           "path": "onnx/decoder_model_merged_q4.onnx_data.part-000",
-          "bytes": 50331648
+          "bytes": 20971520
         },
         {
           "path": "onnx/decoder_model_merged_q4.onnx_data.part-001",
-          "bytes": 50331648
+          "bytes": 20971520
         },
         {
           "path": "onnx/decoder_model_merged_q4.onnx_data.part-002",
-          "bytes": 50331648
+          "bytes": 20971520
         },
         {
           "path": "onnx/decoder_model_merged_q4.onnx_data.part-003",
-          "bytes": 50331648
+          "bytes": 20971520
         },
         {
           "path": "onnx/decoder_model_merged_q4.onnx_data.part-004",
-          "bytes": 50331648
+          "bytes": 20971520
         },
         {
           "path": "onnx/decoder_model_merged_q4.onnx_data.part-005",
-          "bytes": 50331648
+          "bytes": 20971520
         },
         {
           "path": "onnx/decoder_model_merged_q4.onnx_data.part-006",
-          "bytes": 50331648
+          "bytes": 20971520
         },
         {
           "path": "onnx/decoder_model_merged_q4.onnx_data.part-007",
-          "bytes": 50331648
+          "bytes": 20971520
         },
         {
           "path": "onnx/decoder_model_merged_q4.onnx_data.part-008",
-          "bytes": 50331648
+          "bytes": 20971520
         },
         {
           "path": "onnx/decoder_model_merged_q4.onnx_data.part-009",
-          "bytes": 32440320
+          "bytes": 20971520
+        },
+        {
+          "path": "onnx/decoder_model_merged_q4.onnx_data.part-010",
+          "bytes": 20971520
+        },
+        {
+          "path": "onnx/decoder_model_merged_q4.onnx_data.part-011",
+          "bytes": 20971520
+        },
+        {
+          "path": "onnx/decoder_model_merged_q4.onnx_data.part-012",
+          "bytes": 20971520
+        },
+        {
+          "path": "onnx/decoder_model_merged_q4.onnx_data.part-013",
+          "bytes": 20971520
+        },
+        {
+          "path": "onnx/decoder_model_merged_q4.onnx_data.part-014",
+          "bytes": 20971520
+        },
+        {
+          "path": "onnx/decoder_model_merged_q4.onnx_data.part-015",
+          "bytes": 20971520
+        },
+        {
+          "path": "onnx/decoder_model_merged_q4.onnx_data.part-016",
+          "bytes": 20971520
+        },
+        {
+          "path": "onnx/decoder_model_merged_q4.onnx_data.part-017",
+          "bytes": 20971520
+        },
+        {
+          "path": "onnx/decoder_model_merged_q4.onnx_data.part-018",
+          "bytes": 20971520
+        },
+        {
+          "path": "onnx/decoder_model_merged_q4.onnx_data.part-019",
+          "bytes": 20971520
+        },
+        {
+          "path": "onnx/decoder_model_merged_q4.onnx_data.part-020",
+          "bytes": 20971520
+        },
+        {
+          "path": "onnx/decoder_model_merged_q4.onnx_data.part-021",
+          "bytes": 20971520
+        },
+        {
+          "path": "onnx/decoder_model_merged_q4.onnx_data.part-022",
+          "bytes": 20971520
+        },
+        {
+          "path": "onnx/decoder_model_merged_q4.onnx_data.part-023",
+          "bytes": 3080192
         }
       ]
     },
@@ -51,19 +107,35 @@
       "parts": [
         {
           "path": "onnx/embed_tokens_q4.onnx_data.part-000",
-          "bytes": 50331648
+          "bytes": 20971520
         },
         {
           "path": "onnx/embed_tokens_q4.onnx_data.part-001",
-          "bytes": 50331648
+          "bytes": 20971520
         },
         {
           "path": "onnx/embed_tokens_q4.onnx_data.part-002",
-          "bytes": 50331648
+          "bytes": 20971520
         },
         {
           "path": "onnx/embed_tokens_q4.onnx_data.part-003",
-          "bytes": 11902976
+          "bytes": 20971520
+        },
+        {
+          "path": "onnx/embed_tokens_q4.onnx_data.part-004",
+          "bytes": 20971520
+        },
+        {
+          "path": "onnx/embed_tokens_q4.onnx_data.part-005",
+          "bytes": 20971520
+        },
+        {
+          "path": "onnx/embed_tokens_q4.onnx_data.part-006",
+          "bytes": 20971520
+        },
+        {
+          "path": "onnx/embed_tokens_q4.onnx_data.part-007",
+          "bytes": 16097280
         }
       ]
     },
@@ -72,23 +144,43 @@
       "parts": [
         {
           "path": "onnx/vision_encoder_fp16.onnx_data.part-000",
-          "bytes": 50331648
+          "bytes": 20971520
         },
         {
           "path": "onnx/vision_encoder_fp16.onnx_data.part-001",
-          "bytes": 50331648
+          "bytes": 20971520
         },
         {
           "path": "onnx/vision_encoder_fp16.onnx_data.part-002",
-          "bytes": 50331648
+          "bytes": 20971520
         },
         {
           "path": "onnx/vision_encoder_fp16.onnx_data.part-003",
-          "bytes": 50331648
+          "bytes": 20971520
         },
         {
           "path": "onnx/vision_encoder_fp16.onnx_data.part-004",
-          "bytes": 3471872
+          "bytes": 20971520
+        },
+        {
+          "path": "onnx/vision_encoder_fp16.onnx_data.part-005",
+          "bytes": 20971520
+        },
+        {
+          "path": "onnx/vision_encoder_fp16.onnx_data.part-006",
+          "bytes": 20971520
+        },
+        {
+          "path": "onnx/vision_encoder_fp16.onnx_data.part-007",
+          "bytes": 20971520
+        },
+        {
+          "path": "onnx/vision_encoder_fp16.onnx_data.part-008",
+          "bytes": 20971520
+        },
+        {
+          "path": "onnx/vision_encoder_fp16.onnx_data.part-009",
+          "bytes": 16054784
         }
       ]
     }
