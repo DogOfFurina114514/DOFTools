@@ -75,7 +75,7 @@ function useDialogFocus(ref: RefObject<HTMLElement | null>) {
     const focusable = () =>
       Array.from(
         ref.current?.querySelectorAll<HTMLElement>(
-          'button:not(:disabled), input:not([hidden]), a[href], md-filled-button:not([disabled]), md-outlined-button:not([disabled])',
+          'button:not(:disabled), input:not(:disabled):not([hidden]), a[href]',
         ) ?? [],
       )
     focusable()[0]?.focus()

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { selectChoice } from './helpers/controls'
 import MidiPackage from '@tonejs/midi'
 import { readFile } from 'node:fs/promises'
 const { Midi } = MidiPackage
@@ -14,7 +15,7 @@ test('MIDI to audio exports a real, audible WAV and translates with the page', a
     mimeType: 'audio/midi',
     buffer: Buffer.from(midi.toArray()),
   })
-  await page.getByLabel('合成音色', { exact: true }).selectOption('sine')
+  await selectChoice(page.getByLabel('合成音色', { exact: true }), 'sine')
   await page.getByRole('button', { name: '开始处理', exact: true }).click()
   await expect(page.locator('.ui-result')).toContainText('立体声 WAV')
   const downloading = page.waitForEvent('download')

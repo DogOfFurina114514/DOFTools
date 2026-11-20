@@ -2,17 +2,17 @@
 
 参考核对日期：2026-11-17。游戏官网页面与开屏作为设计参考，站内图形使用原创 CSS / SVG，原神元素符号采用本地资源。没有角色图片或在线游戏资源依赖。
 
-| 风格            | 参考                                                                                                                   | 落地元素                                            | 开屏                                                           |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | -------------------------------------------------------------- |
-| 默认            | 原工具箱的薄荷绿与暖白                                                                                                 | 细线、温和卡片、星形与轨道                          | 无                                                             |
-| 原生 Material 3 | [Google Material 3](https://m3.material.io/)、[官方 Material Web](https://github.com/material-components/material-web) | 原生按钮与开关、角色色彩 token、胶囊导航、28px 容器 | 无                                                             |
-| 原神            | [原神官网](https://genshin.hoyoverse.com/en/home)                                                                      | 羊皮纸色菜单、金边、星形、云间蓝白场景              | 逐段铺路、七元素反映加载进度、完成后星门出现并打开、白色转场   |
-| 绝区零          | [绝区零官网](https://zenless.hoyoverse.com/en-us/main)                                                                 | 黑灰与荧光黄绿、粗标题、厚描边、斜切导航、唱片      | 倾斜 NOW LOADING、固定尺寸进度块逐个出现、CRT 扫描线、黄绿切屏 |
-| 终末地          | [终末地官网](https://endfield.gryphline.com/en-us)                                                                     | 中性灰黑、明黄色、方角、功能面板与等宽辅助文字      | 右侧白色堆叠字标、左侧真实进度轨、黄色擦入后淡出到页面         |
+| 风格       | 参考                                                                                                                   | 落地元素                                            | 开屏                                                           |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | -------------------------------------------------------------- |
+| 默认       | 原工具箱的薄荷绿与暖白                                                                                                 | 细线、温和卡片、星形与轨道                          | 无                                                             |
+| Material 3 | [Google Material 3](https://m3.material.io/)、[官方 Material Web](https://github.com/material-components/material-web) | 自绘按钮与开关、角色色彩 token、胶囊导航、28px 容器 | 无                                                             |
+| 原神       | [原神官网](https://genshin.hoyoverse.com/en/home)                                                                      | 羊皮纸色菜单、金边、星形、云间蓝白场景              | 逐段铺路、七元素反映加载进度、完成后星门出现并打开、白色转场   |
+| 绝区零     | [绝区零官网](https://zenless.hoyoverse.com/en-us/main)                                                                 | 黑灰与荧光黄绿、粗标题、厚描边、斜切导航、唱片      | 倾斜 NOW LOADING、固定尺寸进度块逐个出现、CRT 扫描线、黄绿切屏 |
+| 终末地     | [终末地官网](https://endfield.gryphline.com/en-us)                                                                     | 中性灰黑、明黄色、方角、功能面板与等宽辅助文字      | 右侧白色堆叠字标、左侧真实进度轨、黄色擦入后淡出到页面         |
 
-普通主题包括默认、原生 Material 3、Fluent Design、液态玻璃；游戏主题包括原神、绝区零、终末地、Minecraft。设置与首次向导复用同一个分组选择器。
+普通主题包括默认、Material 3、Fluent Design、液态玻璃；游戏主题包括原神、绝区零、终末地、Minecraft。设置与首次向导复用同一个分组选择器。所有主题的可见控件均由共享 React / CSS 实现，避免系统下拉菜单、数字步进器和媒体控件的外观差异；主题色彩、字体、形状与开屏保持各自设计。
 
-Fluent Design 参考 [Fluent 2 的材质](https://fluent2.microsoft.design/material) 与 [形状](https://fluent2.microsoft.design/shapes)：中性底层、4px 控件、8px 卡片、细小的蓝色选中标记。使用微软官方 [Fluent UI React v9](https://react.fluentui.dev/) 的按钮、输入框、选择框、滑块、复选框、开关、进度条和语言切换按钮；通过稳定的 FluentProvider 保持页内会话状态。
+Fluent Design 参考 [Fluent 2 的材质](https://fluent2.microsoft.design/material) 与 [形状](https://fluent2.microsoft.design/shapes)：中性底层、4px 控件、8px 卡片、细小的蓝色选中标记。保留微软官方 [Fluent UI React v9](https://react.fluentui.dev/) 的调色板与稳定 FluentProvider，页面使用共享自绘控件，切换主题时保持页内会话状态。
 
 液态玻璃参考 Apple 材质设计，以本地 CSS 渐变构成背景，通透表面、24px 背景模糊、柔和高光和多层阴影构成控件。减少透明度或浏览器不支持模糊时回退为不透明表面。
 

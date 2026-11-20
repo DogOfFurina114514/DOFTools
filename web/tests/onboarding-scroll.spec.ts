@@ -73,7 +73,7 @@ test('first visit setup saves preferences, teaches by navigation, and can reopen
   await expect(setup.getByRole('heading', { name: 'Choose your color theme' })).toBeVisible()
   await setup.getByRole('button', { name: 'Dark', exact: true }).click()
   await setup.getByRole('button', { name: 'Next' }).click()
-  await setup.getByRole('radio', { name: 'Native Material 3', exact: true }).click()
+  await setup.getByRole('radio', { name: 'Material 3', exact: true }).click()
   await expect(page.locator('html')).toHaveAttribute('data-style', 'material')
   await setup.getByRole('button', { name: 'Enter toolbox & start tour' }).click()
   const tour = page.getByRole('dialog', { name: 'Guided tour' })

@@ -1,24 +1,16 @@
 import {
-  createElement,
   useEffect,
   useId,
   useRef,
+  useState,
   type ButtonHTMLAttributes,
   type ReactNode,
 } from 'react'
-import { Upload, X } from 'lucide-react'
-import { useAppearance } from '../lib/appearance'
+import { createPortal } from 'react-dom'
+import { Check, ChevronDown, Minus, Plus, Upload, X } from 'lucide-react'
 import { useLocale } from '../lib/i18n'
-import {
-  Button as FluentButton,
-  Input as FluentInput,
-  Textarea as FluentTextarea,
-  Select as FluentSelect,
-  Slider as FluentSlider,
-  Switch as FluentSwitch,
-  Checkbox as FluentCheckbox,
-  ProgressBar as FluentProgress,
-} from '@fluentui/react-components'
+import { SelectControl } from './SelectControl'
+import { useDialogLifecycle } from './useDialogLifecycle'
 
 export interface ValueControlProps<T> {
   label: string
@@ -39,77 +31,46 @@ export function Button({
   children,
   variant = 'primary',
   className = '',
+  type = 'button',
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: 'primary' | 'secondary'
   children: ReactNode
 }) {
-  const { style, materialReady } = useAppearance()
-  if (style === 'fluent')
-    return (
-      <FluentButton
-        {...props}
-        appearance={variant === 'primary' ? 'primary' : 'secondary'}
-        className={`native-fluent-button ${className}`}
-      >
-        {children}
-      </FluentButton>
-    )
-  if (style === 'material' && materialReady)
-    return createElement(
-      variant === 'primary' ? 'md-filled-button' : 'md-outlined-button',
-      { ...props, className: `native-material-button ${className}` },
-      children,
-    )
   return (
-    <button {...props} className={`button ${variant} ${className}`}>
+    <button {...props} type={type} className={`button ${variant} ${className}`}>
       {children}
     </button>
   )
 }
-
 export function IconButton({
   children,
   className = '',
+  type = 'button',
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement>) {
-  const { style, materialReady } = useAppearance()
-  const classes = `icon-button ${className}`
-  if (style === 'fluent')
-    return (
-      <FluentButton {...props} className={classes} appearance="subtle" icon={<>{children}</>} />
-    )
-  return style === 'material' && materialReady ? (
-    createElement(
-      'md-icon-button',
-      { ...props, className: `${classes} native-material-icon-button` },
-      children,
-    )
-  ) : (
-    <button {...props} className={classes}>
+  return (
+    <button {...props} type={type} className={`icon-button ${className}`}>
       {children}
     </button>
   )
 }
-
 function ControlFrame({
   label,
   id,
   help,
   error,
   children,
-  floatingLabel = false,
 }: {
   label: string
   id: string
   help?: string
   error?: string
   children: ReactNode
-  floatingLabel?: boolean
 }) {
   return (
     <div className={`ui-field ${error ? 'invalid' : ''}`}>
-      {!floatingLabel && <label htmlFor={id}>{label}</label>}
+      <label htmlFor={id}>{label}</label>
       {children}
       {(help || error) && (
         <small id={`${id}-help`} role={error ? 'alert' : undefined}>
@@ -119,7 +80,6 @@ function ControlFrame({
     </div>
   )
 }
-
 export function TextField({
   label,
   value,
@@ -133,7 +93,6 @@ export function TextField({
   multiline = false,
 }: ValueControlProps<string> & { placeholder?: string; multiline?: boolean }) {
   const id = useId()
-  const { style, materialReady } = useAppearance()
   const common = {
     id,
     name,
@@ -146,31 +105,8 @@ export function TextField({
     'aria-describedby': help || error ? `${id}-help` : undefined,
   }
   return (
-    <ControlFrame
-      {...{ label, id, help, error }}
-      floatingLabel={style === 'material' && materialReady}
-    >
-      {style === 'material' && materialReady ? (
-        createElement('md-outlined-text-field', {
-          ...common,
-          label,
-          type: multiline ? 'textarea' : 'text',
-          rows: multiline ? 3 : undefined,
-          error: !!error,
-          onInput: (event: Event) => onValueChange((event.currentTarget as HTMLInputElement).value),
-        })
-      ) : style === 'fluent' ? (
-        multiline ? (
-          <FluentTextarea
-            {...common}
-            resize="vertical"
-            rows={3}
-            onChange={(_, data) => onValueChange(data.value)}
-          />
-        ) : (
-          <FluentInput {...common} size="large" onChange={(_, data) => onValueChange(data.value)} />
-        )
-      ) : multiline ? (
+    <ControlFrame {...{ label, id, help, error }}>
+      {multiline ? (
         <textarea {...common} rows={3} onChange={(event) => onValueChange(event.target.value)} />
       ) : (
         <input {...common} type="text" onChange={(event) => onValueChange(event.target.value)} />
@@ -181,145 +117,135 @@ export function TextField({
 export function TextArea(props: ValueControlProps<string> & { placeholder?: string }) {
   return <TextField {...props} multiline />
 }
-
+function stepped(value: number, min: number, max: number, step: number) {
+  const anchor = Number.isFinite(min) ? min : 0
+  return Math.max(
+    min,
+    Math.min(max, Number((anchor + Math.round((value - anchor) / step) * step).toFixed(12))),
+  )
+}
 export function NumberField({
   label,
   value,
   onValueChange,
-  min,
-  max,
+  min = -Infinity,
+  max = Infinity,
   step = 1,
   name,
   disabled,
   required,
   help,
   error,
-}: ValueControlProps<number | ''> & { min?: number; max?: number; step?: number }) {
-  const id = useId()
-  const { style, materialReady } = useAppearance()
-  const change = (raw: string) => onValueChange(raw === '' ? '' : Number(raw))
-  const common = {
-    id,
-    name,
-    value,
-    min,
-    max,
-    step,
-    disabled,
-    required,
-    'aria-label': label,
-    'aria-invalid': !!error,
-    'aria-describedby': help || error ? `${id}-help` : undefined,
+  placeholder,
+}: ValueControlProps<number | ''> & {
+  min?: number
+  max?: number
+  step?: number
+  placeholder?: string
+}) {
+  const id = useId(),
+    { t } = useLocale()
+  const [draft, setDraft] = useState(String(value))
+  const localChange = useRef<number | '' | null>(null)
+  const numericDraft =
+    draft.trim() !== '' &&
+    /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(draft.trim()) &&
+    Number.isFinite(Number(draft))
+  useEffect(() => {
+    if (localChange.current !== value) setDraft(String(value))
+    localChange.current = null
+  }, [value])
+  const update = (next: number) => {
+    setDraft(String(next))
+    onValueChange(next)
+  }
+  const move = (direction: number) => {
+    const number =
+      draft.trim() !== '' && Number.isFinite(Number(draft))
+        ? Number(draft)
+        : value !== ''
+          ? value
+          : Number.isFinite(min)
+            ? min
+            : 0
+    update(stepped(number + direction * step, min, max, step))
   }
   return (
-    <ControlFrame
-      {...{ label, id, help, error }}
-      floatingLabel={style === 'material' && materialReady}
-    >
-      {style === 'material' && materialReady ? (
-        createElement('md-outlined-text-field', {
-          ...common,
-          label,
-          type: 'number',
-          error: !!error,
-          onInput: (event: Event) => change((event.currentTarget as HTMLInputElement).value),
-        })
-      ) : style === 'fluent' ? (
-        <FluentInput
-          {...common}
-          value={String(value)}
-          size="large"
-          type="number"
-          onChange={(_, data) => change(data.value)}
-        />
-      ) : (
-        <input {...common} type="number" onChange={(event) => change(event.target.value)} />
-      )}
-    </ControlFrame>
-  )
-}
-
-export function Select({
-  label,
-  value,
-  onValueChange,
-  options,
-  name,
-  disabled,
-  required,
-  help,
-  error,
-}: ValueControlProps<string> & { options: readonly ChoiceOption[] }) {
-  const id = useId()
-  const { style, materialReady } = useAppearance()
-  return (
-    <ControlFrame
-      {...{ label, id, help, error }}
-      floatingLabel={style === 'material' && materialReady}
-    >
-      {style === 'material' && materialReady ? (
-        createElement(
-          'md-outlined-select',
-          {
-            id,
-            name,
-            label,
-            value,
-            disabled,
-            required,
-            error: !!error,
-            'aria-label': label,
-            onchange: (event: Event) =>
-              onValueChange((event.currentTarget as HTMLSelectElement).value),
-          },
-          options.map((option) =>
-            createElement(
-              'md-select-option',
-              { key: option.value, value: option.value },
-              <span slot="headline">{option.label}</span>,
-            ),
-          ),
-        )
-      ) : style === 'fluent' ? (
-        <FluentSelect
+    <ControlFrame {...{ label, id, help, error }}>
+      <div className="ui-number">
+        <input
           id={id}
+          type="text"
+          role="spinbutton"
+          inputMode="decimal"
           name={name}
-          value={value}
+          value={draft}
           disabled={disabled}
           required={required}
+          placeholder={placeholder}
           aria-label={label}
-          aria-invalid={!!error}
-          onChange={(_, data) => onValueChange(data.value)}
-          size="large"
-        >
-          {options.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </FluentSelect>
-      ) : (
-        <select
-          id={id}
-          name={name}
-          value={value}
-          disabled={disabled}
-          required={required}
-          aria-label={label}
-          aria-invalid={!!error}
+          aria-valuenow={value === '' ? undefined : value}
+          aria-valuemin={Number.isFinite(min) ? min : undefined}
+          aria-valuemax={Number.isFinite(max) ? max : undefined}
+          aria-invalid={!!error || (draft.trim() !== '' && !numericDraft)}
           aria-describedby={help || error ? `${id}-help` : undefined}
-          onChange={(event) => onValueChange(event.target.value)}
+          onChange={(event) => {
+            const raw = event.target.value
+            setDraft(raw)
+            const next =
+              raw.trim() !== '' &&
+              /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(raw.trim()) &&
+              Number.isFinite(Number(raw))
+                ? Number(raw)
+                : ''
+            localChange.current = next
+            onValueChange(next)
+          }}
+          onBlur={() => {
+            if (draft.trim() === '') {
+              setDraft('')
+              return
+            }
+            if (numericDraft) update(stepped(Number(draft), min, max, step))
+            else setDraft(String(value))
+          }}
+          onKeyDown={(event) => {
+            const directions: Record<string, number> = {
+              ArrowUp: 1,
+              ArrowDown: -1,
+              PageUp: 10,
+              PageDown: -10,
+            }
+            const direction = directions[event.key]
+            if (direction !== undefined) {
+              event.preventDefault()
+              move(direction)
+            }
+          }}
+        />
+        <button
+          type="button"
+          className="ui-number-step"
+          aria-label={t('减少 {label}', 'Decrease {label}', { label })}
+          disabled={disabled || (value !== '' && value <= min)}
+          onClick={() => move(-1)}
         >
-          {options.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      )}
+          <Minus size={16} />
+        </button>
+        <button
+          type="button"
+          className="ui-number-step"
+          aria-label={t('增加 {label}', 'Increase {label}', { label })}
+          disabled={disabled || (value !== '' && value >= max)}
+          onClick={() => move(1)}
+        >
+          <Plus size={16} />
+        </button>
+      </div>
     </ControlFrame>
   )
 }
+export const Select = SelectControl
 
 export function Slider({
   label,
@@ -333,57 +259,106 @@ export function Slider({
   help,
   error,
 }: ValueControlProps<number> & { min?: number; max?: number; step?: number }) {
-  const id = useId()
-  const { style, materialReady } = useAppearance()
+  const id = useId(),
+    dragging = useRef<number | null>(null)
+  const normalized = Math.max(min, Math.min(max, value))
+  const percent = max === min ? 0 : ((normalized - min) / (max - min)) * 100
   return (
     <ControlFrame {...{ label, id, help, error }}>
       <div className="ui-slider">
-        {style === 'material' && materialReady ? (
-          createElement('md-slider', {
-            id,
-            name,
-            value,
-            min,
-            max,
-            step,
-            disabled,
-            labeled: true,
-            'aria-label': label,
-            onInput: (event: Event) =>
-              onValueChange(Number((event.currentTarget as HTMLInputElement).value)),
-          })
-        ) : style === 'fluent' ? (
-          <FluentSlider
-            id={id}
-            name={name}
-            value={value}
-            min={min}
-            max={max}
-            step={step}
-            disabled={disabled}
-            aria-label={label}
-            onChange={(_, data) => onValueChange(data.value)}
-          />
-        ) : (
-          <input
-            id={id}
-            name={name}
-            type="range"
-            value={value}
-            min={min}
-            max={max}
-            step={step}
-            disabled={disabled}
-            aria-label={label}
-            onChange={(event) => onValueChange(Number(event.target.value))}
-          />
-        )}
-        <output htmlFor={id}>{value}</output>
+        <div
+          id={id}
+          role="slider"
+          tabIndex={disabled ? -1 : 0}
+          className="ui-slider-control"
+          aria-label={label}
+          aria-valuemin={min}
+          aria-valuemax={max}
+          aria-valuenow={normalized}
+          aria-disabled={disabled}
+          aria-invalid={!!error}
+          aria-orientation="horizontal"
+          data-name={name}
+          aria-describedby={help || error ? `${id}-help` : undefined}
+          onPointerDown={(event) => {
+            if (disabled || (event.pointerType === 'mouse' && event.button !== 0)) return
+            event.preventDefault()
+            event.currentTarget.focus({ preventScroll: true })
+            event.currentTarget.setPointerCapture(event.pointerId)
+            dragging.current = event.pointerId
+            const rect = event.currentTarget.getBoundingClientRect()
+            onValueChange(
+              stepped(
+                min +
+                  Math.max(
+                    0,
+                    Math.min(1, (event.clientX - rect.left - 10) / Math.max(1, rect.width - 20)),
+                  ) *
+                    (max - min),
+                min,
+                max,
+                step,
+              ),
+            )
+          }}
+          onPointerMove={(event) => {
+            if (disabled || dragging.current !== event.pointerId) return
+            const rect = event.currentTarget.getBoundingClientRect()
+            onValueChange(
+              stepped(
+                min +
+                  Math.max(
+                    0,
+                    Math.min(1, (event.clientX - rect.left - 10) / Math.max(1, rect.width - 20)),
+                  ) *
+                    (max - min),
+                min,
+                max,
+                step,
+              ),
+            )
+          }}
+          onPointerUp={(event) => {
+            if (dragging.current === event.pointerId) dragging.current = null
+          }}
+          onPointerCancel={() => {
+            dragging.current = null
+          }}
+          onLostPointerCapture={() => {
+            dragging.current = null
+          }}
+          onKeyDown={(event) => {
+            if (disabled) return
+            const directions: Record<string, number> = {
+              ArrowRight: 1,
+              ArrowUp: 1,
+              ArrowLeft: -1,
+              ArrowDown: -1,
+              PageUp: 10,
+              PageDown: -10,
+            }
+            const direction = directions[event.key]
+            if (event.key === 'Home' || event.key === 'End') {
+              event.preventDefault()
+              onValueChange(event.key === 'Home' ? min : max)
+            } else if (direction !== undefined) {
+              event.preventDefault()
+              onValueChange(
+                stepped(normalized + direction * step * (event.shiftKey ? 10 : 1), min, max, step),
+              )
+            }
+          }}
+        >
+          <span className="ui-slider-track" aria-hidden="true">
+            <span style={{ width: `${percent}%` }} />
+            <span className="ui-slider-thumb" style={{ left: `${percent}%` }} />
+          </span>
+        </div>
+        <output htmlFor={id}>{normalized}</output>
       </div>
     </ControlFrame>
   )
 }
-
 export function Switch({
   label,
   value,
@@ -391,43 +366,23 @@ export function Switch({
   disabled,
   help,
 }: ValueControlProps<boolean>) {
-  const { style, materialReady } = useAppearance()
-  const ref = useRef<HTMLElement & { selected?: boolean }>(null)
-  useEffect(() => {
-    const element = ref.current
-    if (!element) return
-    const change = () => onValueChange(!!element.selected)
-    element.addEventListener('change', change)
-    return () => element.removeEventListener('change', change)
-  }, [style, materialReady, onValueChange])
   return (
     <span className="ui-switch-wrap">
       {help && <small>{help}</small>}
-      {style === 'material' && materialReady ? (
-        createElement('md-switch', { ref, selected: value, disabled, 'aria-label': label })
-      ) : style === 'fluent' ? (
-        <FluentSwitch
-          aria-label={label}
-          checked={value}
-          disabled={disabled}
-          onChange={(_, data) => onValueChange(data.checked)}
-        />
-      ) : (
-        <button
-          className={`toggle ${value ? 'on' : ''}`}
-          role="switch"
-          aria-label={label}
-          aria-checked={value}
-          onClick={() => onValueChange(!value)}
-          disabled={disabled}
-        >
-          <span />
-        </button>
-      )}
+      <button
+        type="button"
+        className={`toggle ${value ? 'on' : ''}`}
+        role="switch"
+        aria-label={label}
+        aria-checked={value}
+        onClick={() => onValueChange(!value)}
+        disabled={disabled}
+      >
+        <span />
+      </button>
     </span>
   )
 }
-
 export function Checkbox({
   label,
   value,
@@ -436,52 +391,28 @@ export function Checkbox({
   name,
   help,
 }: ValueControlProps<boolean>) {
-  const id = useId()
-  const { style, materialReady } = useAppearance()
-  if (style === 'fluent')
-    return (
-      <div className="ui-checkbox">
-        <FluentCheckbox
-          id={id}
-          name={name}
-          label={label}
-          checked={value}
-          disabled={disabled}
-          onChange={(_, data) => onValueChange(data.checked === true)}
-        />
-        {help && <small>{help}</small>}
-      </div>
-    )
   return (
     <div className="ui-checkbox">
-      <label htmlFor={id}>
-        {style === 'material' && materialReady ? (
-          createElement('md-checkbox', {
-            id,
-            name,
-            checked: value,
-            disabled,
-            'aria-label': label,
-            onchange: (event: Event) =>
-              onValueChange((event.currentTarget as HTMLInputElement).checked),
-          })
-        ) : (
-          <input
-            id={id}
-            name={name}
-            type="checkbox"
-            checked={value}
-            disabled={disabled}
-            onChange={(event) => onValueChange(event.target.checked)}
-          />
-        )}
+      <button
+        type="button"
+        role="checkbox"
+        className="ui-checkbox-control"
+        name={name}
+        value={String(value)}
+        aria-label={label}
+        aria-checked={value}
+        disabled={disabled}
+        onClick={() => onValueChange(!value)}
+      >
+        <span className="ui-checkbox-box" aria-hidden="true">
+          {value && <Check size={15} />}
+        </span>
         <span>{label}</span>
-      </label>
+      </button>
       {help && <small>{help}</small>}
     </div>
   )
 }
-
 export function FilePicker({
   label,
   value,
@@ -492,9 +423,9 @@ export function FilePicker({
   help,
   error,
 }: ValueControlProps<File[]> & { accept?: string; multiple?: boolean }) {
-  const { t } = useLocale()
-  const input = useRef<HTMLInputElement>(null)
-  const id = useId()
+  const { t } = useLocale(),
+    input = useRef<HTMLInputElement>(null),
+    id = useId()
   const choose = (files: FileList | null) => {
     if (!disabled && files) onValueChange(multiple ? [...files] : [...files].slice(0, 1))
   }
@@ -516,18 +447,13 @@ export function FilePicker({
           multiple={multiple}
           disabled={disabled}
           aria-label={label}
+          hidden
           onChange={(event) => {
             choose(event.target.files)
             event.target.value = ''
           }}
-          hidden
         />
-        <Button
-          variant="secondary"
-          disabled={disabled}
-          type="button"
-          onClick={() => input.current?.click()}
-        >
+        <Button variant="secondary" disabled={disabled} onClick={() => input.current?.click()}>
           <Upload size={16} />
           {label}
         </Button>
@@ -549,9 +475,7 @@ export function FilePicker({
     </ControlFrame>
   )
 }
-
 export function Progress({ label, value }: { label: string; value?: number }) {
-  const { style, materialReady } = useAppearance()
   const normalized = value === undefined ? undefined : Math.max(0, Math.min(1, value))
   return (
     <div className="ui-progress">
@@ -559,21 +483,19 @@ export function Progress({ label, value }: { label: string; value?: number }) {
         {label}
         {normalized !== undefined && <b>{Math.round(normalized * 100)}%</b>}
       </span>
-      {style === 'material' && materialReady ? (
-        createElement('md-linear-progress', {
-          value: normalized,
-          indeterminate: normalized === undefined,
-          'aria-label': label,
-        })
-      ) : style === 'fluent' ? (
-        <FluentProgress aria-label={label} max={1} value={normalized} />
-      ) : (
-        <progress aria-label={label} max={1} value={normalized} />
-      )}
+      <div
+        role="progressbar"
+        aria-label={label}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={normalized === undefined ? undefined : Math.round(normalized * 100)}
+        className={`ui-progress-track ${normalized === undefined ? 'indeterminate' : ''}`}
+      >
+        <span style={normalized === undefined ? undefined : { width: `${normalized * 100}%` }} />
+      </div>
     </div>
   )
 }
-
 export function Panel({
   title,
   children,
@@ -593,7 +515,6 @@ export function Panel({
     </section>
   )
 }
-
 export function Dialog({
   open,
   title,
@@ -607,54 +528,64 @@ export function Dialog({
   children: ReactNode
   actions?: ReactNode
 }) {
-  const { t } = useLocale()
-  const ref = useRef<HTMLDialogElement>(null)
-  const id = useId()
-  useEffect(() => {
-    const dialog = ref.current
-    if (!dialog) return
-    if (open && !dialog.open) dialog.showModal()
-    else if (!open && dialog.open) dialog.close()
-  }, [open])
-  return (
-    <dialog
-      ref={ref}
-      className="ui-dialog"
-      aria-labelledby={id}
-      onCancel={(event) => {
-        event.preventDefault()
-        onClose()
-      }}
-      onClick={(event) => {
-        if (event.target === event.currentTarget) {
-          const rect = event.currentTarget.getBoundingClientRect()
-          if (
-            event.clientX < rect.left ||
-            event.clientX > rect.right ||
-            event.clientY < rect.top ||
-            event.clientY > rect.bottom
-          )
-            onClose()
-        }
-      }}
-    >
-      <div className="ui-panel-heading">
-        <h2 id={id}>{title}</h2>
-        <button
-          type="button"
-          className="icon-button"
-          aria-label={t('关闭弹窗', 'Close dialog')}
-          onClick={onClose}
+  const { t } = useLocale(),
+    ref = useRef<HTMLDivElement>(null),
+    id = useId()
+  useDialogLifecycle(open, ref, onClose)
+  return open
+    ? createPortal(
+        <div
+          className="ui-dialog-backdrop"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) onClose()
+          }}
         >
-          <X size={19} />
-        </button>
+          <div
+            ref={ref}
+            className="ui-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={id}
+            tabIndex={-1}
+            data-scroll-area=""
+          >
+            <div className="ui-panel-heading">
+              <h2 id={id}>{title}</h2>
+              <IconButton aria-label={t('关闭弹窗', 'Close dialog')} onClick={onClose}>
+                <X size={19} />
+              </IconButton>
+            </div>
+            {children}
+            {actions && <div className="ui-dialog-actions">{actions}</div>}
+          </div>
+        </div>,
+        document.body,
+      )
+    : null
+}
+export function Disclosure({
+  title,
+  children,
+  className = '',
+}: {
+  title: string
+  children: ReactNode
+  className?: string
+}) {
+  const id = useId(),
+    [open, setOpen] = useState(false)
+  return (
+    <section className={`ui-disclosure ${className}`}>
+      <button type="button" aria-expanded={open} aria-controls={id} onClick={() => setOpen(!open)}>
+        {title}
+        <ChevronDown size={16} aria-hidden="true" />
+      </button>
+      <div id={id} hidden={!open}>
+        {children}
       </div>
-      {children}
-      {actions && <div className="ui-dialog-actions">{actions}</div>}
-    </dialog>
+    </section>
   )
 }
-
 export function Tabs({
   label,
   value,
@@ -691,8 +622,7 @@ export function Tabs({
     </div>
   )
 }
-
-/** Tools import this single facade; values/events are independent of the selected theme. */
+/** Tools retain one stable value/event facade; all visible widgets use theme tokens. */
 export const ToolUI = {
   Button,
   TextField,

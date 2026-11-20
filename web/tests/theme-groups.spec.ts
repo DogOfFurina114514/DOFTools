@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { selectChoice } from './helpers/controls'
 
 test('settings and setup share the two ordered theme groups', async ({ page }) => {
   await page.goto('/settings')
@@ -9,7 +10,7 @@ test('settings and setup share the two ordered theme groups', async ({ page }) =
     await standard
       .getByRole('radio')
       .evaluateAll((items) => items.map((item) => item.getAttribute('aria-label'))),
-  ).toEqual(['默认', '原生 Material 3', 'Fluent Design', '液态玻璃'])
+  ).toEqual(['默认', 'Material 3', 'Fluent Design', '液态玻璃'])
   expect(
     await games
       .getByRole('radio')
@@ -23,9 +24,7 @@ test('settings and setup share the two ordered theme groups', async ({ page }) =
   await expect(games).toBeVisible()
 })
 
-test('Fluent uses official components and shared values survive a change from Material', async ({
-  page,
-}) => {
+test('Fluent keeps drawn controls and shared values through theme changes', async ({ page }) => {
   await page.goto('/settings')
   await page.evaluate(async () => {
     const { mountControls } = await import('/tests/fixtures/controls.tsx')
@@ -33,22 +32,25 @@ test('Fluent uses official components and shared values survive a change from Ma
   })
   const fixture = page.locator('#controls-fixture')
   await fixture.getByRole('textbox', { name: '输出名称' }).fill('sample')
-  await fixture.getByRole('combobox', { name: '输出格式' }).selectOption('jpg')
-  await fixture.getByRole('checkbox', { name: '保留元数据' }).check()
-  await fixture.getByRole('button', { name: '切换原生控件' }).click()
-  await expect(fixture.locator('md-outlined-text-field')).toBeVisible()
+  await selectChoice(fixture.getByRole('combobox', { name: '输出格式' }), 'jpg')
+  await fixture.getByRole('checkbox', { name: '保留元数据' }).click()
+  await fixture.getByRole('button', { name: '切换 Material 控件' }).click()
+  await expect(fixture.getByRole('textbox', { name: '输出名称' })).toBeVisible()
   await fixture.getByRole('button', { name: '切换 Fluent 控件' }).click()
-  await expect(fixture.locator('.fui-Input')).toBeVisible()
-  await expect(fixture.locator('.fui-Select')).toBeVisible()
-  await expect(fixture.locator('.fui-Checkbox')).toBeVisible()
+  await expect(fixture.locator('input[type="text"]').first()).toBeVisible()
+  await expect(fixture.locator('button.ui-select-trigger').first()).toBeVisible()
+  await expect(fixture.locator('button.ui-checkbox-control')).toBeVisible()
   await expect(fixture.getByRole('textbox', { name: '输出名称' })).toHaveValue('sample')
-  await expect(fixture.getByRole('combobox', { name: '输出格式' })).toHaveValue('jpg')
+  await expect(fixture.getByRole('combobox', { name: '输出格式' })).toHaveAttribute(
+    'data-value',
+    'jpg',
+  )
   await expect(fixture.getByRole('checkbox', { name: '保留元数据' })).toBeChecked()
   await fixture.getByRole('textbox', { name: '输出名称' }).fill('fluent')
-  await fixture.getByRole('combobox', { name: '输出格式' }).selectOption('png')
-  await fixture.getByRole('checkbox', { name: '保留元数据' }).uncheck()
+  await selectChoice(fixture.getByRole('combobox', { name: '输出格式' }), 'png')
+  await fixture.getByRole('checkbox', { name: '保留元数据' }).click()
   await fixture.getByRole('button', { name: '查看当前值' }).click()
-  await expect(fixture.getByText('fluent|png|false')).toBeVisible()
+  await expect(page.getByRole('dialog').getByText('fluent|png|false')).toBeVisible()
   await page.keyboard.press('Escape')
 })
 

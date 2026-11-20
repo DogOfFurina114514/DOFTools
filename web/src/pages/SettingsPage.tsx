@@ -4,6 +4,7 @@ import { PageHeading, PreferenceSwitch, StylePicker, ThemedButton } from '../com
 import { useLocale } from '../lib/i18n'
 import { styleName, styleOpening } from '../lib/appearance'
 import { detectAICapability } from '../lib/ai'
+import { Disclosure } from '../components/controls'
 
 export function SettingsPage({
   onStyle,
@@ -178,8 +179,7 @@ export function SettingsPage({
           <ShieldCheck size={23} className="green-text" />
         </div>
       </section>
-      <details className="visual-references">
-        <summary>{t('风格的灵感来源', 'Style references')}</summary>
+      <Disclosure className="visual-references" title={t('风格的灵感来源', 'Style references')}>
         <p>
           {t(
             '参考官方视觉元素，以原创图形与动画重新呈现。',
@@ -213,7 +213,7 @@ export function SettingsPage({
             Minecraft
           </a>
         </div>
-      </details>
+      </Disclosure>
     </>
   )
 }

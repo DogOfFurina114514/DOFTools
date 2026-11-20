@@ -1366,7 +1366,7 @@ h2 {
   border-radius: 8px;
   padding: 16px 20px;
 }
-.visual-references summary {
+.visual-references > button {
   cursor: pointer;
   color: var(--secondary);
 }
@@ -1374,7 +1374,7 @@ h2 {
   line-height: 1.8;
   margin-top: 16px;
 }
-.visual-references > div {
+.visual-references > div > div {
   display: flex;
   flex-wrap: wrap;
   gap: 16px;

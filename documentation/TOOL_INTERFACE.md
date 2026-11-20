@@ -39,7 +39,7 @@ function OutputName() {
 | Panel                | —                    | title、actions、children                |
 | Dialog               | —                    | open、title、onClose、actions、children |
 
-默认与三种游戏风格由 CSS token 适配；Material 3 使用实际 Material Web 输入框、选择框、滑块、开关、复选框、进度条与按钮。弹窗使用原生 HTML dialog，以保持跨风格一致的焦点管理、Escape 关闭和遮罩行为。
+八种主题使用同一套 React / CSS 自绘控件，由主题 token 适配外观。Select 使用按钮 combobox 与 portal listbox，支持方向键、Home / End、字符搜索、Enter 确认、Escape 取消、Tab 离开，并随滚动、变换和移动视口调整位置。滑块支持拖动和键盘；数字框用文本编辑与自绘加减按钮，保留小数输入中间态，失焦按 min / max / step 归一。弹窗使用 portal 管理遮罩、背景 inert、焦点循环、嵌套弹窗及焦点恢复，不依赖 HTMLDialogElement.showModal。文本编辑和隐藏的文件 input 保留浏览器的基础能力；页面可见的选择按钮和文件列表均自绘。
 
 ## 添加一个工具
 
@@ -102,6 +102,6 @@ const definition: ToolDefinition = {
 
 聊天、上传的附件和结果文件通过 IndexedDB 结构化保存；刷新后可继续查看和下载，模型会回到未开启状态。清空对话清除持久记录，关闭助手保留历史。界面语言切换即时翻译工具卡片和结果摘要，文件名及生成的聊天原文不被改写。
 
-共享控件还支持官方 Fluent UI React v9；与原生 Material 控件复用同一个值状态与文件接口。单一文件字段允许将模型返回的附件 ID 列表规范为字段绑定；模型写入 parameters 的文件字段元数据会被忽略，实际输入只取本次上传的 File，未知附件 ID 仍拒绝。
+Fluent 主题保留稳定的 FluentProvider 和调色板，共享自绘控件与所有主题复用同一个值状态与文件接口。单一文件字段允许将模型返回的附件 ID 列表规范为字段绑定；模型写入 parameters 的文件字段元数据会被忽略，实际输入只取本次上传的 File，未知附件 ID 仍拒绝。
 
 `ToolRunContext.onStatus` 可选，接收双语处理阶段或尝试次数；`onProgress` 为实际处理进度。音视频转换和 ZIP 密码恢复在 Worker 中运行，取消或结束后终止 Worker。搜索别名位于 `src/lib/search.ts`，同一索引覆盖双语名称与格式关键词，并对短拼写错误作容错。

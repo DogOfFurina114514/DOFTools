@@ -53,7 +53,7 @@ export function SetupWizard({
           if (event.key !== 'Tab') return
           const elements = [
             ...(dialog.current?.querySelectorAll<HTMLElement>(
-              'button:not(:disabled), md-filled-button:not([disabled]), md-outlined-button:not([disabled]), md-icon-button:not([disabled])',
+              'button:not(:disabled)',
             ) ?? []),
           ]
           const first = elements[0],

@@ -23,9 +23,9 @@ export const STYLE_PRESETS = [
   },
   {
     id: 'material',
-    name: '原生 Material 3',
+    name: 'Material 3',
     english: 'MATERIAL DESIGN 3',
-    description: '柔和色调、圆润形状与原生组件。',
+    description: '柔和色调、圆润形状与清晰层次。',
     game: false,
     opening: '',
   },
@@ -87,7 +87,7 @@ export const isStyleId = (value: unknown): value is StyleId =>
 export const presetFor = (id: StyleId) => STYLE_PRESETS.find((style) => style.id === id)!
 const englishStyles = {
   default: ['Default', 'Mint green and warm white. Light and quiet.', ''],
-  material: ['Native Material 3', 'Soft colors, rounded shapes and native components.', ''],
+  material: ['Material 3', 'Soft colors, rounded shapes and clear hierarchy.', ''],
   fluent: ['Fluent Design', 'Clear hierarchy, subtle materials and a blue accent.', ''],
   glass: ['Liquid Glass', 'Flowing colors, translucent surfaces and soft highlights.', ''],
   genshin: [
@@ -127,7 +127,6 @@ interface Appearance {
   openings: boolean
   setOpenings: (enabled: boolean) => void
   reducedMotion: boolean
-  materialReady: boolean
 }
 const AppearanceContext = createContext<Appearance>(null!)
 export const useAppearance = () => useContext(AppearanceContext)
@@ -152,7 +151,6 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
   const [reducedMotion, setReducedMotion] = useState(
     () => matchMedia('(prefers-reduced-motion: reduce)').matches,
   )
-  const [materialReady, setMaterialReady] = useState(false)
   const themeTransition = useRef<ViewTransition | null>(null)
   const themeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const transitionTheme = (update: () => void) => {
@@ -216,22 +214,6 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
     return () => media.removeEventListener('change', update)
   }, [])
 
-  useEffect(() => {
-    if (style === 'material' && !materialReady) {
-      let active = true
-      import('../components/material-register')
-        .then(() => {
-          if (active) setMaterialReady(true)
-        })
-        .catch(() => {
-          /* CSS controls remain usable if the optional chunk fails to load. */
-        })
-      return () => {
-        active = false
-      }
-    }
-  }, [style, materialReady])
-
   return (
     <AppearanceContext.Provider
       value={{
@@ -243,7 +225,6 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
         openings,
         setOpenings,
         reducedMotion,
-        materialReady,
       }}
     >
       <FluentProvider

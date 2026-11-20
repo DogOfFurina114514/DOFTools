@@ -96,7 +96,7 @@ export function StylePicker({ onSelect }: { onSelect: (style: StyleId) => void }
                       {t('专属开屏动画', 'Includes an opening')}
                     </>
                   ) : preset.id === 'material' ? (
-                    t('原生 Material 3', 'Native Material 3')
+                    'Material 3'
                   ) : preset.id === 'fluent' ? (
                     t('简洁的分层界面', 'Clear layered surfaces')
                   ) : preset.id === 'glass' ? (

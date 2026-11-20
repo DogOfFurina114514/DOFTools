@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
+import { selectChoice } from './helpers/controls'
 import { readFile } from 'node:fs/promises'
 import { PDFDocument, StandardFonts } from 'pdf-lib'
 import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell } from 'docx'
@@ -185,9 +186,12 @@ test('image UI produces a JPEG with dimensions and keeps options across language
     mimeType: 'image/png',
     buffer: Buffer.from(bytes, 'base64'),
   })
-  await page.getByLabel('输出格式', { exact: true }).selectOption('jpg')
+  await selectChoice(page.getByLabel('输出格式', { exact: true }), 'jpg')
   await page.getByRole('button', { name: 'English', exact: true }).click()
-  await expect(page.getByLabel('Output format', { exact: true })).toHaveValue('jpg')
+  await expect(page.getByLabel('Output format', { exact: true })).toHaveAttribute(
+    'data-value',
+    'jpg',
+  )
   await page.getByRole('button', { name: 'Run tool', exact: true }).click()
   await expect(page.locator('.ui-result')).toContainText('Finished')
   const download = page.waitForEvent('download')
@@ -438,7 +442,7 @@ test('images to PDF accepts multiple selections and preserves page order and dim
       buffer: Buffer.from(image, 'base64'),
     })),
   )
-  await page.getByLabel('页面尺寸', { exact: true }).selectOption('image')
+  await selectChoice(page.getByLabel('页面尺寸', { exact: true }), 'image')
   await page.getByRole('button', { name: '开始处理', exact: true }).click()
   await expect(page.locator('.ui-result')).toContainText('已将 2 张图片合并为 PDF')
   const downloading = page.waitForEvent('download')

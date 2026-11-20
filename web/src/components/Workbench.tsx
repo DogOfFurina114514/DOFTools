@@ -4,7 +4,6 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
-  ChevronDown,
   Copy,
   Download,
   FileImage,
@@ -18,6 +17,8 @@ import {
   Upload,
   X,
 } from 'lucide-react'
+import { Checkbox, NumberField, Select, Slider } from './controls'
+import { MediaPreview } from './MediaPreview'
 import { categoryOf, findTool, tools, type Tool } from '../data/tools'
 import {
   countText,
@@ -218,79 +219,59 @@ function ImageTool({ tool }: { tool: Tool }) {
         <section className="workspace-panel options-panel">
           <PanelTitle>处理设置</PanelTitle>
           <div className="options-body">
-            <label className="field-label">
-              导出格式
-              <span className="select-wrap">
-                <select
-                  value={format}
-                  disabled={busy}
-                  onChange={(event) => setFormat(event.target.value as typeof format)}
-                >
-                  <option value="image/webp">WebP · 体积更轻巧</option>
-                  <option value="image/jpeg">JPG · 兼容性更好</option>
-                  <option value="image/png">PNG · 保留透明背景</option>
-                </select>
-                <ChevronDown size={16} />
-              </span>
-            </label>
+            <Select
+              label="导出格式"
+              value={format}
+              disabled={busy}
+              onValueChange={(value) => setFormat(value as typeof format)}
+              options={[
+                { value: 'image/webp', label: 'WebP · 体积更轻巧' },
+                { value: 'image/jpeg', label: 'JPG · 兼容性更好' },
+                { value: 'image/png', label: 'PNG · 保留透明背景' },
+              ]}
+            />
             {tool.id === 'image-resize' && (
               <>
                 <div className="dimension-fields">
-                  <label className="field-label">
-                    目标宽度
-                    <input
-                      type="number"
-                      min="1"
-                      max="16384"
-                      value={width}
-                      onChange={(event) => setWidth(event.target.value)}
-                      placeholder="自动"
-                      disabled={busy}
-                    />
-                  </label>
-                  <span>×</span>
-                  <label className="field-label">
-                    目标高度
-                    <input
-                      type="number"
-                      min="1"
-                      max="16384"
-                      value={height}
-                      onChange={(event) => setHeight(event.target.value)}
-                      placeholder="自动"
-                      disabled={busy || (lockRatio && !!width)}
-                    />
-                  </label>
-                </div>
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={lockRatio}
-                    onChange={(event) => setLockRatio(event.target.checked)}
+                  <NumberField
+                    label="目标宽度"
+                    min={1}
+                    max={16384}
+                    value={width === '' ? '' : Number(width)}
+                    onValueChange={(value) => setWidth(String(value))}
+                    placeholder="自动"
                     disabled={busy}
                   />
-                  保持原始比例
-                </label>
+                  <span>×</span>
+                  <NumberField
+                    label="目标高度"
+                    min={1}
+                    max={16384}
+                    value={height === '' ? '' : Number(height)}
+                    onValueChange={(value) => setHeight(String(value))}
+                    placeholder="自动"
+                    disabled={busy || (lockRatio && !!width)}
+                  />
+                </div>
+                <Checkbox
+                  label="保持原始比例"
+                  value={lockRatio}
+                  onValueChange={setLockRatio}
+                  disabled={busy}
+                />
                 <p className="field-hint">保持比例时以宽度为准；只填写高度也可以。</p>
               </>
             )}
             {format !== 'image/png' && (
-              <label className="field-label quality-label">
-                <span>
-                  图片质量<strong>{quality}%</strong>
-                </span>
-                <input
-                  type="range"
-                  min="10"
-                  max="100"
-                  value={quality}
-                  disabled={busy}
-                  onChange={(event) => setQuality(Number(event.target.value))}
-                />
-                <small>
-                  更小体积 <span>更清晰画质</span>
-                </small>
-              </label>
+              <Slider
+                label="图片质量"
+                min={10}
+                max={100}
+                value={quality}
+                disabled={busy}
+                onValueChange={setQuality}
+                help="更小体积 / 更清晰画质"
+              />
             )}
             <p className="field-hint">
               {format === 'image/png'
@@ -571,16 +552,13 @@ function UuidTool() {
       <section className="workspace-panel">
         <PanelTitle>生成设置</PanelTitle>
         <div className="options-body">
-          <label className="field-label">
-            生成数量
-            <input
-              type="number"
-              min="1"
-              max="100"
-              value={count}
-              onChange={(event) => setCount(event.target.value)}
-            />
-          </label>
+          <NumberField
+            label="生成数量"
+            min={1}
+            max={100}
+            value={count === '' ? '' : Number(count)}
+            onValueChange={(value) => setCount(String(value))}
+          />
           <p className="field-hint">生成标准 UUID v4，一次最多 100 个。使用浏览器安全随机数。</p>
           <ErrorMessage error={error} />
           <button
@@ -651,15 +629,23 @@ function ColorTool() {
       <section className="workspace-panel">
         <PanelTitle>选择一个颜色</PanelTitle>
         <div className="options-body">
-          <label className="color-preview" style={{ background: normalized }}>
-            <input
-              type="color"
-              aria-label="颜色选择器"
-              value={normalized}
-              onChange={(event) => setHex(event.target.value)}
+          <div className="color-preview" style={{ background: normalized }}>
+            <span>调整 RGB 滑块选择颜色</span>
+          </div>
+          {['红色', '绿色', '蓝色'].map((label, channel) => (
+            <Slider
+              key={label}
+              label={label}
+              value={rgb[channel]}
+              min={0}
+              max={255}
+              onValueChange={(value) => {
+                const next = [...rgb]
+                next[channel] = value
+                setHex(`#${next.map((channel) => channel.toString(16).padStart(2, '0')).join('')}`)
+              }}
             />
-            <span>点击选择颜色</span>
-          </label>
+          ))}
           <label className="field-label">
             HEX 色值
             <input
@@ -752,7 +738,7 @@ function VideoInfoTool() {
         </PanelTitle>
         {file ? (
           <div className="video-preview">
-            <video src={url} controls preload="metadata" />
+            <MediaPreview src={url} />
             <span>{file.name}</span>
           </div>
         ) : (

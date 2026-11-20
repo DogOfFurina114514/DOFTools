@@ -1,4 +1,4 @@
-/* Material 3 baseline palette, surface roles and type scale. Native controls
+/* Material 3 baseline palette, surface roles and type scale. Drawn controls
    inherit the same tokens as the surrounding application. */
 [data-style='material'] {
   font-family: 'Roboto', 'Microsoft YaHei', sans-serif;
@@ -146,21 +146,14 @@
   height: 40px;
   border-radius: 50%;
 }
-[data-style='material'] .native-material-icon-button:hover {
-  background: transparent;
-}
 [data-style='material'] .language-slider {
   background: var(--md-sys-color-surface-container-high);
   border-color: var(--md-sys-color-outline);
-  /* Native segmented buttons retain a 40px minimum inside the track padding. */
   height: 48px;
 }
 [data-style='material'] .language-thumb {
   background: var(--md-sys-color-secondary-container);
   box-shadow: none;
-}
-[data-style='material'] .language-slider md-outlined-segmented-button {
-  --md-outlined-segmented-button-container-height: 40px;
 }
 [data-style='material'] .main-content {
   padding: 32px 32px 0;
@@ -382,7 +375,6 @@
 [data-style='material'] .settings-row {
   padding-block: 24px;
 }
-[data-style='material'] .native-material-button,
 [data-style='material'] .button {
   font-size: 14px;
   letter-spacing: 0.1px;
@@ -409,11 +401,6 @@
 [data-style='material'] .message-user {
   color: var(--md-sys-color-on-primary-container);
   background: var(--md-sys-color-primary-container);
-}
-[data-style='material'] .ui-field md-outlined-text-field,
-[data-style='material'] .ui-field md-outlined-select {
-  --md-outlined-text-field-container-shape: 4px;
-  --md-outlined-select-container-shape: 4px;
 }
 [data-style='material'] .ui-file-picker {
   border-radius: 16px;

@@ -66,8 +66,7 @@
 [data-style='endfield'] .themed-scroll-thumb {
   border-radius: 0;
 }
-.ai-storage-notice .icon-button,
-.ai-storage-notice md-icon-button {
+.ai-storage-notice .icon-button {
   margin-left: auto;
   flex-shrink: 0;
 }

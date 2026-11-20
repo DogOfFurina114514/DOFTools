@@ -14,6 +14,8 @@ import './styles/scrollbars.css'
 import './styles/extra-themes.css'
 import './styles/tools.css'
 import '@fontsource/vt323/latin-400.css'
+import '@fontsource/roboto/latin-400.css'
+import '@fontsource/roboto/latin-500.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

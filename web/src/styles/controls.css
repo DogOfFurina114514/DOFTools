@@ -4,6 +4,15 @@
   --control-focus: var(--green);
   --control-border: var(--line);
 }
+[hidden] {
+  display: none !important;
+}
+button,
+input,
+textarea {
+  appearance: none;
+  -webkit-appearance: none;
+}
 .ui-field {
   display: flex;
   flex-direction: column;
@@ -24,7 +33,7 @@
 }
 .ui-field input:not([type='range']):not([type='file']),
 .ui-field textarea,
-.ui-field select {
+.ui-select-trigger {
   width: 100%;
   border: 1px solid var(--control-border);
   border-radius: var(--control-radius);
@@ -43,13 +52,13 @@
 }
 .ui-field input:focus,
 .ui-field textarea:focus,
-.ui-field select:focus {
+.ui-select-trigger:focus-visible {
   border-color: var(--control-focus);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--control-focus) 20%, transparent);
 }
 .ui-field.invalid input,
 .ui-field.invalid textarea,
-.ui-field.invalid select {
+.ui-field.invalid .ui-select-trigger {
   border-color: #b94d48;
 }
 .ui-field.invalid > small {
@@ -59,10 +68,95 @@
   opacity: 0.55;
   cursor: not-allowed;
 }
-.ui-field md-outlined-text-field,
-.ui-field md-outlined-select {
-  width: 100%;
-  --md-outlined-text-field-container-shape: var(--control-radius);
+.ui-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.ui-select-trigger > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ui-select-trigger > svg {
+  flex: none;
+  transition: transform 160ms ease;
+}
+.ui-select-trigger[aria-expanded='true'] > svg {
+  transform: rotate(180deg);
+}
+.ui-select-list {
+  position: fixed;
+  z-index: 140;
+  width: 240px;
+  max-height: 320px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 5px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--control-radius);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 8px 32px #0003;
+}
+.ui-select-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: max(0px, calc(var(--control-radius) - 3px));
+  font-size: 14px;
+  line-height: 1.5;
+  cursor: pointer;
+}
+.ui-select-option > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ui-select-option > svg {
+  flex: none;
+  color: var(--green);
+}
+.ui-select-option[data-active='true'] {
+  background: var(--hover);
+}
+.ui-select-option[aria-selected='true'] {
+  font-weight: 600;
+}
+.ui-number {
+  display: flex;
+  overflow: hidden;
+  border: 1px solid var(--control-border);
+  border-radius: var(--control-radius);
+  background: var(--surface);
+}
+.ui-number:focus-within {
+  border-color: var(--control-focus);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--control-focus) 20%, transparent);
+}
+.ui-field .ui-number > input {
+  min-width: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.ui-number-step {
+  display: grid;
+  place-items: center;
+  flex: 0 0 36px;
+  color: var(--secondary);
+  border-left: 1px solid var(--line);
+  cursor: pointer;
+}
+.ui-number-step:hover:not(:disabled) {
+  background: var(--hover);
+  color: var(--green);
 }
 .ui-slider {
   display: flex;
@@ -70,11 +164,51 @@
   gap: 15px;
   min-height: 44px;
 }
-.ui-slider input,
-.ui-slider md-slider {
-  width: 100%;
+.ui-slider-control {
+  position: relative;
   flex: 1;
-  accent-color: var(--green);
+  min-width: 44px;
+  height: 44px;
+  cursor: pointer;
+  touch-action: none;
+}
+.ui-slider-track {
+  position: absolute;
+  inset-inline: 10px;
+  top: 50%;
+  height: 6px;
+  transform: translateY(-50%);
+  border-radius: 3px;
+  background: var(--line);
+}
+.ui-slider-track > span:first-child {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--green);
+}
+.ui-slider-thumb {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 1px 4px #0003;
+}
+.ui-slider-control[aria-disabled='true'] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.ui-select-trigger:focus-visible,
+.ui-checkbox-control:focus-visible,
+.ui-slider-control:focus-visible,
+.ui-number-step:focus-visible,
+.ui-disclosure > button:focus-visible {
+  outline: 2px solid var(--control-focus);
+  outline-offset: 2px;
 }
 .ui-slider output {
   color: var(--text);
@@ -84,18 +218,35 @@
   min-width: 30px;
   text-align: right;
 }
-.ui-checkbox > label {
+.ui-checkbox-control {
   display: flex;
   align-items: center;
   gap: 10px;
   font-size: 13px;
   color: var(--text);
   cursor: pointer;
+  min-height: 36px;
+  text-align: left;
 }
-.ui-checkbox input {
+.ui-checkbox-box {
+  display: grid;
+  place-items: center;
+  flex: none;
   width: 19px;
   height: 19px;
-  accent-color: var(--green-dark);
+  border: 2px solid var(--secondary);
+  border-radius: 4px;
+  background: var(--surface);
+}
+.ui-checkbox-control[aria-checked='true'] .ui-checkbox-box {
+  background: var(--green);
+  border-color: var(--green);
+  color: var(--on-primary, #fff);
+}
+.ui-checkbox-control:disabled,
+.ui-switch-wrap .toggle:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 .ui-checkbox > small {
   margin: 6px 0 0 29px;
@@ -151,23 +302,30 @@
   font-size: 12px;
   color: var(--secondary);
 }
-.ui-progress progress {
+.ui-progress-track {
   width: 100%;
   height: 7px;
   border: 0;
   border-radius: 3px;
   overflow: hidden;
-  accent-color: var(--green-dark);
   background: var(--line);
 }
-.ui-progress progress::-webkit-progress-bar {
-  background: var(--line);
+.ui-progress-track > span {
+  display: block;
+  height: 100%;
+  background: var(--green);
 }
-.ui-progress progress::-webkit-progress-value {
-  background: var(--green-dark);
+.ui-progress-track.indeterminate > span {
+  width: 35%;
+  animation: ui-progress-sweep 1.3s ease-in-out infinite;
 }
-.ui-progress md-linear-progress {
-  width: 100%;
+@keyframes ui-progress-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(290%);
+  }
 }
 .ui-panel {
   background: var(--surface);
@@ -238,9 +396,6 @@
   background: var(--hover);
 }
 .ui-dialog {
-  position: fixed;
-  inset: 0;
-  margin: auto;
   padding: 26px;
   width: min(500px, calc(100vw - 36px));
   max-height: 85vh;
@@ -251,9 +406,88 @@
   border-radius: var(--radius);
   box-shadow: 0 20px 100px #0004;
 }
-.ui-dialog::backdrop {
+.ui-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: 18px;
   background: #10182077;
   backdrop-filter: blur(4px);
+}
+.ui-disclosure > button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--secondary);
+  cursor: pointer;
+  font: inherit;
+}
+.ui-disclosure > button > svg {
+  transition: transform 160ms ease;
+}
+.ui-disclosure > button[aria-expanded='true'] > svg {
+  transform: rotate(180deg);
+}
+.ui-media-preview > video {
+  display: block;
+  width: 100%;
+  max-height: 400px;
+  background: #000;
+}
+.ui-media-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-block: 12px;
+}
+.ui-media-controls > .ui-field {
+  flex: 1 1 180px;
+}
+.ui-media-controls .ui-slider output {
+  display: none;
+}
+.ui-media-time {
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--secondary);
+}
+[data-style='material'] .ui-select-list {
+  background: var(--md-sys-color-surface-container);
+}
+[data-style='material'] .ui-select-option[data-active='true'] {
+  background: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+}
+[data-style='fluent'] {
+  --control-radius: 4px;
+}
+[data-style='glass'] .ui-select-list {
+  backdrop-filter: blur(18px);
+}
+[data-style='genshin'] .ui-select-list {
+  border-color: var(--accent);
+}
+[data-style='zenless'] .ui-select-list,
+[data-style='endfield'] .ui-select-list {
+  border-width: 2px;
+}
+[data-style='minecraft'] .ui-select-list,
+[data-style='minecraft'] .ui-select-trigger,
+[data-style='minecraft'] .ui-number,
+[data-style='minecraft'] .ui-checkbox-box,
+[data-style='minecraft'] .ui-slider-track,
+[data-style='minecraft'] .ui-slider-thumb {
+  border-radius: 0;
+}
+[data-style='minecraft'] .ui-select-list {
+  border: 2px solid var(--text);
+  box-shadow: 4px 4px 0 #0005;
+}
+[data-style='minecraft'] .ui-select-option {
+  border-radius: 0;
 }
 [data-style='endfield'] .ui-panel,
 [data-style='endfield'] .ui-dialog {
@@ -282,8 +516,21 @@
     padding: 20px;
   }
   .ui-field input:not([type='range']):not([type='file']),
-  .ui-field select,
+  .ui-select-trigger,
   .ui-field textarea {
     font-size: 16px;
+  }
+  .ui-number-step {
+    flex-basis: 44px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ui-progress-track.indeterminate > span {
+    animation: none;
+    margin-inline: auto;
+  }
+  .ui-select-trigger > svg,
+  .ui-disclosure > button > svg {
+    transition: none;
   }
 }

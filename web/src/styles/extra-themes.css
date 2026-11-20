@@ -117,37 +117,6 @@
 [data-style='fluent'] .button {
   border-radius: 4px;
 }
-[data-style='fluent'] .native-fluent-button {
-  min-height: 36px;
-  gap: 8px;
-  font-size: 13px;
-}
-[data-style='fluent'] .ui-field .fui-Input,
-[data-style='fluent'] .ui-field .fui-Textarea,
-[data-style='fluent'] .ui-field .fui-Select {
-  width: 100%;
-}
-[data-style='fluent'] .ui-field .fui-Input input,
-[data-style='fluent'] .ui-field .fui-Textarea textarea,
-[data-style='fluent'] .ui-field .fui-Select select {
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-  color: inherit;
-  font: inherit;
-  outline: none;
-}
-[data-style='fluent'] .ui-field .fui-Input input {
-  padding: 0;
-  min-height: 38px;
-}
-[data-style='fluent'] .ui-field .fui-Textarea textarea {
-  min-height: 90px;
-}
-[data-style='fluent'] .ui-slider .fui-Slider {
-  flex: 1;
-}
 [data-style='fluent'] .language-slider {
   border-radius: 6px;
   background: var(--hover);

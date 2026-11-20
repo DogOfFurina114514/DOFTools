@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 
 const styles = [
   { id: 'default', name: '默认', game: false },
-  { id: 'material', name: '原生 Material 3', game: false },
+  { id: 'material', name: 'Material 3', game: false },
   { id: 'fluent', name: 'Fluent Design', game: false },
   { id: 'glass', name: '液态玻璃', game: false },
   { id: 'genshin', name: '原神', game: true },
@@ -49,22 +49,19 @@ test('categories expose registered tools and global search opens the image categ
   await expect(page.locator('.tool-card')).toHaveCount(0)
 })
 
-test('Material 3 uses real Material Web buttons and switches', async ({ page }) => {
+test('Material 3 uses drawn buttons and switches with persistent values', async ({ page }) => {
   await page.goto('/settings')
-  await page.getByRole('radio', { name: '原生 Material 3', exact: true }).click()
+  await page.getByRole('radio', { name: 'Material 3', exact: true }).click()
   await expect(page.locator('html')).toHaveAttribute('data-style', 'material')
-  await page.waitForFunction(
-    () => !!customElements.get('md-filled-button') && !!customElements.get('md-switch'),
-  )
-  await expect(page.locator('md-filled-button')).not.toHaveCount(0)
-  await expect(page.locator('md-switch')).toHaveCount(1)
+  await expect(page.locator('button.button')).not.toHaveCount(0)
+  await expect(page.getByRole('switch')).toHaveCount(1)
+  await expect(page.locator('md-filled-button, md-switch')).toHaveCount(0)
   await page.getByRole('button', { name: '深色', exact: true }).click()
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
-  const nativeSwitch = page.locator('md-switch')
-  await nativeSwitch.click()
+  await page.getByRole('switch').click()
   expect(await page.evaluate(() => localStorage.getItem('fufu:openings'))).toBe('false')
   await page.reload()
-  await expect(page.getByRole('radio', { name: '原生 Material 3', exact: true })).toHaveAttribute(
+  await expect(page.getByRole('radio', { name: 'Material 3', exact: true })).toHaveAttribute(
     'aria-checked',
     'true',
   )
@@ -133,8 +130,6 @@ for (const style of styles) {
     await page.getByRole('switch', { name: '游戏风格开屏动画' }).click()
     await page.getByRole('radio', { name: style.name, exact: true }).click()
     await expect(page.locator('html')).toHaveAttribute('data-style', style.id)
-    if (style.id === 'material')
-      await page.waitForFunction(() => !!customElements.get('md-filled-button'))
     await page.screenshot({ path: `test-results/settings-${style.id}.png`, fullPage: true })
     await page
       .getByRole('navigation', { name: '主导航' })

@@ -47,21 +47,6 @@ export function ThemeScrollbars() {
         observer.disconnect()
         targets.forEach((element) => element.removeEventListener('scroll', schedule))
         targets = [...document.querySelectorAll<HTMLElement>(selectors)]
-        // Material's editable control lives inside its shadow tree.
-        for (const host of document.querySelectorAll(
-          'md-outlined-text-field, md-filled-text-field',
-        )) {
-          const root = host.shadowRoot
-          if (!root) continue
-          if (!root.querySelector('[data-themed-scroll]')) {
-            const style = document.createElement('style')
-            style.dataset.themedScroll = ''
-            style.textContent =
-              '* { scrollbar-width: none; -webkit-tap-highlight-color: transparent; } *::-webkit-scrollbar { display: none; }'
-            root.append(style)
-          }
-          targets.push(...root.querySelectorAll<HTMLTextAreaElement>('textarea'))
-        }
         targets.forEach((element) => {
           observer.observe(element)
           element.addEventListener('scroll', schedule)

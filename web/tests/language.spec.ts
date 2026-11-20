@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { selectChoice } from './helpers/controls'
 
 test('language switches the site and metadata, persists, and removes credits', async ({ page }) => {
   await page.goto('/settings')
@@ -44,7 +45,7 @@ test('all English styles, AI and mobile layouts have translated text without ove
   })
   for (const name of [
     'Default',
-    'Native Material 3',
+    'Material 3',
     'Fluent Design',
     'Liquid Glass',
     'Genshin Impact',
@@ -97,15 +98,20 @@ test('tool fields, options, result and errors translate while values and files r
     window.dispatchEvent(new PopStateEvent('popstate'))
   })
   await page.getByRole('textbox', { name: '输入内容' }).fill('my draft')
-  await page.getByRole('combobox', { name: '输出格式' }).selectOption('large')
-  await page.getByRole('checkbox', { name: '保留元数据' }).check()
+  await selectChoice(page.getByRole('combobox', { name: '输出格式' }), 'large')
+  await page.getByRole('checkbox', { name: '保留元数据' }).click()
   await page
     .locator('.ui-file-picker input')
     .setInputFiles({ name: 'local.txt', mimeType: 'text/plain', buffer: Buffer.from('test') })
   await page.getByRole('button', { name: 'English', exact: true }).click()
   await expect(page.getByRole('textbox', { name: 'Input text' })).toHaveValue('my draft')
-  await expect(page.getByRole('combobox', { name: 'Output format' })).toHaveValue('large')
+  await expect(page.getByRole('combobox', { name: 'Output format' })).toHaveAttribute(
+    'data-value',
+    'large',
+  )
+  await page.getByRole('combobox', { name: 'Output format' }).click()
   await expect(page.getByRole('option', { name: 'Large', exact: true })).toHaveCount(1)
+  await page.keyboard.press('Escape')
   await expect(page.getByRole('checkbox', { name: 'Keep metadata' })).toBeChecked()
   await expect(page.getByRole('button', { name: 'Remove local.txt' })).toBeVisible()
   await page.getByRole('button', { name: 'Run tool', exact: true }).click()
@@ -188,7 +194,7 @@ test('system theme follows OS changes, saves its choice and leaves manual choice
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
 })
 
-test('language slider uses official M3 segmented controls and supports keyboard switching', async ({
+test('drawn language slider supports keyboard switching and aligns its indicator', async ({
   page,
 }) => {
   await page.goto('/settings')
@@ -196,8 +202,8 @@ test('language slider uses official M3 segmented controls and supports keyboard 
   await page.keyboard.press('ArrowRight')
   await expect(page.locator('html')).toHaveAttribute('lang', 'en')
   await expect(page.getByRole('button', { name: 'English', exact: true })).toBeFocused()
-  await page.getByRole('radio', { name: 'Native Material 3', exact: true }).click()
-  await expect(page.locator('md-outlined-segmented-button')).toHaveCount(2)
+  await page.getByRole('radio', { name: 'Material 3', exact: true }).click()
+  await expect(page.locator('.language-slider button')).toHaveCount(2)
   await page.getByRole('button', { name: 'English', exact: true }).focus()
   await page.keyboard.press('Home')
   await expect(page.locator('html')).toHaveAttribute('lang', 'zh-CN')
@@ -210,16 +216,10 @@ test('language slider uses official M3 segmented controls and supports keyboard 
       await expect
         .poll(() =>
           page.locator('.language-slider').evaluate((slider) => {
-            const active = [
-              ...slider.querySelectorAll<HTMLElement & { selected: boolean }>(
-                'md-outlined-segmented-button',
-              ),
-            ].find((button) => button.selected)!
+            const active = slider.querySelector('button[aria-pressed="true"]')!
             const thumb = slider.querySelector('.language-thumb')!.getBoundingClientRect()
-            const label = active
-              .shadowRoot!.querySelector('.md3-segmented-button__label-text')!
-              .getBoundingClientRect()
-            const button = active.shadowRoot!.querySelector('button')!.getBoundingClientRect()
+            const label = active.getBoundingClientRect()
+            const button = label
             return Math.max(
               Math.abs(thumb.x + thumb.width / 2 - label.x - label.width / 2),
               Math.abs(thumb.y + thumb.height / 2 - label.y - label.height / 2),
