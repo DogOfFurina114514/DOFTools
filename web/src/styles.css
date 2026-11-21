@@ -1845,6 +1845,38 @@ h2 {
   color: var(--on-primary);
   font-size: 12px;
   box-shadow: 0 10px 30px #152d2120;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  box-sizing: border-box;
+}
+.toast > svg {
+  flex-shrink: 0;
+}
+.toast-cancel {
+  flex-shrink: 0;
+  padding: 8px 10px;
+  border: 1px solid currentColor;
+  border-radius: var(--control-radius, 8px);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.toast-cancel:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+@media (max-width: 420px) {
+  .resource-update-toast {
+    flex-wrap: wrap;
+  }
+  .resource-update-toast span {
+    flex: 1;
+    min-width: 180px;
+  }
+  .toast-cancel {
+    margin-left: auto;
+  }
 }
 .mobile-menu,
 .sidebar-backdrop {

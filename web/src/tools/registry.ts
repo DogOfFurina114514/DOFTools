@@ -2,6 +2,7 @@ import Ajv, { type ValidateFunction } from 'ajv'
 import type { ReactNode } from 'react'
 import type { AIToolCall, AIToolDefinition } from '../lib/ai'
 import { LOCALES, localize, LocalizedError, type Locale, type LocalizedText } from '../lib/locale'
+import { reportToolSuccess } from '../lib/tool-events'
 export interface ToolOption {
   value: string
   label: LocalizedText
@@ -126,6 +127,7 @@ export class ToolRegistry {
     const result = await tool.execute(values, context)
     context.signal.throwIfAborted()
     assertLocalized(result.summary)
+    reportToolSuccess()
     return result
   }
   async invoke(call: AIToolCall, context: ToolRunContext) {
@@ -141,6 +143,7 @@ export class ToolRegistry {
       )
     const result = await tool.ai.execute(call.arguments, context)
     context.signal.throwIfAborted()
+    reportToolSuccess()
     return result
   }
 }

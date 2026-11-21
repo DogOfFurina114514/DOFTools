@@ -1,6 +1,8 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ToolRegistry, type ToolDefinition } from './registry'
 import { bilingual, localize } from '../lib/locale'
+import { TOOL_SUCCEEDED } from '../lib/tool-events'
+afterEach(() => vi.unstubAllGlobals())
 
 const schema = {
   type: 'object',
@@ -36,6 +38,41 @@ const context = () => ({
 })
 
 describe('shared tool registry', () => {
+  for (const ai of [false, true]) {
+    it(`${ai ? 'AI' : 'UI'} signals only completed, validated and uncancelled tools`, async () => {
+      const events = new EventTarget(),
+        success = vi.fn()
+      events.addEventListener(TOOL_SUCCEEDED, success)
+      vi.stubGlobal('window', events)
+      const registry = new ToolRegistry(),
+        tool = sample()
+      registry.register(tool)
+      const run = (contextValue = context()) =>
+        ai
+          ? registry.invoke(
+              { id: '1', name: 'test_sum', arguments: { a: 17, b: 25 } },
+              contextValue,
+            )
+          : registry.run(tool.id, { a: 17, b: 25 }, contextValue)
+      await run()
+      expect(success).toHaveBeenCalledOnce()
+      const cancelled = new AbortController()
+      const fail = async () => {
+        throw new Error('Failed')
+      }
+      if (ai) tool.ai!.execute = fail
+      else tool.execute = fail
+      await expect(run()).rejects.toThrow('Failed')
+      const late = async () => {
+        cancelled.abort()
+        return { summary: bilingual('完成', 'Done') }
+      }
+      if (ai) tool.ai!.execute = late
+      else tool.execute = late
+      await expect(run({ ...context(), signal: cancelled.signal })).rejects.toThrow()
+      expect(success).toHaveBeenCalledOnce()
+    })
+  }
   it('uses the same registration for UI and AI and unregisters both', async () => {
     const registry = new ToolRegistry()
     const unregister = registry.register(sample())

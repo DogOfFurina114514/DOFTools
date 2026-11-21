@@ -48,6 +48,9 @@ import { IconButton } from './components/controls'
 import { SetupWizard, GuidedTour } from './components/Onboarding'
 import { ThemeScrollbars } from './components/ThemeScrollbars'
 import { startResourceUpdates } from './lib/offline'
+import { SponsorDialog } from './components/SponsorDialog'
+import { TOOL_SUCCEEDED } from './lib/tool-events'
+import { ResourceUpdateToast } from './components/ResourceUpdateToast'
 
 const Dashboard = lazy(() =>
   workspacePages.dashboard().then((module) => ({ default: module.Dashboard })),
@@ -408,6 +411,15 @@ function Application() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [sponsorMode, setSponsorMode] = useState<'manual' | 'automatic' | null>(null)
+  const sponsorRef = useRef(sponsorMode)
+  sponsorRef.current = sponsorMode
+  const [sponsorPending, setSponsorPending] = useState(false)
+  const [sponsorDisabled, setSponsorDisabled] = useStoredState(
+    'sponsor-reminders-disabled',
+    false,
+    (value): value is boolean => typeof value === 'boolean',
+  )
   const [guide, setGuide] = useState<'setup' | 'tour' | null>(() =>
     readStorage<boolean>('onboarded', false) === true ? null : 'setup',
   )
@@ -426,6 +438,7 @@ function Application() {
     delete document.documentElement.dataset.bootSetup
   }, [])
   const [toast, setToast] = useState('')
+  const [updatedVersion, setUpdatedVersion] = useState<string | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const location = useLocation()
   const desktop = detectAICapability().desktop
@@ -435,14 +448,20 @@ function Application() {
     toastTimer.current = setTimeout(() => setToast(''), 3500)
   }
   useEffect(() => {
-    const ready = (event: Event) =>
+    const ready = (event: Event) => {
+      const detail = (event as CustomEvent<{ version: string; updated: boolean } | string>).detail
+      if (typeof detail !== 'string' && detail.updated) {
+        setUpdatedVersion(detail.version)
+        return
+      }
       notify(
         t(
           '离线资源已保存，可以断网使用。版本 {version}',
           'Offline resources saved. You can use the site without a connection. Version {version}',
-          { version: (event as CustomEvent<string>).detail },
+          { version: typeof detail === 'string' ? detail : detail.version },
         ),
       )
+    }
     window.addEventListener('offline-ready', ready)
     const modelsReady = () =>
       notify(
@@ -471,6 +490,8 @@ function Application() {
     else setSplash(null)
   }
   const openGuide = () => {
+    setSponsorMode(null)
+    setSponsorPending(false)
     setSearchOpen(false)
     setHelpOpen(false)
     setMobileOpen(false)
@@ -487,7 +508,58 @@ function Application() {
     window.scrollTo({ top: 0 })
   }, [location.pathname])
   useEffect(() => {
+    const success = () => {
+      if (!sponsorRef.current && !readStorage('sponsor-reminders-disabled', false))
+        setSponsorPending(true)
+    }
+    const stored = (event: StorageEvent) => {
+      if (event.key === 'fufu:sponsor-reminders-disabled' || event.key === null) {
+        const disabled = readStorage(
+          'sponsor-reminders-disabled',
+          false,
+          (value): value is boolean => typeof value === 'boolean',
+        )
+        setSponsorDisabled(disabled)
+        if (disabled) {
+          setSponsorPending(false)
+          if (sponsorRef.current === 'automatic') setSponsorMode(null)
+        }
+      }
+    }
+    window.addEventListener(TOOL_SUCCEEDED, success)
+    window.addEventListener('storage', stored)
+    return () => {
+      window.removeEventListener(TOOL_SUCCEEDED, success)
+      window.removeEventListener('storage', stored)
+    }
+  }, [setSponsorDisabled])
+  useEffect(() => {
+    if (
+      sponsorPending &&
+      !sponsorDisabled &&
+      !sponsorMode &&
+      !searchOpen &&
+      !helpOpen &&
+      !mobileOpen &&
+      !guide &&
+      !splash
+    ) {
+      setSponsorPending(false)
+      setSponsorMode('automatic')
+    }
+  }, [
+    sponsorPending,
+    sponsorDisabled,
+    sponsorMode,
+    searchOpen,
+    helpOpen,
+    mobileOpen,
+    guide,
+    splash,
+  ])
+  useEffect(() => {
     const handle = (event: KeyboardEvent) => {
+      if (sponsorRef.current) return
       if (guideRef.current === 'setup') return
       if (document.querySelector('.opening') && event.key !== 'Escape') return
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
@@ -638,6 +710,19 @@ function Application() {
               <span>{sectionName}</span>
             </div>
             <div className="topbar-actions">
+              <button
+                type="button"
+                className="sponsor-trigger"
+                onClick={() => {
+                  setSearchOpen(false)
+                  setHelpOpen(false)
+                  setMobileOpen(false)
+                  setSponsorPending(false)
+                  setSponsorMode('manual')
+                }}
+              >
+                {t('赞助', 'Sponsor')}
+              </button>
               <LanguageSlider />
               <button className="search-trigger" onClick={() => setSearchOpen(true)}>
                 <Search size={16} />
@@ -709,6 +794,23 @@ function Application() {
       </div>
       {searchOpen && <SearchDialog onClose={() => setSearchOpen(false)} />}
       {helpOpen && <HelpDialog onClose={() => setHelpOpen(false)} />}
+      {sponsorMode && (
+        <SponsorDialog
+          automatic={sponsorMode === 'automatic'}
+          onClose={() => setSponsorMode(null)}
+          onDismissReminders={() => {
+            setSponsorDisabled(true)
+            setSponsorPending(false)
+            setSponsorMode(null)
+            notify(
+              t(
+                '已关闭工具完成后的赞助提醒。',
+                'Donation reminders after tool completion are now off.',
+              ),
+            )
+          }}
+        />
+      )}
       {guide === 'setup' && (
         <SetupWizard
           onStyle={setStyle}
@@ -728,11 +830,26 @@ function Application() {
           onFinish={() => setSplash(null)}
         />
       )}
-      {toast && (
-        <div className="toast" role="status">
-          <Check size={15} />
-          {toast}
-        </div>
+      {updatedVersion ? (
+        <ResourceUpdateToast
+          version={updatedVersion}
+          onCancel={() => {
+            setUpdatedVersion(null)
+            notify(
+              t(
+                '已取消自动刷新，可稍后手动刷新。',
+                'Automatic refresh cancelled. You can refresh later.',
+              ),
+            )
+          }}
+        />
+      ) : (
+        toast && (
+          <div className="toast" role="status">
+            <Check size={15} />
+            {toast}
+          </div>
+        )
       )}
     </Toolbox.Provider>
   )

@@ -305,6 +305,7 @@ function validManifest(value: unknown): value is OfflineManifest {
   )
 }
 async function checkManifest(signal: AbortSignal) {
+  if (!sw.navigator.onLine) throw new Error('offline')
   const response = await createResourceRequest(
     'offline-manifest.json',
     fetch,
@@ -322,6 +323,27 @@ async function aiResourcesReady() {
   for (const resource of required)
     if ((await resourceCoverage(resource)).some((present) => !present)) return false
   return true
+}
+async function inspectSavedResources() {
+  const control = await resourceControl()
+  const target = control.active ?? manifest
+  const siteResources = target.resources.filter((resource) => resource.group === 'site')
+  const coverage = control.enabled && control.active ? await resourceCoverages(siteResources) : []
+  const siteReady = !!control.active && coverage.every((blocks) => blocks.every(Boolean))
+  const modelsBytes = await savedModelBytes()
+  const aiReady = modelsBytes > 0 && (await aiResourcesReady())
+  await report({
+    enabled: control.enabled,
+    modelsBytes,
+    aiReady,
+    ...(!saving
+      ? {
+          phase: control.enabled ? (siteReady ? 'ready' : 'incomplete') : 'idle',
+          version: siteReady ? target.version : manifest.version,
+        }
+      : {}),
+    ...(!modelSaving ? { modelPhase: aiReady ? 'ready' : 'incomplete' } : {}),
+  })
 }
 async function saveResources(
   resources: OfflineResource[],
@@ -536,6 +558,13 @@ async function saveModels(controller: AbortController) {
 async function saveOffline(controller: AbortController, checkUpdates: boolean) {
   const signal = controller.signal
   try {
+    if (!sw.navigator.onLine) {
+      // Local detection remains available without requesting a manifest or files.
+      if (saving === controller) saving = undefined
+      await report({ error: '' })
+      await inspectSavedResources()
+      return
+    }
     await report({
       enabled: true,
       phase: 'checking',
@@ -606,7 +635,8 @@ async function saveOffline(controller: AbortController, checkUpdates: boolean) {
       file: '',
       modelsBytes: await savedModelBytes(),
     })
-    if (updated) await broadcast({ type: 'offline-ready', version: target.version })
+    if (updated)
+      await broadcast({ type: 'offline-ready', version: target.version, updated: updating })
   } catch (error) {
     const cancelled = signal.aborted
     controller.abort(error)
@@ -705,7 +735,8 @@ sw.addEventListener('message', (event) => {
   const message = event.data as { type: string; enabled?: boolean; threads?: number }
   const reply = (value: unknown) => event.ports[0]?.postMessage(value)
   // Cancellation is immediate; control/database mutations stay in command order.
-  if (['disable', 'enable', 'startup', 'retry'].includes(message.type)) saving?.abort()
+  if (['disable', 'enable', 'startup', 'retry', 'check-updates'].includes(message.type))
+    saving?.abort()
   if (['clear-models', 'download-models'].includes(message.type)) modelSaving?.abort()
   commandQueue = commandQueue
     .catch(() => {})
@@ -716,7 +747,10 @@ sw.addEventListener('message', (event) => {
         threads = message.threads!
         // Status polling carries the preference too; retain automatic backoff
         // until the user changes it or starts a new resource operation.
-        if (changed || ['enable', 'retry', 'startup', 'download-models'].includes(message.type))
+        if (
+          changed ||
+          ['enable', 'retry', 'startup', 'download-models', 'check-updates'].includes(message.type)
+        )
           resetNetworkLimit()
       }
       if (message.type === 'disable') {
@@ -753,8 +787,13 @@ sw.addEventListener('message', (event) => {
       } else if (message.type === 'ai-status') {
         reply({ ok: true, aiReady: await aiResourcesReady() })
         return
-      } else if (['startup', 'enable', 'retry'].includes(message.type)) {
-        const enabled = message.type === 'startup' ? message.enabled === true : true
+      } else if (['startup', 'enable', 'retry', 'check-updates'].includes(message.type)) {
+        const enabled =
+          message.type === 'startup'
+            ? message.enabled === true
+            : message.type === 'check-updates'
+              ? (await resourceControl(false)).enabled
+              : true
         const control = await changeResourceControl((current) => ({ ...current, enabled }))
         manifest = control.latest ?? embedded
         previous = control.active
@@ -769,17 +808,14 @@ sw.addEventListener('message', (event) => {
           event.waitUntil(task)
         } else {
           // Keep model identities fresh even when full offline mode is disabled.
-          event.waitUntil(checkManifest(new AbortController().signal).catch(() => {}))
+          event.waitUntil(
+            checkManifest(new AbortController().signal)
+              .catch(() => {})
+              .then(() => inspectSavedResources()),
+          )
         }
       } else if (message.type === 'status') {
-        const aiReady = await aiResourcesReady()
-        await report({
-          modelsBytes: await savedModelBytes(),
-          aiReady,
-          ...(!modelSaving && (aiReady || state.modelPhase === 'ready')
-            ? { modelPhase: aiReady ? 'ready' : 'idle' }
-            : {}),
-        })
+        await inspectSavedResources()
       }
       reply({ ok: true, state })
     })

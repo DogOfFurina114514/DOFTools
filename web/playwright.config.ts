@@ -15,7 +15,10 @@ export default defineConfig({
       origins: [
         {
           origin: 'http://127.0.0.1:5173',
-          localStorage: [{ name: 'fufu:onboarded', value: 'true' }],
+          localStorage: [
+            { name: 'fufu:onboarded', value: 'true' },
+            { name: 'fufu:sponsor-reminders-disabled', value: 'true' },
+          ],
         },
       ],
     },

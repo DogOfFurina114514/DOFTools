@@ -6,6 +6,7 @@ import {
   Monitor,
   Moon,
   Play,
+  RefreshCw,
   ShieldCheck,
   Sun,
   Trash2,
@@ -25,12 +26,14 @@ import { ColorChoices } from '../components/ColorChoices'
 import type { OrdinaryStyle } from '../lib/theme-colors'
 import {
   clearModelResources,
+  checkResourceUpdates,
   downloadModelResources,
   refreshResourceStatus,
   retryOfflineSave,
   setModelDownloadThreads,
   setOfflineEnabled,
   useOfflineStatus,
+  useOnlineStatus,
 } from '../lib/offline'
 
 export function SettingsPage({
@@ -71,12 +74,24 @@ export function SettingsPage({
   const preset = presetFor(style)
   const desktop = detectAICapability().desktop
   const resources = useOfflineStatus()
+  const online = useOnlineStatus()
+  const [detecting, setDetecting] = useState(false)
   const [threads, setThreads] = useState(modelDownloadThreads)
-  useEffect(refreshResourceStatus, [])
+  useEffect(() => {
+    void refreshResourceStatus()
+  }, [])
+  const detectResources = async () => {
+    setDetecting(true)
+    try {
+      await refreshResourceStatus()
+    } finally {
+      setDetecting(false)
+    }
+  }
   const size = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(1)} MiB`
   const resourceStatus = {
     idle: resources.enabled
-      ? t('离线资源尚未保存完整', 'Offline resources are incomplete')
+      ? t('本地资源未检测', 'Local resources have not been checked')
       : t('未开启整站离线使用', 'Full offline use is disabled'),
     checking: t('正在检查版本与已保存资源…', 'Checking the version and saved resources…'),
     saving: resources.updating
@@ -85,14 +100,22 @@ export function SettingsPage({
     ready: t('离线资源已就绪 · {version}', 'Offline resources ready · {version}', {
       version: resources.version,
     }),
+    incomplete: t(
+      '检测完成：离线资源尚未保存完整',
+      'Checked: offline resources are not fully saved',
+    ),
     clearing: t('正在清除资源…', 'Clearing saved resources…'),
     error: t('资源保存未完成，请重试', 'Resources could not be saved. Please retry'),
   }[resources.phase]
   const modelStatus = {
-    idle: t('模型按需下载并保存在本地', 'Models are downloaded when needed and saved locally'),
+    idle: t('本地模型未检测', 'Local models have not been checked'),
     checking: t('正在检查本地模型资源…', 'Checking saved model resources…'),
     saving: t('正在下载并保存模型…', 'Downloading and saving models…'),
     ready: t('模型资源已保存', 'Model resources saved'),
+    incomplete:
+      resources.modelsBytes > 0
+        ? t('检测完成：模型资源尚未保存完整', 'Checked: model resources are not fully saved')
+        : t('检测完成：尚未保存模型资源', 'Checked: no model resources saved'),
     clearing: t('正在清除模型资源…', 'Clearing model resources…'),
     error: t('模型下载未完成，请重试', 'Model download is incomplete. Please retry'),
   }[resources.modelPhase]
@@ -138,8 +161,8 @@ export function SettingsPage({
           )
         : error === 'offline'
           ? t(
-              '当前处于离线状态，请联网后下载模型。',
-              'You are offline. Connect to the internet to download models.',
+              '当前处于离线状态，请联网后下载资源。',
+              'You are offline. Connect to the internet to download resources.',
             )
           : t('资源操作失败：{error}', 'Resource operation failed: {error}', { error })
   }
@@ -341,7 +364,8 @@ export function SettingsPage({
           />
         </div>
         <div className="resource-status" role="status" aria-live="polite">
-          <strong>{resourceStatus}</strong>
+          <strong>{online ? resourceStatus : t('离线', 'Offline')}</strong>
+          {!online && resources.phase === 'ready' && <p>{resourceStatus}</p>}
           {resources.phase === 'saving' && (
             <>
               <Progress
@@ -394,17 +418,43 @@ export function SettingsPage({
           {(resources.phase === 'checking' || resources.phase === 'clearing') && (
             <Progress label={resourceStatus} />
           )}
-          {resources.error && <p className="resource-error">{cacheError(resources.error)}</p>}
-          {resources.enabled && ['idle', 'error'].includes(resources.phase) && (
+          {online && resources.error && (
+            <p className="resource-error">{cacheError(resources.error)}</p>
+          )}
+          <div className="resource-actions">
             <ThemedButton
               variant="secondary"
+              disabled={detecting || ['checking', 'saving', 'clearing'].includes(resources.phase)}
               onClick={() => {
-                void retryOfflineSave()
+                void detectResources()
               }}
             >
-              {t('继续保存离线资源', 'Resume saving offline resources')}
+              <ShieldCheck size={15} />
+              {detecting ? t('正在检测…', 'Checking…') : t('手动检测资源', 'Check saved resources')}
             </ThemedButton>
-          )}
+            <ThemedButton
+              variant="secondary"
+              disabled={!online || ['checking', 'saving', 'clearing'].includes(resources.phase)}
+              onClick={() => {
+                void checkResourceUpdates()
+              }}
+            >
+              <RefreshCw size={15} />
+              {t('检查更新', 'Check for updates')}
+            </ThemedButton>
+          </div>
+          {online &&
+            resources.enabled &&
+            ['idle', 'incomplete', 'error'].includes(resources.phase) && (
+              <ThemedButton
+                variant="secondary"
+                onClick={() => {
+                  void retryOfflineSave()
+                }}
+              >
+                {t('继续保存离线资源', 'Resume saving offline resources')}
+              </ThemedButton>
+            )}
         </div>
         <div className="settings-row">
           <div>
@@ -448,7 +498,9 @@ export function SettingsPage({
               <div className="resource-actions">
                 <ThemedButton
                   variant="secondary"
-                  disabled={['checking', 'saving', 'clearing'].includes(resources.modelPhase)}
+                  disabled={
+                    !online || ['checking', 'saving', 'clearing'].includes(resources.modelPhase)
+                  }
                   onClick={() => {
                     void downloadModelResources()
                   }}
@@ -469,7 +521,15 @@ export function SettingsPage({
               </div>
             </div>
             <div className="resource-status" role="status" aria-live="polite">
-              <strong>{modelStatus}</strong>
+              <strong>{online ? modelStatus : t('离线', 'Offline')}</strong>
+              {!online && resources.aiReady && (
+                <p>
+                  {t(
+                    '模型资源已保存，可离线使用 AI',
+                    'Model resources saved. AI is available offline',
+                  )}
+                </p>
+              )}
               {resources.modelPhase === 'saving' && (
                 <>
                   <Progress
@@ -492,7 +552,7 @@ export function SettingsPage({
               {['checking', 'clearing'].includes(resources.modelPhase) && (
                 <Progress label={modelStatus} />
               )}
-              {resources.modelError && (
+              {online && resources.modelError && (
                 <p className="resource-error">{cacheError(resources.modelError)}</p>
               )}
             </div>

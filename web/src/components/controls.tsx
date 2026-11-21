@@ -531,12 +531,14 @@ export function Dialog({
   onClose,
   children,
   actions,
+  className = '',
 }: {
   open: boolean
   title: string
   onClose: () => void
   children: ReactNode
   actions?: ReactNode
+  className?: string
 }) {
   const { t } = useLocale(),
     ref = useRef<HTMLDivElement>(null),
@@ -552,7 +554,7 @@ export function Dialog({
         >
           <div
             ref={ref}
-            className="ui-dialog"
+            className={`ui-dialog ${className}`}
             role="dialog"
             aria-modal="true"
             aria-labelledby={id}

@@ -1,0 +1,151 @@
+.sponsor-trigger {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  min-height: 36px;
+  border: 0;
+  border-radius: var(--control-radius, 8px);
+  color: var(--secondary);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  font: inherit;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.sponsor-trigger:hover {
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+}
+.sponsor-trigger:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.ui-dialog.sponsor-dialog {
+  width: min(640px, calc(100vw - 36px));
+  max-height: min(90dvh, 850px);
+}
+.sponsor-intro,
+.sponsor-hint {
+  color: var(--secondary);
+  line-height: 1.7;
+}
+.sponsor-intro {
+  margin: 0 0 20px;
+  font-size: 13px;
+}
+.sponsor-payments {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.sponsor-payment {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--hover);
+}
+.sponsor-payment h3 {
+  margin: 0 0 12px;
+  font-size: 14px;
+  text-align: center;
+}
+.sponsor-qr {
+  position: relative;
+  display: block;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: #fff;
+  border-radius: 8px;
+}
+.sponsor-qr img {
+  position: absolute;
+  display: block;
+  max-width: none;
+  height: auto;
+}
+.sponsor-qr,
+.sponsor-qr img {
+  -webkit-touch-callout: default;
+  -webkit-user-select: auto;
+  user-select: auto;
+  touch-action: auto;
+}
+/* Frame the complete code, retaining the supplied original for viewing/saving. */
+.sponsor-qr.alipay img {
+  width: 149.1%;
+  left: -24.5%;
+  top: -6.95%;
+}
+.sponsor-qr.wechat img {
+  width: 204.1%;
+  left: -51.6%;
+  top: -27.5%;
+}
+.sponsor-original {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 12px;
+  color: var(--secondary);
+  font-size: 12px;
+}
+.sponsor-hint {
+  margin: 14px 0 0;
+  font-size: 12px;
+}
+.sponsor-dialog .ui-dialog-actions {
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.sponsor-dismiss {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.topbar-actions,
+.breadcrumb .mobile-menu {
+  flex-shrink: 0;
+}
+@media (max-width: 600px) {
+  .ui-dialog.sponsor-dialog {
+    padding: 18px;
+  }
+  .sponsor-payments {
+    gap: 10px;
+  }
+  .sponsor-payment {
+    padding: 8px;
+  }
+  .sponsor-dismiss {
+    width: 100%;
+  }
+  .sponsor-dismiss .button {
+    flex: 1;
+  }
+}
+@media (max-width: 420px) {
+  .topbar {
+    padding-inline: 12px;
+  }
+  .topbar-actions {
+    gap: 4px;
+  }
+  .topbar-actions .icon-button,
+  .breadcrumb .mobile-menu {
+    width: 32px;
+    height: 32px;
+  }
+  .breadcrumb {
+    gap: 6px;
+  }
+  .language-slider {
+    width: 78px;
+  }
+  .sponsor-trigger {
+    padding-inline: 6px;
+    font-size: 11px;
+  }
+  [data-style='glass'] .topbar {
+    padding-inline: 8px;
+  }
+}

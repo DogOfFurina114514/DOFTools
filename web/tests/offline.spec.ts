@@ -382,6 +382,14 @@ test('persists ranges, navigates offline, updates atomically and clears in-fligh
   ).toBe(true)
   await context.setOffline(true)
   const offlinePage = await context.newPage()
+  expect(
+    await page.evaluate(
+      () =>
+        (
+          window as unknown as { resourceEvents: { type: string; updated?: boolean }[] }
+        ).resourceEvents.find((event) => event.type === 'offline-ready')?.updated,
+    ),
+  ).toBe(false)
   await offlinePage.goto(`${base}/tool/demo`)
   await expect(offlinePage.locator('h1')).toHaveText('Offline 1')
   expect(
@@ -410,6 +418,16 @@ test('persists ranges, navigates offline, updates atomically and clears in-fligh
   await command('retry')
   await expect.poll(async () => (await status()).phase).toBe('ready')
   expect((await status()).version).toBe('26.1.1')
+  expect(
+    await page.evaluate(
+      () =>
+        (
+          window as unknown as { resourceEvents: { type: string; updated?: boolean }[] }
+        ).resourceEvents
+          .filter((event) => event.type === 'offline-ready')
+          .at(-1)?.updated,
+    ),
+  ).toBe(true)
   expect(downloads).toBe(modelDownloads)
   await context.setOffline(true)
   await page.reload()
@@ -442,7 +460,7 @@ test('persists ranges, navigates offline, updates atomically and clears in-fligh
   pause = undefined
   await expect.poll(async () => (await command('status')).state.modelsBytes).toBe(0)
   expect((await status()).phase).toBe('ready')
-  expect((await status()).modelPhase).toBe('idle')
+  expect((await status()).modelPhase).toBe('incomplete')
   await page.addScriptTag({ content: cacheTools })
   const epoch = await page.evaluate(async () => {
     const cache = (
@@ -579,6 +597,47 @@ for (const damaged of [false, true]) {
     expect((await resourceStatus(page)).modelsBytes).toBe(0)
   })
 }
+
+test('manual detection distinguishes unchecked resources and runs locally while offline', async ({
+  page,
+  context,
+}) => {
+  await page.goto(base)
+  await registerWorker(page)
+  const initial = await sendCommand(page, 'threads')
+  expect(initial.state.phase).toBe('idle')
+  expect((initial.state as unknown as { modelPhase: string }).modelPhase).toBe('idle')
+  await context.setOffline(true)
+  await sendCommand(page, 'startup', true)
+  await expect.poll(async () => (await resourceStatus(page)).phase).toBe('incomplete')
+  expect((await resourceStatus(page)).error).toBe('')
+  expect((await resourceStatus(page)).modelPhase).toBe('incomplete')
+  const requests = localDownloads.length
+  await sendCommand(page, 'status')
+  await sendCommand(page, 'check-updates')
+  await expect.poll(async () => (await resourceStatus(page)).phase).toBe('incomplete')
+  expect(localDownloads.length).toBe(requests)
+  expect(downloads).toBe(0)
+  await context.setOffline(false)
+  await context.route(`${pages}**`, async (route) => {
+    const path = new URL(route.request().url()).pathname.slice(1)
+    const data = documents(1).get(path)!
+    const range = /^bytes=(\d+)-(\d+)$/.exec(route.request().headers().range ?? '')
+    await route.fulfill({
+      body: range ? data.subarray(Number(range[1]), Number(range[2]) + 1) : data,
+      status: range ? 206 : 200,
+      contentType: 'application/octet-stream',
+      headers: { 'access-control-allow-origin': '*' },
+    })
+  })
+  await sendCommand(page, 'check-updates')
+  await expect.poll(async () => (await resourceStatus(page)).phase).toBe('ready')
+  await context.setOffline(true)
+  await sendCommand(page, 'status')
+  expect((await resourceStatus(page)).phase).toBe('ready')
+  expect((await resourceStatus(page)).error).toBe('')
+  expect((await resourceStatus(page)).aiReady).toBe(false)
+})
 
 test('disabling offline use during block reuse prevents cleared resources from returning', async ({
   context,
@@ -738,7 +797,7 @@ for (const tool of ['module', 'worker']) {
       }, tool)
       expect(result).toBe(tool === 'module' ? 'tool 1' : 42)
       expect(toolAttempts).toBe(2)
-      expect((await resourceStatus(page)).modelPhase).toBe('idle')
+      expect((await resourceStatus(page)).modelPhase).toBe('incomplete')
       expect((await resourceStatus(page)).phase).toBe('idle')
     })
   }
@@ -831,7 +890,7 @@ test('site timeouts reduce concurrency and status polling retains the backoff', 
     .serviceWorkers()[0]
     .evaluate(() => (self as unknown as { retryProbe: { maximum: number } }).retryProbe.maximum)
   expect(maximum).toBe(4)
-  expect((await resourceStatus(page)).modelPhase).toBe('idle')
+  expect((await resourceStatus(page)).modelPhase).toBe('incomplete')
 })
 
 for (const fallback of ['missing', 'unsupported', 'corrupt']) {

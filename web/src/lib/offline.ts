@@ -8,7 +8,7 @@ import { readStorage, writeStorage } from './storage'
 
 export interface OfflineStatus {
   enabled: boolean
-  phase: 'idle' | 'checking' | 'saving' | 'ready' | 'error' | 'clearing'
+  phase: 'idle' | 'checking' | 'saving' | 'ready' | 'incomplete' | 'error' | 'clearing'
   loaded: number
   total: number
   downloadLoaded?: number
@@ -18,7 +18,7 @@ export interface OfflineStatus {
   file: string
   error: string
   modelsBytes: number
-  modelPhase: 'idle' | 'checking' | 'saving' | 'ready' | 'error' | 'clearing'
+  modelPhase: 'idle' | 'checking' | 'saving' | 'ready' | 'incomplete' | 'error' | 'clearing'
   modelLoaded: number
   modelTotal: number
   modelFile: string
@@ -64,7 +64,11 @@ export function ensureResourceWorker() {
     navigator.serviceWorker.addEventListener('message', ({ data }) => {
       if (data?.type === 'resource-status') update(data.state)
       else if (data?.type === 'offline-ready')
-        window.dispatchEvent(new CustomEvent('offline-ready', { detail: data.version }))
+        window.dispatchEvent(
+          new CustomEvent('offline-ready', {
+            detail: { version: data.version, updated: data.updated === true },
+          }),
+        )
       else if (data?.type === 'models-ready') window.dispatchEvent(new Event('models-ready'))
       else if (data?.type === 'models-clearing')
         window.dispatchEvent(new Event('model-resources-clearing'))
@@ -216,7 +220,25 @@ export function setModelDownloadThreads(threads: DownloadThreads) {
   void command('threads', undefined, threads).catch(() => {})
 }
 export function refreshResourceStatus() {
-  void command('status').catch(() => {})
+  return command('status')
+}
+export async function checkResourceUpdates() {
+  if (!navigator.onLine) return refreshResourceStatus()
+  update({ ...state, phase: 'checking', error: '' })
+  await command('check-updates')
+}
+export function useOnlineStatus() {
+  return useSyncExternalStore(
+    (listener) => {
+      window.addEventListener('online', listener)
+      window.addEventListener('offline', listener)
+      return () => {
+        window.removeEventListener('online', listener)
+        window.removeEventListener('offline', listener)
+      }
+    },
+    () => navigator.onLine,
+  )
 }
 export function useOfflineStatus() {
   return useSyncExternalStore(
