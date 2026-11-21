@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import { build } from 'esbuild'
 import { fileURLToPath } from 'node:url'
+import { packageOfflineBundles } from './package-offline-bundles.mjs'
 
 const root = new URL('../../docs/', import.meta.url)
 const { version } = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'))
@@ -75,11 +76,13 @@ async function inspect(directory, prefix = '') {
 }
 await inspect(root)
 resources.sort((a, b) => a.path.localeCompare(b.path, 'en'))
+const bundles = await packageOfflineBundles(root, resources)
 const manifest = {
   format: 1,
   version,
-  revision: hash(JSON.stringify({ version, resources })),
+  revision: hash(JSON.stringify({ version, resources, bundles })),
   resources,
+  bundles,
 }
 await writeFile(new URL('offline-manifest.json', root), JSON.stringify(manifest) + '\n')
 await build({

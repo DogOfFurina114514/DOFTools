@@ -3,6 +3,54 @@ import { createModelRequest, createResourceRequest } from './model-network'
 
 afterEach(() => vi.useRealTimers())
 
+it('allows queued site connections a longer budget but bounds body stalls separately', async () => {
+  vi.useFakeTimers()
+  const cancel = vi.fn()
+  const request = vi
+    .fn<typeof fetch>()
+    .mockImplementation(
+      () =>
+        new Promise((resolve) =>
+          setTimeout(() => resolve(new Response(new ReadableStream({ cancel }))), 90),
+        ),
+    )
+  const connecting = createResourceRequest(
+    'runtime/site.wasm',
+    request,
+    30,
+    120,
+  )('https://example.test/runtime/site.wasm')
+  await vi.advanceTimersByTimeAsync(91)
+  const response = await connecting
+  expect(request.mock.calls[0][1]?.signal?.aborted).toBe(false)
+  const failure = expect(response.arrayBuffer()).rejects.toThrow(
+    'Resource download timed out: runtime/site.wasm',
+  )
+  await vi.advanceTimersByTimeAsync(31)
+  await failure
+  expect(cancel).toHaveBeenCalledOnce()
+  expect(vi.getTimerCount()).toBe(0)
+})
+
+it('still times out site connections that exceed the separate connection budget', async () => {
+  vi.useFakeTimers()
+  const request = vi.fn<typeof fetch>().mockImplementation(() => new Promise(() => {}))
+  const failure = expect(
+    createResourceRequest(
+      'runtime/site.wasm',
+      request,
+      30,
+      120,
+    )('https://example.test/runtime/site.wasm'),
+  ).rejects.toThrow('Resource download timed out: runtime/site.wasm')
+  await vi.advanceTimersByTimeAsync(31)
+  expect(request.mock.calls[0][1]?.signal?.aborted).toBe(false)
+  await vi.advanceTimersByTimeAsync(90)
+  await failure
+  expect(request.mock.calls[0][1]?.signal?.aborted).toBe(true)
+  expect(vi.getTimerCount()).toBe(0)
+})
+
 it.each(['connection', 'body'])(
   'identifies a stalled site %s by resource rather than as a model failure',
   async (stage) => {

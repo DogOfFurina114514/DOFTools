@@ -97,6 +97,11 @@ export function SettingsPage({
   const cacheError = (error: string) => {
     const resourceMessages = [
       [
+        'Offline bundle verification failed: ',
+        '离线资源包校验失败：{file}，请重试保存。',
+        'Offline resource verification failed: {file}. Retry saving.',
+      ],
+      [
         'Resource download timed out: ',
         '网站资源下载超时：{file}，请检查网络后重试。',
         'Site resource download timed out: {file}. Check your connection and retry.',
@@ -343,8 +348,19 @@ export function SettingsPage({
                 decimals={2}
               />
               <p>
-                {size(resources.loaded)} / {size(resources.total)}
+                {t('本地保存：{loaded} / {total}', 'Saved locally: {loaded} / {total}', {
+                  loaded: size(resources.loaded),
+                  total: size(resources.total),
+                })}
               </p>
+              {(resources.downloadTotal ?? 0) > 0 && (
+                <p>
+                  {t('下载数据：{loaded} / {total}', 'Downloaded data: {loaded} / {total}', {
+                    loaded: size(resources.downloadLoaded ?? 0),
+                    total: size(resources.downloadTotal ?? 0),
+                  })}
+                </p>
+              )}
               <p className="resource-file">
                 {resources.file || t('正在开始下载…', 'Starting downloads…')}
               </p>
@@ -370,8 +386,8 @@ export function SettingsPage({
             <h3>{t('下载线程', 'Download threads')}</h3>
             <p>
               {t(
-                '默认 64。用于离线资源保存与模型下载，完成的线程立即领取下一块。',
-                'Default: 64. Shared by offline resource saving and model downloads. Each completed download immediately takes the next block.',
+                '默认 64。用于离线资源保存与模型下载，完成的线程立即领取下一块。网站保存遇到慢网或超时会自动降低并发重试。',
+                'Default: 64. Shared by offline resource saving and model downloads. Each completed download immediately takes the next block. Site saving automatically reduces concurrency on slow networks or timeouts and retries.',
               )}
             </p>
           </div>

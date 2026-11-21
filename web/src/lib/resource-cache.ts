@@ -17,6 +17,15 @@ export interface OfflineManifest {
   version: string
   revision: string
   resources: OfflineResource[]
+  bundles?: OfflineBundle[]
+}
+export interface OfflineBundle {
+  path: string
+  hash: string
+  bytes: number
+  decodedBytes: number
+  source: 'site' | 'pages'
+  members: { path: string; start: number; offset: number; bytes: number }[]
 }
 export interface ResourceControl {
   epoch: number

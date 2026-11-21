@@ -12,7 +12,9 @@ import {
   type OfflineManifest,
   type OfflineResource,
   type ResourceControl,
+  type OfflineBundle,
 } from './lib/resource-cache'
+import { decodeBundle, gzipAvailable, receiveBytes, validBundles } from './lib/offline-bundles'
 import { createDownloadPool } from './lib/model-assets'
 import { createModelRequest, createResourceRequest } from './lib/model-network'
 import { PAGES_RESOURCE_BASE } from './lib/site-resources'
@@ -25,6 +27,19 @@ let manifest = embedded
 let previous: OfflineManifest | undefined
 let threads = 64
 const pool = createDownloadPool(threads)
+let networkLimit = threads
+function resetNetworkLimit() {
+  const connection = (
+    sw.navigator as WorkerNavigator & {
+      connection?: { effectiveType?: string }
+    }
+  ).connection?.effectiveType
+  networkLimit = Math.min(
+    threads,
+    connection === 'slow-2g' || connection === '2g' ? 4 : connection === '3g' ? 8 : threads,
+  )
+  pool.setLimit(networkLimit)
+}
 let saving: AbortController | undefined
 let modelSaving: AbortController | undefined
 let commandQueue = Promise.resolve()
@@ -33,6 +48,8 @@ let state = {
   phase: 'idle',
   loaded: 0,
   total: 0,
+  downloadLoaded: 0,
+  downloadTotal: 0,
   file: '',
   error: '',
   modelsBytes: 0,
@@ -123,6 +140,7 @@ async function download(
   signal: AbortSignal,
   mustSave: boolean,
   knownControl?: ResourceControl,
+  received?: (bytes: number) => Promise<void>,
 ) {
   const control = knownControl ?? (await resourceControl(false))
   return pool(signal, async () => {
@@ -130,7 +148,9 @@ async function download(
     const range = request.headers.get('range')
     if (range) headers.set('range', range)
     const network =
-      resource.group === 'model' ? createModelRequest() : createResourceRequest(resource.path)
+      resource.group === 'model'
+        ? createModelRequest()
+        : createResourceRequest(resource.path, fetch, 30_000, 120_000)
     const response = await network(resourceUrl(resource), {
       headers,
       signal,
@@ -159,7 +179,7 @@ async function download(
       contentRange !== `bytes ${limits[0]}-${limits[1]}/${resource.bytes}`
     )
       throw new Error(`Incorrect resource range: ${resource.path}`)
-    const bytes = new Uint8Array(await response.arrayBuffer())
+    const bytes = await receiveBytes(response, signal, limits[1] - limits[0] + 1 + 65536, received)
     signal.throwIfAborted()
     if (bytes.length !== limits[1] - limits[0] + 1)
       throw new Error(`Incomplete resource: ${resource.path}`)
@@ -189,6 +209,53 @@ function storageError(error: unknown) {
   if (error instanceof DOMException && error.name === 'QuotaExceededError') return 'quota'
   return error instanceof Error ? error.message : String(error)
 }
+async function downloadBundle(
+  bundle: OfflineBundle,
+  resources: Map<string, OfflineResource>,
+  signal: AbortSignal,
+  control: ResourceControl,
+  received: (bytes: number) => Promise<void>,
+) {
+  return pool(signal, async () => {
+    const response = await createResourceRequest(
+      bundle.members[0].path,
+      fetch,
+      30_000,
+      120_000,
+    )(new URL(bundle.path, bundle.source === 'pages' ? PAGES_RESOURCE_BASE : siteBase), {
+      signal,
+      cache: 'no-store',
+      credentials: 'omit',
+      mode: 'cors',
+    }).catch((error) => {
+      signal.throwIfAborted()
+      if (error instanceof TypeError)
+        throw new TypeError(`Resource download failed: ${bundle.members[0].path}`)
+      throw error
+    })
+    // An ESA rebuild can have a different set of optional transport copies.
+    // Original resource URLs remain available for a missing compressed copy.
+    if (response.status === 404) {
+      await response.body?.cancel()
+      return false
+    }
+    if (!response.ok) throw new TypeError(`HTTP ${response.status}: ${bundle.members[0].path}`)
+    const bytes = await receiveBytes(response, signal, bundle.decodedBytes + 65536, received)
+    // Gzip encodings may vary between Node versions. The filename and all
+    // verification refer to the decoded bytes, so either encoding is valid.
+    const decoded = await decodeBundle(bytes, bundle, signal)
+    for (const member of bundle.members) {
+      signal.throwIfAborted()
+      await saveResourceBytes(
+        resources.get(member.path)!,
+        member.start,
+        decoded.subarray(member.offset, member.offset + member.bytes),
+        control.epoch,
+      )
+    }
+    return true
+  })
+}
 function validManifest(value: unknown): value is OfflineManifest {
   if (!value || typeof value !== 'object') return false
   const candidate = value as OfflineManifest
@@ -217,7 +284,8 @@ function validManifest(value: unknown): value is OfflineManifest {
         ['site', 'pages'].includes(resource.source) &&
         ['site', 'model'].includes(resource.group) &&
         typeof resource.type === 'string',
-    )
+    ) &&
+    (candidate.bundles === undefined || validBundles(candidate.bundles, candidate.resources))
   )
 }
 async function checkManifest(signal: AbortSignal) {
@@ -242,7 +310,14 @@ async function aiResourcesReady() {
 async function saveResources(
   resources: OfflineResource[],
   signal: AbortSignal,
-  progress: (loaded: number, total: number, file: string) => Promise<void>,
+  progress: (
+    loaded: number,
+    total: number,
+    file: string,
+    downloadLoaded: number,
+    downloadTotal: number,
+  ) => Promise<void>,
+  bundles: OfflineBundle[] = [],
 ) {
   resources = [
     ...new Map(
@@ -251,9 +326,36 @@ async function saveResources(
   ]
   let loaded = 0
   const total = resources.reduce((sum, resource) => sum + resource.bytes, 0)
-  const tasks: { resource: OfflineResource; start: number; end: number }[] = []
+  const tasks: (
+    | { resource: OfflineResource; start: number; end: number; missing: number; bundle?: undefined }
+    | { bundle: OfflineBundle; missing: number; resource?: undefined }
+  )[] = []
   const control = await resourceControl(false)
   const coverageByResource = await resourceCoverages(resources)
+  const files = new Map(resources.map((resource) => [resource.path, resource]))
+  const coverageByPath = new Map(
+    resources.map((resource, index) => [resource.path, coverageByResource[index]]),
+  )
+  const transported = new Set<string>()
+  if (bundles.length && gzipAvailable())
+    for (const bundle of bundles) {
+      if (!bundle.members.every((member) => files.has(member.path))) continue
+      let missing = 0
+      for (const member of bundle.members) {
+        const resource = files.get(member.path)!
+        const coverage = coverageByPath.get(member.path)!
+        for (
+          let start = member.start;
+          start < member.start + member.bytes;
+          start += RESOURCE_BLOCK_BYTES
+        ) {
+          transported.add(`${resource.hash}:${start}`)
+          if (!coverage[start / RESOURCE_BLOCK_BYTES])
+            missing += Math.min(RESOURCE_BLOCK_BYTES, resource.bytes - start)
+        }
+      }
+      if (missing) tasks.push({ bundle, missing })
+    }
   for (const [resourceIndex, resource] of resources.entries()) {
     signal.throwIfAborted()
     const coverage = coverageByResource[resourceIndex]
@@ -262,7 +364,7 @@ async function saveResources(
         loaded += Math.min(RESOURCE_BLOCK_BYTES, resource.bytes - index * RESOURCE_BLOCK_BYTES)
     })
     for (let index = 0; index < coverage.length;) {
-      if (coverage[index]) {
+      if (coverage[index] || transported.has(`${resource.hash}:${index * RESOURCE_BLOCK_BYTES}`)) {
         index++
         continue
       }
@@ -270,31 +372,97 @@ async function saveResources(
       // Larger site ranges reduce mobile network and storage overhead. Models
       // keep their existing 512 KiB ranges and independent download controls.
       const rangeBlocks = resource.group === 'site' ? 16 : 4
-      while (index < Math.min(first + rangeBlocks, coverage.length) && !coverage[index]) index++
+      while (
+        index < Math.min(first + rangeBlocks, coverage.length) &&
+        !coverage[index] &&
+        !transported.has(`${resource.hash}:${index * RESOURCE_BLOCK_BYTES}`)
+      )
+        index++
       tasks.push({
         resource,
         start: first * RESOURCE_BLOCK_BYTES,
         end: Math.min(resource.bytes, index * RESOURCE_BLOCK_BYTES) - 1,
+        missing:
+          Math.min(resource.bytes, index * RESOURCE_BLOCK_BYTES) - first * RESOURCE_BLOCK_BYTES,
       })
     }
   }
-  await progress(loaded, total, '')
+  let downloadLoaded = 0
+  let downloadTotal = tasks.reduce(
+    (sum, task) => sum + (task.bundle ? task.bundle.bytes : task.end - task.start + 1),
+    0,
+  )
+  const downloads = new Map<number, number>()
+  await progress(loaded, total, '', downloadLoaded, downloadTotal)
   let next = 0
   let lastReport = 0
   const work = async () => {
     while (next < tasks.length) {
       signal.throwIfAborted()
-      const task = tasks[next++]
-      const full = task.start === 0 && task.end === task.resource.bytes - 1
-      const request = new Request(resourceUrl(task.resource), {
-        headers: full ? {} : { range: `bytes=${task.start}-${task.end}` },
-      })
+      const taskIndex = next++
+      const task = tasks[taskIndex]
+      const file = task.bundle ? task.bundle.members[0].path : task.resource.path
+      const received = async (bytes: number) => {
+        const before = downloads.get(taskIndex) ?? 0
+        if (bytes > before) {
+          downloadLoaded += bytes - before
+          downloads.set(taskIndex, bytes)
+        }
+        if (Date.now() - lastReport > 250) {
+          lastReport = Date.now()
+          await progress(
+            loaded,
+            total,
+            file,
+            downloadLoaded,
+            Math.max(downloadTotal, downloadLoaded),
+          )
+        }
+      }
+      let bundleMissing = false
       for (let attempt = 0; ; attempt++) {
         try {
-          await download(task.resource, request, signal, true, control)
+          if (task.bundle) {
+            const saved = bundleMissing
+              ? false
+              : await downloadBundle(task.bundle, files, signal, control, received)
+            if (!saved) {
+              const rawBytes = task.bundle.members.reduce((sum, member) => sum + member.bytes, 0)
+              if (!bundleMissing) downloadTotal += rawBytes - task.bundle.bytes
+              bundleMissing = true
+              let completed = 0
+              for (const member of task.bundle.members) {
+                const resource = files.get(member.path)!
+                const full = member.start === 0 && member.bytes === resource.bytes
+                const request = new Request(resourceUrl(resource), {
+                  headers: full
+                    ? {}
+                    : { range: `bytes=${member.start}-${member.start + member.bytes - 1}` },
+                })
+                await download(resource, request, signal, true, control, (bytes) =>
+                  received(completed + bytes),
+                )
+                completed += member.bytes
+              }
+            }
+          } else {
+            const full = task.start === 0 && task.end === task.resource.bytes - 1
+            const request = new Request(resourceUrl(task.resource), {
+              headers: full ? {} : { range: `bytes=${task.start}-${task.end}` },
+            })
+            await download(task.resource, request, signal, true, control, received)
+          }
           break
         } catch (error) {
           signal.throwIfAborted()
+          if (
+            resources[0]?.group === 'site' &&
+            error instanceof Error &&
+            error.name === 'TimeoutError'
+          ) {
+            networkLimit = Math.max(4, Math.floor(networkLimit / 2))
+            pool.setLimit(networkLimit)
+          }
           if (
             attempt >= 2 ||
             !(
@@ -306,10 +474,10 @@ async function saveResources(
         }
       }
       signal.throwIfAborted()
-      loaded += task.end - task.start + 1
+      loaded += task.missing
       if (Date.now() - lastReport > 250) {
         lastReport = Date.now()
-        await progress(loaded, total, task.resource.path)
+        await progress(loaded, total, file, downloadLoaded, Math.max(downloadTotal, downloadLoaded))
       }
     }
   }
@@ -321,6 +489,7 @@ async function saveResources(
     if (saved[index].some((present) => !present))
       throw new Error(`Resource not saved: ${resource.path}`)
   }
+  await progress(loaded, total, '', downloadLoaded, Math.max(downloadTotal, downloadLoaded))
   return total
 }
 async function saveModels(controller: AbortController) {
@@ -388,10 +557,19 @@ async function saveOffline(controller: AbortController, checkUpdates: boolean) {
     const total = await saveResources(
       target.resources.filter((resource) => resource.group === 'site'),
       signal,
-      (loaded, total, file) => {
+      (loaded, total, file, downloadLoaded, downloadTotal) => {
         signal.throwIfAborted()
-        return report({ phase: 'saving', loaded, total, file, version: target.version })
+        return report({
+          phase: 'saving',
+          loaded,
+          total,
+          file,
+          downloadLoaded,
+          downloadTotal,
+          version: target.version,
+        })
       },
+      target.bundles,
     )
     signal.throwIfAborted()
     const updated = control.active?.revision !== target.revision
@@ -511,8 +689,12 @@ sw.addEventListener('message', (event) => {
     .then(async () => {
       await hydrated
       if ([32, 64, 128].includes(message.threads ?? 0)) {
+        const changed = threads !== message.threads
         threads = message.threads!
-        pool.setLimit(threads)
+        // Status polling carries the preference too; retain automatic backoff
+        // until the user changes it or starts a new resource operation.
+        if (changed || ['enable', 'retry', 'startup', 'download-models'].includes(message.type))
+          resetNetworkLimit()
       }
       if (message.type === 'disable') {
         await report({ phase: 'clearing', error: '' })
@@ -523,6 +705,8 @@ sw.addEventListener('message', (event) => {
           phase: 'idle',
           loaded: 0,
           total: 0,
+          downloadLoaded: 0,
+          downloadTotal: 0,
           file: '',
           modelsBytes: await savedModelBytes(),
         })

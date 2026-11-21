@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { gzipSync } from 'node:zlib'
 import { createServer, type Server } from 'node:http'
 import { fileURLToPath } from 'node:url'
 import { build } from 'esbuild'
@@ -9,7 +10,20 @@ import { test, expect, type Page } from '@playwright/test'
 const pages = 'https://toolbox.owo.lat/'
 const hash = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex')
 const weights = Buffer.from(Array.from({ length: 3 * 1024 * 1024 + 31 }, (_, index) => index % 251))
+const documentCache = new Map<number, Map<string, Buffer>>()
+const bundleCache = new Map<
+  number,
+  {
+    path: string
+    hash: string
+    bytes: number
+    decodedBytes: number
+    source: string
+    members: { path: string; start: number; offset: number; bytes: number }[]
+  }[]
+>()
 const documents = (version: number) => {
+  if (documentCache.has(version)) return documentCache.get(version)!
   const files = new Map<string, Buffer>([
     [
       'index.html',
@@ -24,6 +38,42 @@ const documents = (version: number) => {
   ])
   const index = files.get('index.html')!
   files.set(`offline/index.${hash(index)}.bin`, index)
+  const bundles: ReturnType<typeof bundleCache.get> = []
+  const add = (source: string, members: { path: string; start: number; bytes: number }[]) => {
+    let offset = 0
+    const decoded = Buffer.concat(
+      members.map((member) =>
+        files.get(member.path)!.subarray(member.start, member.start + member.bytes),
+      ),
+    )
+    const data = gzipSync(decoded)
+    const path = `offline/bundle.${hash(decoded)}.bin`
+    bundles.push({
+      path,
+      hash: hash(decoded),
+      bytes: data.length,
+      decodedBytes: decoded.length,
+      source,
+      members: members.map((member) => {
+        const next = { ...member, offset }
+        offset += member.bytes
+        return next
+      }),
+    })
+    files.set(path, data)
+  }
+  add('site', [
+    { path: 'index.html', start: 0, bytes: index.length },
+    {
+      path: `assets/lazy-${version}.js`,
+      start: 0,
+      bytes: files.get(`assets/lazy-${version}.js`)!.length,
+    },
+  ])
+  for (let start = 0; start < 3 * 1024 * 1024; start += 1024 * 1024)
+    add('pages', [{ path: 'runtime/site.wasm', start, bytes: 1024 * 1024 }])
+  bundleCache.set(version, bundles)
+  documentCache.set(version, files)
   return files
 }
 const manifests = [1, 2].map((version) => {
@@ -51,6 +101,7 @@ const manifests = [1, 2].map((version) => {
     version: `26.1.${version - 1}`,
     revision: hash(Buffer.from(JSON.stringify(resources))),
     resources,
+    bundles: bundleCache.get(version),
   }
 })
 let server: Server
@@ -64,6 +115,9 @@ let downloads = 0
 let indexDownloads = 0
 let siteRanges: string[] = []
 let corruptIndex = false
+let useBundles = true
+let corruptBundle = false
+let missingBundles = false
 test.beforeAll(async () => {
   worker = (
     await build({
@@ -97,10 +151,20 @@ test.beforeAll(async () => {
     }
     if (path === 'offline-manifest.json') {
       response.setHeader('content-type', 'application/json')
-      response.end(JSON.stringify(manifests[version - 1]))
+      response.end(
+        JSON.stringify({
+          ...manifests[version - 1],
+          bundles: useBundles ? manifests[version - 1].bundles : undefined,
+        }),
+      )
       return
     }
-    if (fail && path === 'assets/lazy-2.js') {
+    if (fail && (path === 'assets/lazy-2.js' || path === bundleCache.get(2)![0].path)) {
+      response.writeHead(404)
+      response.end()
+      return
+    }
+    if (missingBundles && path.startsWith('offline/bundle.')) {
       response.writeHead(404)
       response.end()
       return
@@ -113,12 +177,16 @@ test.beforeAll(async () => {
       data = Buffer.from(
         data.toString().replace('</body>', '<script>window.proxyInjected=true</script></body>'),
       )
-    if (path.startsWith('offline/')) {
+    if (path.startsWith('offline/index.')) {
       indexDownloads++
       if (corruptIndex) {
         data = Buffer.from(data)
         data[0] ^= 1
       }
+    }
+    if (corruptBundle && path.startsWith('offline/bundle.')) {
+      data = Buffer.from(data)
+      data[data.length - 1] ^= 1
     }
     response.setHeader('content-type', path.endsWith('.js') ? 'text/javascript' : 'text/html')
     response.end(data)
@@ -171,6 +239,8 @@ function resourceStatus(page: Page) {
             modelError: string
             error: string
             aiReady: boolean
+            downloadLoaded: number
+            downloadTotal: number
           }
         }
       ).resourceStatus,
@@ -180,6 +250,9 @@ test.beforeEach(async ({ context }) => {
   version = 1
   fail = false
   corruptIndex = false
+  useBundles = true
+  corruptBundle = false
+  missingBundles = false
   downloads = 0
   indexDownloads = 0
   siteRanges = []
@@ -248,8 +321,9 @@ test('persists ranges, navigates offline, updates atomically and clears in-fligh
   await expect.poll(async () => (await status()).phase).toBe('ready')
   expect((await status()).modelsBytes).toBe(512 * 1024)
   expect((await status()).aiReady).toBe(false)
-  expect(indexDownloads).toBe(1)
-  expect(siteRanges.sort()).toEqual(['bytes=0-2097151', `bytes=2097152-${weights.length - 1}`])
+  expect((await status()).downloadLoaded).toBeLessThan(weights.length / 2)
+  expect(indexDownloads).toBe(0)
+  expect(siteRanges).toEqual([`bytes=3145728-${weights.length - 1}`])
   expect(
     await page.evaluate(() =>
       (window as unknown as { resourceEvents: { type: string }[] }).resourceEvents.some(
@@ -275,6 +349,8 @@ test('persists ranges, navigates offline, updates atomically and clears in-fligh
   fail = true
   const modelDownloads = downloads
   await command('startup', true)
+  // The updated lazy module is inside a compressed site bundle.
+  // Reject that bundle to exercise the same atomic-update failure.
   await expect.poll(async () => (await status()).phase).toBe('error')
   expect(downloads).toBe(modelDownloads)
   await context.setOffline(true)
@@ -371,6 +447,7 @@ test('rejects a corrupt offline homepage without caching injected HTML or report
   context,
   page,
 }) => {
+  useBundles = false
   await context.route(`${pages}**`, async (route) => {
     const path = new URL(route.request().url()).pathname.slice(1)
     const data = documents(1).get(path)!
@@ -441,3 +518,147 @@ test('rejects a corrupt offline homepage without caching injected HTML or report
     await page.evaluate(() => (window as unknown as { proxyInjected?: boolean }).proxyInjected),
   ).toBeUndefined()
 })
+
+test('site timeouts reduce concurrency and status polling retains the backoff', async ({
+  context,
+  page,
+}) => {
+  await page.goto(base)
+  await registerWorker(page)
+  const files = Array.from({ length: 128 }, (_, index) => {
+    const bytes = Buffer.from(`export const value=${index}`)
+    return {
+      path: `assets/retry-test-${index}.js`,
+      bytes: bytes.length,
+      hash: hash(bytes),
+      blocks: [hash(bytes)],
+      type: 'text/javascript',
+      group: 'site',
+      source: 'site',
+      text: bytes.toString(),
+    }
+  })
+  const resources = [
+    manifests[0].resources[0],
+    ...files.map(({ text: _text, ...resource }) => resource),
+  ]
+  await context.serviceWorkers()[0].evaluate(
+    ({ resources, files, manifest }) => {
+      Object.defineProperty(navigator, 'connection', {
+        value: { effectiveType: '4g' },
+        configurable: true,
+      })
+      const worker = self as unknown as {
+        fetch: typeof fetch
+        retryProbe: { started: number; active: number; maximum: number; release: (() => void)[] }
+      }
+      const original = worker.fetch.bind(self)
+      worker.retryProbe = { started: 0, active: 0, maximum: 0, release: [] }
+      worker.fetch = async (input, init) => {
+        const url = new URL(input instanceof Request ? input.url : String(input))
+        if (url.pathname === '/offline-manifest.json')
+          return Response.json({ ...manifest, resources, bundles: undefined })
+        const file = files.find((file) => '/' + file.path === url.pathname)
+        if (!file) return original(input, init)
+        const probe = worker.retryProbe
+        if (++probe.started <= 64) {
+          await new Promise<void>((resolve) => probe.release.push(resolve))
+          throw Object.assign(new Error(`Resource download timed out: ${file.path}`), {
+            name: 'TimeoutError',
+          })
+        }
+        probe.active++
+        probe.maximum = Math.max(probe.maximum, probe.active)
+        try {
+          await new Promise((resolve) => setTimeout(resolve, 30))
+          return new Response(file.text, { headers: { 'content-type': 'text/javascript' } })
+        } finally {
+          probe.active--
+        }
+      }
+    },
+    { resources, files, manifest: manifests[0] },
+  )
+  await sendCommand(page, 'enable')
+  await expect
+    .poll(() =>
+      context
+        .serviceWorkers()[0]
+        .evaluate(
+          () => (self as unknown as { retryProbe: { started: number } }).retryProbe.started,
+        ),
+    )
+    .toBe(64)
+  await context.serviceWorkers()[0].evaluate(() => {
+    for (const release of (self as unknown as { retryProbe: { release: (() => void)[] } })
+      .retryProbe.release)
+      release()
+  })
+  // The UI queries status with the chosen 64-thread preference during saving.
+  // It must not restore the old limit after automatic timeout backoff.
+  for (let attempt = 0; attempt < 100; attempt++) {
+    const result = await sendCommand(page, 'status')
+    if (result.state.phase === 'ready') break
+    await page.waitForTimeout(15)
+  }
+  expect((await resourceStatus(page)).phase).toBe('ready')
+  const maximum = await context
+    .serviceWorkers()[0]
+    .evaluate(() => (self as unknown as { retryProbe: { maximum: number } }).retryProbe.maximum)
+  expect(maximum).toBe(4)
+  expect((await resourceStatus(page)).modelPhase).toBe('idle')
+})
+
+for (const fallback of ['missing', 'unsupported', 'corrupt']) {
+  test(`compressed site saving handles ${fallback} transport without downloading models`, async ({
+    context,
+    page,
+  }) => {
+    missingBundles = fallback === 'missing'
+    corruptBundle = fallback === 'corrupt'
+    await context.route(`${pages}**`, async (route) => {
+      const path = new URL(route.request().url()).pathname.slice(1)
+      if (missingBundles && path.startsWith('offline/bundle.')) {
+        await route.fulfill({ status: 404 })
+        return
+      }
+      const data = documents(1).get(path)!
+      const range = /^bytes=(\d+)-(\d+)$/.exec(route.request().headers()['range'] ?? '')
+      await route
+        .fulfill({
+          status: range ? 206 : 200,
+          body: range ? data.subarray(Number(range[1]), Number(range[2]) + 1) : data,
+          contentType: 'application/octet-stream',
+          headers: { 'access-control-allow-origin': '*' },
+        })
+        .catch(() => {})
+    })
+    await page.goto(base)
+    await registerWorker(page)
+    if (fallback === 'unsupported')
+      await context.serviceWorkers()[0].evaluate(() => {
+        Object.defineProperty(self, 'DecompressionStream', { value: undefined, configurable: true })
+      })
+    await sendCommand(page, 'enable')
+    if (fallback === 'corrupt') {
+      await expect.poll(async () => (await resourceStatus(page)).phase).toBe('error')
+      expect((await resourceStatus(page)).error).toBe(
+        'Offline bundle verification failed: index.html',
+      )
+      expect((await resourceStatus(page)).modelError).toBe('')
+      corruptBundle = false
+      await sendCommand(page, 'retry')
+    }
+    await expect.poll(async () => (await resourceStatus(page)).phase).toBe('ready')
+    expect((await resourceStatus(page)).modelsBytes).toBe(0)
+    expect((await resourceStatus(page)).modelPhase).toBe('idle')
+    await context.setOffline(true)
+    await page.goto(`${base}/settings`)
+    await expect(page.locator('h1')).toHaveText('Offline 1')
+    await page.getByRole('button', { name: 'Tool' }).click()
+    await expect(page.locator('output')).toHaveText('tool 1')
+    expect(
+      await page.evaluate(() => (window as unknown as { proxyInjected?: boolean }).proxyInjected),
+    ).toBeUndefined()
+  })
+}

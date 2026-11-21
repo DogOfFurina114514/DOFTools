@@ -11,6 +11,8 @@ export interface OfflineStatus {
   phase: 'idle' | 'checking' | 'saving' | 'ready' | 'error' | 'clearing'
   loaded: number
   total: number
+  downloadLoaded?: number
+  downloadTotal?: number
   file: string
   error: string
   modelsBytes: number
@@ -31,6 +33,8 @@ let state: OfflineStatus = {
   phase: 'idle',
   loaded: 0,
   total: 0,
+  downloadLoaded: 0,
+  downloadTotal: 0,
   file: '',
   error: '',
   modelsBytes: 0,

@@ -21,11 +21,13 @@ export function createResourceRequest(
   resource: string,
   request: typeof fetch = fetch,
   timeoutMs = 30_000,
+  connectionTimeoutMs = timeoutMs,
 ): typeof fetch {
   return createRequest(
     request,
     timeoutMs,
     () => new Error(`Resource download timed out: ${resource}`),
+    connectionTimeoutMs,
   )
 }
 
@@ -33,6 +35,7 @@ function createRequest(
   request: typeof fetch,
   timeoutMs: number,
   timeoutError: () => Error,
+  connectionTimeoutMs = timeoutMs,
 ): typeof fetch {
   return async (input, init) => {
     const abort = new AbortController()
@@ -45,7 +48,7 @@ function createRequest(
     const stop = () => abort.abort(external?.reason)
     if (external?.aborted) stop()
     else external?.addEventListener('abort', stop, { once: true })
-    const wait = async <T>(task: () => Promise<T>): Promise<T> => {
+    const wait = async <T>(task: () => Promise<T>, budget = timeoutMs): Promise<T> => {
       abort.signal.throwIfAborted()
       let onAbort: () => void
       const cancelled = new Promise<never>((_, reject) => {
@@ -56,7 +59,7 @@ function createRequest(
         const error = timeoutError()
         error.name = 'TimeoutError'
         abort.abort(error)
-      }, timeoutMs)
+      }, budget)
       try {
         return await Promise.race([task(), cancelled])
       } finally {
@@ -66,7 +69,10 @@ function createRequest(
     }
     try {
       abort.signal.throwIfAborted()
-      const response = await wait(() => request(input, { ...init, signal: abort.signal }))
+      const response = await wait(
+        () => request(input, { ...init, signal: abort.signal }),
+        connectionTimeoutMs,
+      )
       if (!response.body) {
         cleanup()
         return response

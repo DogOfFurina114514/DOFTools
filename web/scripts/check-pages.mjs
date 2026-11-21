@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import { createReadStream } from 'node:fs'
 import { readdir, readFile, stat } from 'node:fs/promises'
+import { gunzipSync } from 'node:zlib'
 
 const root = new URL('../../docs/', import.meta.url)
 const esa = process.argv.includes('--esa')
@@ -85,11 +86,73 @@ const { version } = JSON.parse(await readFile(new URL('../package.json', import.
 if (offline.format !== 1 || offline.version !== version || !Array.isArray(offline.resources))
   throw new Error('Offline manifest version does not match the release')
 const revision = createHash('sha256')
-  .update(JSON.stringify({ version, resources: offline.resources }))
+  .update(
+    JSON.stringify({
+      version,
+      resources: offline.resources,
+      ...(offline.bundles ? { bundles: offline.bundles } : {}),
+    }),
+  )
   .digest('hex')
 if (offline.revision !== revision) throw new Error('Offline manifest revision mismatch')
 await stat(new URL('sw.js', root))
 const offlineFiles = new Map(offline.resources.map((resource) => [resource.path, resource]))
+const bundled = new Set()
+for (const bundle of offline.bundles ?? []) {
+  if (
+    bundle.path !== `offline/bundle.${bundle.hash}.bin` ||
+    !Number.isSafeInteger(bundle.decodedBytes) ||
+    bundle.decodedBytes <= 0 ||
+    bundle.decodedBytes > 1024 * 1024 ||
+    !Array.isArray(bundle.members)
+  )
+    throw new Error('Invalid offline transport bundle')
+  const bytes = await readFile(new URL(bundle.path, root))
+  const decoded = gunzipSync(bytes, { maxOutputLength: bundle.decodedBytes })
+  if (
+    bytes.length !== bundle.bytes ||
+    decoded.length !== bundle.decodedBytes ||
+    createHash('sha256').update(decoded).digest('hex') !== bundle.hash
+  )
+    throw new Error(`Offline transport integrity mismatch: ${bundle.path}`)
+  let offset = 0
+  for (const member of bundle.members) {
+    const resource = offlineFiles.get(member.path)
+    if (
+      !resource ||
+      resource.group !== 'site' ||
+      resource.source !== bundle.source ||
+      member.offset !== offset ||
+      member.start % (128 * 1024) ||
+      member.start < 0 ||
+      member.bytes <= 0 ||
+      member.start + member.bytes > resource.bytes ||
+      (member.bytes % (128 * 1024) && member.start + member.bytes !== resource.bytes)
+    )
+      throw new Error(`Invalid offline bundle member: ${member.path}`)
+    const part = decoded.subarray(offset, offset + member.bytes)
+    for (let start = 0; start < member.bytes; start += 128 * 1024) {
+      const key = `${resource.hash}:${member.start + start}`
+      if (
+        bundled.has(key) ||
+        createHash('sha256')
+          .update(part.subarray(start, start + 128 * 1024))
+          .digest('hex') !== resource.blocks[(member.start + start) / (128 * 1024)]
+      )
+        throw new Error(`Offline bundle block mismatch: ${member.path}`)
+      bundled.add(key)
+    }
+    offset += member.bytes
+  }
+  if (offset !== bundle.decodedBytes) throw new Error('Offline bundle member sizes do not match')
+}
+const ort = offlineFiles.get('runtime/ort-wasm-simd-threaded.asyncify.wasm')
+if (
+  offline.bundles &&
+  ort &&
+  ort.blocks.some((_, index) => !bundled.has(`${ort.hash}:${index * 128 * 1024}`))
+)
+  throw new Error('ORT runtime must have complete compressed transport coverage')
 const indexResource = offlineFiles.get('index.html')
 if (
   !indexResource ||

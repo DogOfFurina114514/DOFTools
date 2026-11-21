@@ -29,3 +29,5 @@ GitHub Pages 继续使用 `main` 的 `/docs` 发布。本地普通 `npm run buil
 26.1.0 构建包含 `sw.js` 与 `offline-manifest.json`，需按原路径一并发布，Service Worker 通过 HTTPS 在站点根目录注册。离线开关后台保存模型以外的所有资源，每次联网启动检查并完整更新快照；关闭开关仅清除网站离线资源。模型独立按块保存、下载与清除，离线且模型不完整时提示 AI 无法使用。ESA 删除的大型 WASM 仍通过清单从 Pages CDN 保存，缓存按当前浏览器的站点域名独立管理。
 
 26.1.2 起还需发布 `docs/offline/` 下的带哈希二进制首页副本。离线保存使用该副本进行完整性校验，在线访问仍使用普通 `index.html`；这样代理注入或平台改写在线 HTML 不会破坏离线保存。网站资源失败会显示具体文件，模型下载错误单独显示。
+
+26.1.3 起 `docs/offline/` 还包含网站 gzip 压缩分包，每包解压后最多 1 MiB。站点资源从当前站点下载，运行环境压缩包从 `https://toolbox.owo.lat/` 的 Pages CDN 下载；模型不在网站离线分包中。ESA 与 Pages 构建生成的可选分包可能不同，压缩包缺失时会回退到原始资源。不要排除 `offline/`、`offline-manifest.json` 或 `sw.js`。网站保存分开限制连接等待与正文停滞，超时降低并发重试，并保留本地已验证块。
