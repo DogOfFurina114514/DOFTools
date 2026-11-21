@@ -69,6 +69,7 @@ export function SettingsPage({
     { colors: ['#bba4eb', '#86c9e8'], zh: '薰衣草与海蓝', en: 'Lavender & ocean' },
   ]
   const preset = presetFor(style)
+  const desktop = detectAICapability().desktop
   const resources = useOfflineStatus()
   const [threads, setThreads] = useState(modelDownloadThreads)
   useEffect(refreshResourceStatus, [])
@@ -292,9 +293,10 @@ export function SettingsPage({
             <h3>{t('允许离线使用', 'Allow offline use')}</h3>
             <p>
               {t(
-                '开启后在后台保存模型以外的所有页面、工具和运行环境，完成时通知。每次启动联网检查并自动更新；关闭后清除这些离线资源。模型在下方独立管理。',
-                'Save all pages, tools and runtimes except model files in the background and notify when ready. Check and update at startup when online. Turning this off clears these offline resources. Manage models separately below.',
+                '开启后在后台保存模型以外的所有页面、工具和运行环境，完成时通知。每次启动联网检查并自动更新；关闭后清除这些离线资源。',
+                'Save all pages, tools and runtimes except model files in the background and notify when ready. Check and update at startup when online. Turning this off clears these offline resources.',
               )}
+              {desktop && t('模型在下方独立管理。', ' Manage models separately below.')}
             </p>
           </div>
           <PreferenceSwitch
@@ -340,11 +342,11 @@ export function SettingsPage({
         </div>
         <div className="settings-row">
           <div>
-            <h3>{t('模型下载线程', 'Model download threads')}</h3>
+            <h3>{t('下载线程', 'Download threads')}</h3>
             <p>
               {t(
-                '默认 64。下载完成的线程立即领取下一块，选择会用于下次下载。',
-                'Default: 64. Each completed download immediately takes the next block. Applies to the next download.',
+                '默认 64。用于离线资源保存与模型下载，完成的线程立即领取下一块。',
+                'Default: 64. Shared by offline resource saving and model downloads. Each completed download immediately takes the next block.',
               )}
             </p>
           </div>
@@ -364,66 +366,72 @@ export function SettingsPage({
             />
           </div>
         </div>
-        <div className="settings-row">
-          <div>
-            <h3>{t('本地模型资源', 'Saved model resources')}</h3>
-            <p>
-              {t(
-                '模型独立保存在当前浏览器，下次直接读取。已保存 {size}。下载完整 AI 模型后可离线使用 AI；清除后需重新下载。',
-                'Models are saved separately in this browser and reused on the next load. Saved: {size}. Download the complete AI model to use AI offline; clearing it requires another download.',
-                { size: size(resources.modelsBytes) },
+        {desktop && (
+          <>
+            <div className="settings-row">
+              <div>
+                <h3>{t('本地模型资源', 'Saved model resources')}</h3>
+                <p>
+                  {t(
+                    '模型独立保存在当前浏览器，下次直接读取。已保存 {size}。下载完整 AI 模型后可离线使用 AI；清除后需重新下载。',
+                    'Models are saved separately in this browser and reused on the next load. Saved: {size}. Download the complete AI model to use AI offline; clearing it requires another download.',
+                    { size: size(resources.modelsBytes) },
+                  )}
+                </p>
+              </div>
+              <div className="resource-actions">
+                <ThemedButton
+                  variant="secondary"
+                  disabled={['checking', 'saving', 'clearing'].includes(resources.modelPhase)}
+                  onClick={() => {
+                    void downloadModelResources()
+                  }}
+                >
+                  <Download size={15} />
+                  {t('下载模型资源', 'Download model resources')}
+                </ThemedButton>
+                <ThemedButton
+                  variant="secondary"
+                  disabled={resources.modelPhase === 'clearing'}
+                  onClick={() => {
+                    void clearModelResources()
+                  }}
+                >
+                  <Trash2 size={15} />
+                  {t('清除模型资源', 'Clear model resources')}
+                </ThemedButton>
+              </div>
+            </div>
+            <div className="resource-status" role="status" aria-live="polite">
+              <strong>{modelStatus}</strong>
+              {resources.modelPhase === 'saving' && (
+                <>
+                  <Progress
+                    label={t('模型保存进度', 'Model saving progress')}
+                    value={
+                      resources.modelTotal
+                        ? resources.modelLoaded / resources.modelTotal
+                        : undefined
+                    }
+                    decimals={2}
+                  />
+                  <p>
+                    {size(resources.modelLoaded)} / {size(resources.modelTotal)}
+                  </p>
+                  <p className="resource-file">
+                    {resources.modelFile || t('正在开始下载…', 'Starting downloads…')}
+                  </p>
+                </>
               )}
-            </p>
-          </div>
-          <div className="resource-actions">
-            <ThemedButton
-              variant="secondary"
-              disabled={['checking', 'saving', 'clearing'].includes(resources.modelPhase)}
-              onClick={() => {
-                void downloadModelResources()
-              }}
-            >
-              <Download size={15} />
-              {t('下载模型资源', 'Download model resources')}
-            </ThemedButton>
-            <ThemedButton
-              variant="secondary"
-              disabled={resources.modelPhase === 'clearing'}
-              onClick={() => {
-                void clearModelResources()
-              }}
-            >
-              <Trash2 size={15} />
-              {t('清除模型资源', 'Clear model resources')}
-            </ThemedButton>
-          </div>
-        </div>
-        <div className="resource-status" role="status" aria-live="polite">
-          <strong>{modelStatus}</strong>
-          {resources.modelPhase === 'saving' && (
-            <>
-              <Progress
-                label={t('模型保存进度', 'Model saving progress')}
-                value={
-                  resources.modelTotal ? resources.modelLoaded / resources.modelTotal : undefined
-                }
-                decimals={2}
-              />
-              <p>
-                {size(resources.modelLoaded)} / {size(resources.modelTotal)}
-              </p>
-              <p className="resource-file">
-                {resources.modelFile || t('正在开始下载…', 'Starting downloads…')}
-              </p>
-            </>
-          )}
-          {['checking', 'clearing'].includes(resources.modelPhase) && (
-            <Progress label={modelStatus} />
-          )}
-          {resources.modelError && (
-            <p className="resource-error">{cacheError(resources.modelError)}</p>
-          )}
-        </div>
+              {['checking', 'clearing'].includes(resources.modelPhase) && (
+                <Progress label={modelStatus} />
+              )}
+              {resources.modelError && (
+                <p className="resource-error">{cacheError(resources.modelError)}</p>
+              )}
+            </div>
+          </>
+        )}
       </section>
       <section className="settings-panel about-panel">
         <div className="settings-row">
@@ -454,7 +462,7 @@ export function SettingsPage({
           </div>
           <span className="version-badge">v{version}</span>
         </div>
-        {detectAICapability().desktop && (
+        {desktop && (
           <div className="settings-row">
             <div>
               <h3>{t('电脑端 AI', 'Desktop AI')}</h3>
