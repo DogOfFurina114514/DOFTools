@@ -1,0 +1,100 @@
+.color-settings-row > div:first-child .button {
+  margin-top: 12px;
+}
+.theme-color-choices {
+  min-width: 0;
+  width: 330px;
+  max-width: 100%;
+  display: grid;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.color-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.color-swatch {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  border: 2px solid var(--surface);
+  box-shadow: 0 0 0 1px var(--line);
+}
+.color-swatch[aria-pressed='true'] {
+  box-shadow: 0 0 0 2px var(--green);
+}
+.color-value {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.color-value .ui-field {
+  flex: 1;
+  min-width: 0;
+}
+.color-current {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.glass-gradient-settings {
+  padding: 22px 0 4px;
+  display: grid;
+  gap: 14px;
+}
+.glass-gradient-settings h3 {
+  font-size: 13px;
+}
+.glass-gradient-settings > p {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.8;
+}
+.gradient-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.gradient-presets button {
+  width: 125px;
+  padding: 6px;
+  font-size: 11px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.gradient-presets button[aria-pressed='true'] {
+  border-color: var(--green);
+  box-shadow: 0 0 0 1px var(--green);
+}
+.gradient-presets span {
+  display: block;
+  height: 45px;
+  border-radius: 8px;
+  margin-bottom: 7px;
+}
+.gradient-color-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+@media (max-width: 760px) {
+  .color-settings-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .gradient-color-fields {
+    grid-template-columns: 1fr;
+  }
+  .resource-actions {
+    flex-shrink: 1;
+  }
+  .resource-settings .settings-row {
+    flex-wrap: wrap;
+  }
+}

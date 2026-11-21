@@ -1292,6 +1292,41 @@ h2 {
   font-weight: 600;
   margin-bottom: 8px;
 }
+.resource-settings > h2 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.resource-thread-picker {
+  min-width: 160px;
+  flex-shrink: 0;
+}
+.resource-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.resource-status {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  gap: 10px;
+  font-size: 12px;
+}
+.resource-status p {
+  color: var(--muted);
+  font-size: 11px;
+}
+.resource-file {
+  overflow-wrap: anywhere;
+}
+.resource-status .resource-error {
+  color: var(--danger, #ba3545);
+}
+.resource-status .button {
+  justify-self: start;
+}
 .settings-row {
   display: flex;
   justify-content: space-between;

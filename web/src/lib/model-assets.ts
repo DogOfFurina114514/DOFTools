@@ -1,6 +1,7 @@
 import { LocalizedError } from './locale'
 
-export const MODEL_DOWNLOAD_CONCURRENCY = 32
+export const MODEL_DOWNLOAD_CONCURRENCY = 64
+export const MAX_MODEL_DOWNLOAD_CONCURRENCY = 128
 
 export interface ModelAssetManifest {
   version: 1
@@ -20,7 +21,10 @@ interface ModelFetchOptions {
 export function createDownloadPool(limit: number) {
   let active = 0
   const queue: (() => void)[] = []
-  return async <T>(signal: AbortSignal, task: () => Promise<T>): Promise<T> => {
+  const drain = () => {
+    while (active < limit && queue.length) queue.shift()!()
+  }
+  const run = async <T>(signal: AbortSignal, task: () => Promise<T>): Promise<T> => {
     signal.throwIfAborted()
     await new Promise<void>((resolve, reject) => {
       const abort = () => {
@@ -44,9 +48,17 @@ export function createDownloadPool(limit: number) {
       return await task()
     } finally {
       active--
-      queue.shift()?.()
+      drain()
     }
   }
+  return Object.assign(run, {
+    setLimit(next: number) {
+      if (!Number.isInteger(next) || next < 1 || next > MAX_MODEL_DOWNLOAD_CONCURRENCY)
+        throw new Error('Invalid download pool limit')
+      limit = next
+      drain()
+    },
+  })
 }
 
 // Refill downloads as ranges finish, then emit bytes in manifest order. Metadata
@@ -60,9 +72,13 @@ export function createModelFetch(
   const root = new URL(modelRoot)
   const localRoot = new URL(options.localRoot ?? root.href)
   const concurrency = options.concurrency ?? MODEL_DOWNLOAD_CONCURRENCY
-  if (!Number.isInteger(concurrency) || concurrency < 1 || concurrency > MODEL_DOWNLOAD_CONCURRENCY)
+  if (
+    !Number.isInteger(concurrency) ||
+    concurrency < 1 ||
+    concurrency > MAX_MODEL_DOWNLOAD_CONCURRENCY
+  )
     throw new Error(
-      `Model download concurrency must be between 1 and ${MODEL_DOWNLOAD_CONCURRENCY}`,
+      `Model download concurrency must be between 1 and ${MAX_MODEL_DOWNLOAD_CONCURRENCY}`,
     )
   const rangeBytes = options.rangeBytes ?? 512 * 1024
   if (!Number.isSafeInteger(rangeBytes) || rangeBytes < 1)

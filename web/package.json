@@ -1,13 +1,13 @@
 {
   "name": "fufu-toolbox",
   "private": true,
-  "version": "26.0.8",
+  "version": "26.1.0",
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
     "predev": "node scripts/prepare-assets.mjs",
     "prebuild": "node scripts/prepare-assets.mjs",
-    "postbuild": "node scripts/package-model.mjs",
+    "postbuild": "node scripts/package-model.mjs && node scripts/package-offline.mjs",
     "model:download": "node scripts/download-model.mjs",
     "dev": "vite --host 127.0.0.1",
     "build": "tsc -b && vite build",

@@ -80,6 +80,42 @@ for (const file of [
   await stat(new URL(file, root))
 }
 const bytes = await size(root)
+const offline = JSON.parse(await readFile(new URL('offline-manifest.json', root), 'utf8'))
+const { version } = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'))
+if (offline.format !== 1 || offline.version !== version || !Array.isArray(offline.resources))
+  throw new Error('Offline manifest version does not match the release')
+const revision = createHash('sha256')
+  .update(JSON.stringify({ version, resources: offline.resources }))
+  .digest('hex')
+if (offline.revision !== revision) throw new Error('Offline manifest revision mismatch')
+await stat(new URL('sw.js', root))
+const offlineFiles = new Map(offline.resources.map((resource) => [resource.path, resource]))
+const currentAssets = JSON.parse(await readFile(new URL('asset-history.json', root), 'utf8'))
+  .builds[0]
+for (const path of [
+  'index.html',
+  'favicon.svg',
+  ...currentAssets.map((file) => `assets/${file}`),
+]) {
+  if (!offlineFiles.has(path)) throw new Error(`Resource omitted from offline manifest: ${path}`)
+}
+for (const resource of offline.resources) {
+  if (resource.blocks.length !== Math.ceil(resource.bytes / (128 * 1024)))
+    throw new Error(`Invalid offline block count: ${resource.path}`)
+  if (resource.group !== (resource.path.startsWith('models/') ? 'model' : 'site'))
+    throw new Error(`Offline site and model resources must be separate: ${resource.path}`)
+  if (/^(models|runtime)\//.test(resource.path) && resource.source !== 'pages')
+    throw new Error(`Model and runtime resources must use Pages CDN: ${resource.path}`)
+  const omittedWasm =
+    resource.path === 'runtime/ffmpeg/ffmpeg-core.wasm' ||
+    resource.path === 'runtime/ort-wasm-simd-threaded.asyncify.wasm' ||
+    /^assets\/ort-wasm-simd-threaded\.asyncify-[\w-]+\.wasm$/.test(resource.path)
+  if (esa && omittedWasm) {
+    if (resource.source !== 'pages')
+      throw new Error(`ESA offline WASM must use Pages CDN: ${resource.path}`)
+  } else if ((await stat(new URL(resource.path, root))).size !== resource.bytes)
+    throw new Error(`Offline resource size mismatch: ${resource.path}`)
+}
 if (esa && files > 2000) throw new Error(`ESA site exceeds the 2000 file limit: ${files}`)
 if (bytes >= 1_000_000_000)
   throw new Error(`Pages site exceeds the 1 GB published-site limit: ${bytes} bytes`)

@@ -1,1 +1,0 @@
-import{i as t}from"./shared-DWvh7_U_.js";import{r as i}from"./worker-client-DAYoQaWL.js";import"./index-D4GbSMTD.js";function s(r,e,o){return t(r),i(new Worker(new URL("/assets/media.worker-DP0KoHdO.js",import.meta.url),{type:"module"}),{...r,mode:o},e)}export{s as convertMedia};

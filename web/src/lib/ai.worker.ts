@@ -142,11 +142,20 @@ self.onmessage = async ({ data }: MessageEvent<AIWorkerRequest>) => {
         // Metadata discovery requires a local pathname. The fetch adapter maps
         // that pathname to Pages, also when the UI runs on another origin.
         env.localModelPath = new URL('models/', data.baseUrl).pathname
-        // The weights are shipped with the site. Browser disk cache writes for
-        // large ONNX responses can fail; keep them in the active model session.
+        // The resource worker persists bounded blocks instead of giant ONNX
+        // responses; Transformers' whole-response browser cache stays disabled.
         env.useBrowserCache = false
         reportStage('connecting')
-        const request = createModelRequest()
+        const network = createModelRequest()
+        const request: typeof fetch = async (input, init) => {
+          const response = await network(input, init)
+          const url = input instanceof Request ? input.url : String(input)
+          if (response.headers.get('x-fufu-resource-source') === 'local') reportStage('cache')
+          else if (/\.wasm(?:$|\?)/.test(url)) reportStage('runtime')
+          else if (/tokenizer|vocab/.test(url)) reportStage('tokenizer')
+          else if (/\.onnx(?:_data)?(?:\.|$)/.test(url)) reportStage('weights')
+          return response
+        }
         const modelRoot = new URL(`models/${LOCAL_MODEL.localId}/`, assetsBase)
         const assetsResponse = await request(new URL('asset-manifest.json', modelRoot), {
           cache: 'no-store',
@@ -154,7 +163,10 @@ self.onmessage = async ({ data }: MessageEvent<AIWorkerRequest>) => {
         if (!assetsResponse.ok)
           throw new LocalizedError('模型资源清单缺失。', 'The model resource manifest is missing.')
         const assets = (await assetsResponse.json()) as ModelAssetManifest
-        const pool = createDownloadPool(MODEL_DOWNLOAD_CONCURRENCY)
+        const concurrency = [32, 64, 128].includes(data.concurrency ?? 0)
+          ? data.concurrency!
+          : MODEL_DOWNLOAD_CONCURRENCY
+        const pool = createDownloadPool(concurrency)
         const downloadSizes = new Map(
           Object.entries(assets.files).map(([name, asset]) => [name, asset.bytes]),
         )
@@ -182,7 +194,7 @@ self.onmessage = async ({ data }: MessageEvent<AIWorkerRequest>) => {
           })
         }
         env.fetch = createModelFetch(modelRoot.href, assets, request, {
-          concurrency: MODEL_DOWNLOAD_CONCURRENCY,
+          concurrency,
           pool,
           onProgress: reportProgress,
           localRoot: new URL(`models/${LOCAL_MODEL.localId}/`, data.baseUrl).href,
@@ -205,7 +217,7 @@ self.onmessage = async ({ data }: MessageEvent<AIWorkerRequest>) => {
             },
           },
           request,
-          { pool, onProgress: reportProgress },
+          { pool, concurrency, onProgress: reportProgress },
         )
         env.backends.onnx.wasm!.wasmBinary = await (
           await fetchRuntime(new URL(runtime, runtimeRoot))

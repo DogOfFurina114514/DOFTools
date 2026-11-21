@@ -15,7 +15,7 @@
 
 ## 模型随网页发布
 
-模型、tokenizer 与配置总计 873,485,707 字节，完整网页约 941 MiB。权重按最多 20 MiB 分为 42 块，tokenizer 按最多 2 MiB 分为 10 块；开发目录 `web/public/models/` 和发布目录 `docs/models/` 均包含完整资源，全部通过普通 Git 提交，不使用 Git LFS，也不需要外部模型服务。生产浏览器（包括 ESA 备用网址）从本站的 GitHub Pages CDN 使用共享 32 路并发池，以 512 KiB 字节范围读取分块和推理 WASM，按清单顺序、原始 Content-Length 提供给模型运行时。下载进度来自实际接收字节，连接或正文持续 30 秒无响应会报错并允许重新开启。开发环境从本地加载。关闭助手释放 Worker 和模型。
+模型、tokenizer 与配置总计 873,485,707 字节，完整网页约 941 MiB。权重按最多 20 MiB 分为 42 块，tokenizer 按最多 2 MiB 分为 10 块；开发目录 `web/public/models/` 和发布目录 `docs/models/` 均包含完整资源，全部通过普通 Git 提交，不使用 Git LFS，也不需要外部模型服务。生产浏览器（包括 ESA 备用网址）从本站的 GitHub Pages CDN 使用默认共享 64 路并发池（设置可选 32 / 64 / 128），以 512 KiB 字节范围读取分块和推理 WASM，按清单顺序、原始 Content-Length 提供给模型运行时。下载进度来自实际接收字节，连接或正文持续 30 秒无响应会报错并允许重新开启。开发环境从本地加载。关闭助手释放 Worker 和模型。
 
 `npm run pages:check` 检查全部分块拼接后的 SHA-256、WASM、入口及站点大小。GitHub 普通 Git 推送的单文件限制为 100 MiB，Pages 站点上限为 1 GB，目前发布资源均符合要求。
 
@@ -41,3 +41,5 @@ npm run preview
 后续客户端复用同一份网页，壳工程独立维护。移动端沿用无 AI 的导航与向导，可在打包时排除模型权重。
 
 参考：[Pages 限制](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits)、[普通 Git 大文件限制](https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-large-files-on-github)。
+
+26.1.0 构建包含 `sw.js` 与 `offline-manifest.json`，需按原路径一并发布，Service Worker 通过 HTTPS 在站点根目录注册。离线开关后台保存模型以外的所有资源，每次联网启动检查并完整更新快照；关闭开关仅清除网站离线资源。模型独立按块保存、下载与清除，离线且模型不完整时提示 AI 无法使用。ESA 删除的大型 WASM 仍通过清单从 Pages CDN 保存，缓存按当前浏览器的站点域名独立管理。

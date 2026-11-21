@@ -45,7 +45,7 @@ function Message({ item }: { item: ChatItem }) {
           ? t('你', 'You')
           : item.role === 'tool'
             ? t('工具结果', 'Tool result')
-            : t('芙芙 AI', 'DogOfFurina AI')}
+            : t('AI 助手', 'AI assistant')}
         {item.pending && <LoaderCircle size={12} className="spin" />}
       </span>
       {item.image && (
@@ -151,12 +151,13 @@ export function AIPage() {
     gpu: t('正在检测显卡', 'Checking your GPU'),
     connecting: t('正在连接模型资源', 'Connecting to model resources'),
     config: t('正在读取模型配置', 'Reading the model configuration'),
+    cache: t('正在读取本地模型资源', 'Reading saved model resources'),
     runtime: t('正在下载运行环境', 'Downloading the runtime'),
     tokenizer: t('正在下载词表', 'Downloading the tokenizer'),
     weights: t('正在下载模型权重', 'Downloading model weights'),
     initializing: t('正在初始化模型', 'Initializing the model'),
   }[ai.loadStage]
-  const downloading = ['runtime', 'tokenizer', 'weights'].includes(ai.loadStage)
+  const downloading = ['cache', 'runtime', 'tokenizer', 'weights'].includes(ai.loadStage)
   const ready = ai.status === 'ready' || busy
   const statusText = loading
     ? loadLabel
@@ -177,7 +178,7 @@ export function AIPage() {
     <>
       <PageHeading
         eyebrow="YOUR PERSONAL ASSISTANT"
-        title={t('你的本地 AI 助手', 'Your local AI assistant')}
+        title={t('AI 助手', 'AI assistant')}
         description={t(
           '告诉我想做什么，或附上文件让我来处理。',
           'Tell me what you want to do, or attach files for me to process.',
@@ -187,7 +188,7 @@ export function AIPage() {
         <div className="ai-workspace-bar">
           <span>
             <Sparkles size={18} />
-            {t('芙芙 AI', 'DogOfFurina AI')}
+            {t('AI 助手', 'AI assistant')}
           </span>
           <span className="model-status">
             <span className={`status-dot ${ready ? '' : 'pending'}`} />
@@ -220,7 +221,7 @@ export function AIPage() {
             {loading ? (
               <>
                 <ToolUI.Progress
-                  label={downloading ? t('总下载进度', 'Total download progress') : loadLabel}
+                  label={downloading ? t('资源加载进度', 'Resource loading progress') : loadLabel}
                   value={downloading ? ai.progress : undefined}
                   decimals={2}
                 />

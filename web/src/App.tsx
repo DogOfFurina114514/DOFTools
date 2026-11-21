@@ -47,6 +47,7 @@ import { LanguageSlider } from './components/LanguageSlider'
 import { IconButton } from './components/controls'
 import { SetupWizard, GuidedTour } from './components/Onboarding'
 import { ThemeScrollbars } from './components/ThemeScrollbars'
+import { startResourceUpdates } from './lib/offline'
 
 const Dashboard = lazy(() =>
   workspacePages.dashboard().then((module) => ({ default: module.Dashboard })),
@@ -194,7 +195,7 @@ function navigationPages(
     ...(desktop
       ? [
           {
-            title: t('本地 AI 助手', 'Local AI assistant'),
+            title: t('AI 助手', 'AI assistant'),
             description: t(
               '在电脑端运行的本地多模态助手',
               'A local multimodal assistant for desktop',
@@ -375,7 +376,7 @@ function HelpDialog({ onClose }: { onClose: () => void }) {
             <p>
               <strong>
                 {detectAICapability().desktop
-                  ? t('使用本地 AI 助手', 'Use local AI')
+                  ? t('使用 AI 助手', 'Use AI assistant')
                   : t('搜索分类与页面', 'Search categories and pages')}
               </strong>
               {detectAICapability().desktop
@@ -433,6 +434,30 @@ function Application() {
     setToast(message)
     toastTimer.current = setTimeout(() => setToast(''), 3500)
   }
+  useEffect(() => {
+    const ready = (event: Event) =>
+      notify(
+        t(
+          '离线资源已保存，可以断网使用。版本 {version}',
+          'Offline resources saved. You can use the site without a connection. Version {version}',
+          { version: (event as CustomEvent<string>).detail },
+        ),
+      )
+    window.addEventListener('offline-ready', ready)
+    const modelsReady = () =>
+      notify(
+        t(
+          '模型资源已保存，下次直接读取本地资源。',
+          'Model resources saved. Future loads will reuse the local resources.',
+        ),
+      )
+    window.addEventListener('models-ready', modelsReady)
+    startResourceUpdates()
+    return () => {
+      window.removeEventListener('offline-ready', ready)
+      window.removeEventListener('models-ready', modelsReady)
+    }
+  }, [t])
   const play = (id: StyleId) => {
     setSplashRevealing(false)
     splashFocus.current = document.activeElement as HTMLElement | null
@@ -493,7 +518,7 @@ function Application() {
   const sectionName = location.pathname.startsWith('/category/')
     ? resolve(categories.find((category) => location.pathname.endsWith(category.id))?.label ?? '')
     : location.pathname === '/ai'
-      ? t('本地 AI 助手', 'Local AI assistant')
+      ? t('AI 助手', 'AI assistant')
       : location.pathname === '/settings'
         ? t('设置与外观', 'Settings & appearance')
         : location.pathname === '/'

@@ -6,6 +6,8 @@ import {
   type AILoadStage,
 } from './ai'
 import { LocalizedError } from './locale'
+import { modelDownloadThreads } from './download-preferences'
+import { ensureResourceWorker, offlineAIAvailable } from './offline'
 
 type Pending = {
   resolve: (value: AIResponse | undefined) => void
@@ -20,6 +22,7 @@ export class BrowserLocalAI implements LocalAIAdapter {
   private worker: Worker | null = null
   private requests = new Map<number, Pending>()
   private sequence = 0
+  private loadGeneration = 0
   private ensureWorker() {
     if (!this.worker) {
       this.worker = new Worker(new URL('./ai.worker.ts', import.meta.url), { type: 'module' })
@@ -115,9 +118,21 @@ export class BrowserLocalAI implements LocalAIAdapter {
     signal?: AbortSignal,
     onStage?: (stage: AILoadStage) => void,
   ) {
+    const generation = ++this.loadGeneration
+    if (!import.meta.env.DEV) {
+      void navigator.storage?.persist?.().catch(() => false)
+      await ensureResourceWorker().catch(() => undefined)
+      if (!navigator.onLine && !(await offlineAIAvailable()))
+        throw new LocalizedError(
+          '当前处于离线状态，AI 模型尚未下载完整，无法使用 AI。请联网后在设置中下载模型资源。',
+          'You are offline and the AI model has not been fully downloaded. AI is unavailable. Connect to the internet and download model resources in Settings.',
+        )
+    }
+    if (generation !== this.loadGeneration) throw new DOMException('Cancelled', 'AbortError')
+    signal?.throwIfAborted()
     const baseUrl = new URL(import.meta.env.BASE_URL, document.baseURI).href
     await this.request(
-      { id: ++this.sequence, type: 'load', baseUrl },
+      { id: ++this.sequence, type: 'load', baseUrl, concurrency: modelDownloadThreads() },
       { onProgress, onStage },
       signal,
     )
@@ -146,6 +161,7 @@ export class BrowserLocalAI implements LocalAIAdapter {
     this.fail(new DOMException('The model was unloaded or the task was cancelled.', 'AbortError'))
   }
   private fail(error: Error) {
+    this.loadGeneration++
     this.worker?.terminate()
     this.worker = null
     this.requests.forEach((pending) => pending.reject(error))

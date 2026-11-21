@@ -67,6 +67,7 @@ export interface LocalAIAdapter {
 }
 
 export type AILoadStage =
+  | 'cache'
   | 'starting'
   | 'gpu'
   | 'connecting'
@@ -85,7 +86,7 @@ export interface AIResponse {
 }
 
 export type AIWorkerRequest =
-  | { id: number; type: 'load'; baseUrl: string }
+  | { id: number; type: 'load'; baseUrl: string; concurrency?: number }
   | {
       id: number
       type: 'generate'

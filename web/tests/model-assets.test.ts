@@ -246,55 +246,64 @@ describe('static Pages model transport', () => {
       ).toEqual(expected)
   })
 
-  it('assigns the next range immediately when a later range finishes before the first', async () => {
-    const asset = {
-      bytes: 40,
-      parts: Array.from({ length: 40 }, (_, index) => ({ path: `p${index}`, bytes: 1 })),
-    }
-    const bodies = new Map<string, ReadableStreamDefaultController<Uint8Array>>()
-    let active = 0
-    let maximum = 0
-    const request = vi.fn<typeof fetch>().mockImplementation(async (input, init) => {
-      active++
-      maximum = Math.max(maximum, active)
-      return new Response(
-        new ReadableStream<Uint8Array>({
-          start(controller) {
-            bodies.set(String(input), controller)
-            init!.signal!.addEventListener('abort', () => controller.error(init!.signal!.reason), {
-              once: true,
-            })
-          },
-        }),
-      )
-    })
-    const response = await createModelFetch(
-      root,
-      { version: 1, files: { weights: asset } },
-      request,
-    )(root + 'weights')
-    const reader = response.body!.getReader()
-    let emitted = false
-    const reading = reader.read().then((chunk) => {
-      emitted = true
-      return chunk
-    })
-    await vi.waitFor(() => expect(request).toHaveBeenCalledTimes(32))
-    for (const index of [1, 2]) {
-      const body = bodies.get(root + `p${index}`)!
-      body.enqueue(new Uint8Array([index]))
-      body.close()
-      active--
-      await vi.waitFor(() => expect(request).toHaveBeenCalledTimes(32 + index))
-      expect(bodies.has(root + `p${31 + index}`)).toBe(true)
-      expect(active).toBe(32)
-      expect(emitted).toBe(false)
-    }
-    expect(maximum).toBe(32)
-    await reader.cancel()
-    await reading
-    expect(request.mock.calls.every(([, init]) => init?.signal?.aborted)).toBe(true)
-  })
+  it.each([undefined, 32, 64, 128])(
+    'refills the selected pool (%s) even when the first range is stalled',
+    async (concurrency) => {
+      const limit = concurrency ?? 64
+      const asset = {
+        bytes: limit + 8,
+        parts: Array.from({ length: limit + 8 }, (_, index) => ({ path: `p${index}`, bytes: 1 })),
+      }
+      const bodies = new Map<string, ReadableStreamDefaultController<Uint8Array>>()
+      let active = 0
+      let maximum = 0
+      const request = vi.fn<typeof fetch>().mockImplementation(async (input, init) => {
+        active++
+        maximum = Math.max(maximum, active)
+        return new Response(
+          new ReadableStream<Uint8Array>({
+            start(controller) {
+              bodies.set(String(input), controller)
+              init!.signal!.addEventListener(
+                'abort',
+                () => controller.error(init!.signal!.reason),
+                {
+                  once: true,
+                },
+              )
+            },
+          }),
+        )
+      })
+      const response = await createModelFetch(
+        root,
+        { version: 1, files: { weights: asset } },
+        request,
+        { concurrency },
+      )(root + 'weights')
+      const reader = response.body!.getReader()
+      let emitted = false
+      const reading = reader.read().then((chunk) => {
+        emitted = true
+        return chunk
+      })
+      await vi.waitFor(() => expect(request).toHaveBeenCalledTimes(limit))
+      for (const index of [1, 2]) {
+        const body = bodies.get(root + `p${index}`)!
+        body.enqueue(new Uint8Array([index]))
+        body.close()
+        active--
+        await vi.waitFor(() => expect(request).toHaveBeenCalledTimes(limit + index))
+        expect(bodies.has(root + `p${limit - 1 + index}`)).toBe(true)
+        expect(active).toBe(limit)
+        expect(emitted).toBe(false)
+      }
+      expect(maximum).toBe(limit)
+      await reader.cancel()
+      await reading
+      expect(request.mock.calls.every(([, init]) => init?.signal?.aborted)).toBe(true)
+    },
+  )
 
   it('aborts active and queued downloads when the consumer cancels', async () => {
     const request = vi.fn<typeof fetch>().mockImplementation(
@@ -319,6 +328,7 @@ describe('static Pages model transport', () => {
       root,
       { version: 1, files: { weights: asset } },
       request,
+      { concurrency: 32 },
     )(root + 'weights')
     const reader = response.body!.getReader()
     const reading = reader.read()

@@ -176,6 +176,10 @@ export function AISessionProvider({
     setProgress(0)
     setError('')
   }
+  useEffect(() => {
+    window.addEventListener('model-resources-clearing', unload)
+    return () => window.removeEventListener('model-resources-clearing', unload)
+  }, [])
   const load = async () => {
     if (!detectAICapability().desktop) return
     if (active.current || status === 'ready') return

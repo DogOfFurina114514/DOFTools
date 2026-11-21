@@ -11,6 +11,14 @@ import { useStoredState } from './storage'
 import { flushSync } from 'react-dom'
 import { translate, type Locale } from './locale'
 import { FluentProvider, webDarkTheme, webLightTheme } from '@fluentui/react-components'
+import {
+  isGlassGradient,
+  isThemeAccents,
+  mixColor,
+  themeColorTokens,
+  type OrdinaryStyle,
+  type ThemeAccents,
+} from './theme-colors'
 
 export const STYLE_PRESETS = [
   {
@@ -127,12 +135,37 @@ interface Appearance {
   openings: boolean
   setOpenings: (enabled: boolean) => void
   reducedMotion: boolean
+  accentColors: ThemeAccents
+  setAccentColor: (color: string) => void
+  resetAccentColor: () => void
+  glassGradient: [string, string]
+  setGlassGradient: (colors: [string, string]) => void
 }
 const AppearanceContext = createContext<Appearance>(null!)
 export const useAppearance = () => useContext(AppearanceContext)
 
 export function AppearanceProvider({ children }: { children: ReactNode }) {
   const [style, setStyle] = useStoredState<StyleId>('style', 'default', isStyleId)
+  const [accentColors, setAccentColors] = useStoredState<ThemeAccents>(
+    'theme-accents',
+    {},
+    isThemeAccents,
+  )
+  const [glassGradient, setGlassGradient] = useStoredState<[string, string]>(
+    'glass-gradient',
+    ['#a7d0ff', '#f0bbd8'],
+    isGlassGradient,
+  )
+  const setAccentColor = (color: string) => {
+    if (presetFor(style).game) return
+    setAccentColors((colors) => ({ ...colors, [style]: color }))
+  }
+  const resetAccentColor = () =>
+    setAccentColors((colors) => {
+      const next = { ...colors }
+      delete next[style as OrdinaryStyle]
+      return next
+    })
   const [theme, updateTheme] = useStoredState<ThemePreference>(
     'theme',
     'system',
@@ -203,9 +236,25 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
   useLayoutEffect(() => {
     document.documentElement.dataset.style = style
     document.documentElement.dataset.theme = mode
+    const root = document.documentElement
+    const color = accentColors[style as OrdinaryStyle]
+    const tokens = themeColorTokens(color ?? '#617e53', mode === 'dark')
+    for (const [name, value] of Object.entries(tokens)) {
+      if (color && !presetFor(style).game) root.style.setProperty(name, value)
+      else root.style.removeProperty(name)
+    }
+    const glassBase = mode === 'dark' ? '#101e32' : '#eef3f9'
+    root.style.setProperty(
+      '--glass-start',
+      mixColor(glassGradient[0], glassBase, mode === 'dark' ? 0.65 : 0.42),
+    )
+    root.style.setProperty(
+      '--glass-end',
+      mixColor(glassGradient[1], glassBase, mode === 'dark' ? 0.65 : 0.42),
+    )
     const background = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', background)
-  }, [style, mode])
+  }, [style, mode, accentColors, glassGradient])
 
   useEffect(() => {
     const media = matchMedia('(prefers-reduced-motion: reduce)')
@@ -225,6 +274,11 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
         openings,
         setOpenings,
         reducedMotion,
+        accentColors,
+        setAccentColor,
+        resetAccentColor,
+        glassGradient,
+        setGlassGradient,
       }}
     >
       <FluentProvider
