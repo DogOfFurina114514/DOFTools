@@ -79,7 +79,9 @@ export function SettingsPage({
       ? t('离线资源尚未保存完整', 'Offline resources are incomplete')
       : t('未开启整站离线使用', 'Full offline use is disabled'),
     checking: t('正在检查版本与已保存资源…', 'Checking the version and saved resources…'),
-    saving: t('正在下载并保存离线资源…', 'Downloading and saving offline resources…'),
+    saving: resources.updating
+      ? t('正在增量更新离线资源…', 'Updating changed offline resources…')
+      : t('正在下载并保存离线资源…', 'Downloading and saving offline resources…'),
     ready: t('离线资源已就绪 · {version}', 'Offline resources ready · {version}', {
       version: resources.version,
     }),
@@ -323,8 +325,8 @@ export function SettingsPage({
             <h3>{t('允许离线使用', 'Allow offline use')}</h3>
             <p>
               {t(
-                '开启后在后台保存模型以外的所有页面、工具和运行环境，完成时通知。每次启动联网检查并自动更新；关闭后清除这些离线资源。',
-                'Save all pages, tools and runtimes except model files in the background and notify when ready. Check and update at startup when online. Turning this off clears these offline resources.',
+                '开启后在后台保存模型以外的所有页面、工具和运行环境，完成时通知。联网时自动增量更新，仅下载新增或变化的资源块；关闭后清除这些离线资源。',
+                'Save all pages, tools and runtimes except model files in the background and notify when ready. Automatically update online by downloading only new or changed resource blocks. Turning this off clears these offline resources.',
               )}
               {desktop && t('模型在下方独立管理。', ' Manage models separately below.')}
             </p>
@@ -343,8 +345,17 @@ export function SettingsPage({
           {resources.phase === 'saving' && (
             <>
               <Progress
-                label={t('离线保存进度', 'Offline saving progress')}
-                value={resources.total ? resources.loaded / resources.total : undefined}
+                label={
+                  resources.updating
+                    ? t('增量更新进度', 'Incremental update progress')
+                    : t('离线保存进度', 'Offline saving progress')
+                }
+                value={
+                  resources.total > (resources.reusedBytes ?? 0)
+                    ? (resources.loaded - (resources.reusedBytes ?? 0)) /
+                      (resources.total - (resources.reusedBytes ?? 0))
+                    : undefined
+                }
                 decimals={2}
               />
               <p>
@@ -365,6 +376,20 @@ export function SettingsPage({
                 {resources.file || t('正在开始下载…', 'Starting downloads…')}
               </p>
             </>
+          )}
+          {['saving', 'ready'].includes(resources.phase) && (resources.reusedBytes ?? 0) > 0 && (
+            <p>
+              {t('已复用本地资源：{size}', 'Reused local resources: {size}', {
+                size: size(resources.reusedBytes ?? 0),
+              })}
+            </p>
+          )}
+          {resources.phase === 'ready' && resources.downloadLoaded !== undefined && (
+            <p>
+              {t('本次下载：{size}', 'Downloaded this time: {size}', {
+                size: size(resources.downloadLoaded),
+              })}
+            </p>
           )}
           {(resources.phase === 'checking' || resources.phase === 'clearing') && (
             <Progress label={resourceStatus} />

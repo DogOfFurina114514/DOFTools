@@ -136,6 +136,80 @@ export async function resourceCoverages(resources: OfflineResource[]) {
     ),
   )
 }
+// A changed file can still contain identical blocks, even at new offsets or
+// under a different hashed URL. Reuse only verified site bytes from the last
+// complete snapshot, keeping the existing database format and model isolation.
+export async function reuseSiteBlocks(
+  resources: OfflineResource[],
+  previous: OfflineResource[],
+  epoch: number,
+  signal: AbortSignal,
+) {
+  const files = resources.filter((resource) => resource.group === 'site')
+  const sources = new Map<string, { resource: OfflineResource; index: number }>()
+  for (const resource of previous.filter((resource) => resource.group === 'site'))
+    resource.blocks.forEach((hash, index) =>
+      sources.set(
+        `${hash}:${Math.min(RESOURCE_BLOCK_BYTES, resource.bytes - index * RESOURCE_BLOCK_BYTES)}`,
+        { resource, index },
+      ),
+    )
+  const coverages = await resourceCoverages(files)
+  const plans = files.flatMap((resource, fileIndex) =>
+    resource.blocks.flatMap((hash, index) => {
+      if (coverages[fileIndex][index]) return []
+      const bytes = Math.min(RESOURCE_BLOCK_BYTES, resource.bytes - index * RESOURCE_BLOCK_BYTES)
+      const source = sources.get(`${hash}:${bytes}`)
+      return source ? [{ resource, index, hash, bytes, source }] : []
+    }),
+  )
+  const db = await openDatabase()
+  for (let first = 0; first < plans.length; first += 8) {
+    signal.throwIfAborted()
+    const batch = plans.slice(first, first + 8)
+    const read = db.transaction('blocks').objectStore('blocks')
+    const records = await Promise.all(
+      batch.map((plan) =>
+        result<BlockRecord | undefined>(read.get(key(plan.source.resource, plan.source.index))),
+      ),
+    )
+    const verified = await Promise.all(
+      records.map(async (record, index) => {
+        if (!record || record.data.length !== batch[index].bytes) return undefined
+        const hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', record.data))]
+          .map((value) => value.toString(16).padStart(2, '0'))
+          .join('')
+        // Ignore a damaged source block; the normal download repairs the target.
+        if (hash !== batch[index].hash) return undefined
+        return {
+          key: key(batch[index].resource, batch[index].index),
+          group: 'site' as const,
+          data: record.data,
+        }
+      }),
+    )
+    signal.throwIfAborted()
+    const transaction = db.transaction(['control', 'blocks'], 'readwrite')
+    const done = completed(transaction)
+    try {
+      const state = await result<ResourceControl | undefined>(
+        transaction.objectStore('control').get('state'),
+      )
+      signal.throwIfAborted()
+      if (state?.enabled && state.epoch === epoch)
+        for (const record of verified) if (record) transaction.objectStore('blocks').put(record)
+      await done
+    } catch (error) {
+      try {
+        transaction.abort()
+      } catch {
+        /* Already completed or aborted. */
+      }
+      await done.catch(() => {})
+      throw error
+    }
+  }
+}
 export async function saveResourceBytes(
   resource: OfflineResource,
   start: number,

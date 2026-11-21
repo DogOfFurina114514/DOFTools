@@ -32,9 +32,18 @@ const documents = (version: number) => {
       ),
     ],
     [`assets/lazy-${version}.js`, Buffer.from(`export const value='tool ${version}'`)],
+    ['assets/cold-worker.js', Buffer.from('self.onmessage=({data})=>self.postMessage(data+1)')],
     ['models/test/weights.part-000', weights],
     ['runtime/test.wasm', Buffer.from([0, 97, 115, 109, 1, 0, 0, 0])],
     ['runtime/site.wasm', weights],
+    [
+      'assets/delta.bin',
+      Buffer.concat(
+        (version === 1 ? [17, 23, 31] : [31, 67, 17]).map((value) =>
+          Buffer.alloc(128 * 1024, value),
+        ),
+      ),
+    ],
   ])
   const index = files.get('index.html')!
   files.set(`offline/index.${hash(index)}.bin`, index)
@@ -118,6 +127,11 @@ let corruptIndex = false
 let useBundles = true
 let corruptBundle = false
 let missingBundles = false
+let toolFault = ''
+let faultPath = ''
+let toolAttempts = 0
+let deltaRanges: string[] = []
+let localDownloads: string[] = []
 test.beforeAll(async () => {
   worker = (
     await build({
@@ -159,6 +173,24 @@ test.beforeAll(async () => {
       )
       return
     }
+    localDownloads.push(path)
+    if (path === 'assets/delta.bin') deltaRanges.push(request.headers.range ?? 'full')
+    if (path === faultPath && ++toolAttempts === 1) {
+      if (toolFault === 'http') {
+        response.writeHead(503)
+        response.end('Temporary CDN failure')
+        return
+      }
+      if (toolFault === 'network') {
+        request.socket.destroy()
+        return
+      }
+      if (toolFault === 'truncated') {
+        response.setHeader('content-length', '999')
+        response.end('partial')
+        return
+      }
+    }
     if (fail && (path === 'assets/lazy-2.js' || path === bundleCache.get(2)![0].path)) {
       response.writeHead(404)
       response.end()
@@ -188,7 +220,17 @@ test.beforeAll(async () => {
       data = Buffer.from(data)
       data[data.length - 1] ^= 1
     }
-    response.setHeader('content-type', path.endsWith('.js') ? 'text/javascript' : 'text/html')
+    const range = /^bytes=(\d+)-(\d+)$/.exec(request.headers.range ?? '')
+    if (range) {
+      response.statusCode = 206
+      response.setHeader('content-range', `bytes ${range[1]}-${range[2]}/${data.length}`)
+      data = data.subarray(Number(range[1]), Number(range[2]) + 1)
+    }
+    response.setHeader(
+      'content-type',
+      path.endsWith('.js') ? 'text/javascript' : 'application/octet-stream',
+    )
+    if (path === 'index.html') response.setHeader('content-type', 'text/html')
     response.end(data)
   })
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
@@ -241,6 +283,8 @@ function resourceStatus(page: Page) {
             aiReady: boolean
             downloadLoaded: number
             downloadTotal: number
+            reusedBytes: number
+            updating: boolean
           }
         }
       ).resourceStatus,
@@ -253,6 +297,11 @@ test.beforeEach(async ({ context }) => {
   useBundles = true
   corruptBundle = false
   missingBundles = false
+  toolFault = ''
+  faultPath = ''
+  toolAttempts = 0
+  deltaRanges = []
+  localDownloads = []
   downloads = 0
   indexDownloads = 0
   siteRanges = []
@@ -443,6 +492,149 @@ test('persists ranges, navigates offline, updates atomically and clears in-fligh
   expect((await status()).phase).toBe('ready')
 })
 
+for (const damaged of [false, true]) {
+  test(`incremental updates reuse blocks at new offsets${damaged ? ' and redownload a damaged source' : ''}`, async ({
+    context,
+    page,
+  }) => {
+    await context.route(`${pages}**`, async (route) => {
+      downloads++
+      const path = new URL(route.request().url()).pathname.slice(1)
+      const data = documents(version).get(path)!
+      const range = /^bytes=(\d+)-(\d+)$/.exec(route.request().headers().range ?? '')
+      await route.fulfill({
+        status: range ? 206 : 200,
+        body: range ? data.subarray(Number(range[1]), Number(range[2]) + 1) : data,
+        contentType: 'application/octet-stream',
+        headers: { 'access-control-allow-origin': '*' },
+      })
+    })
+    await page.goto(base)
+    await registerWorker(page)
+    await sendCommand(page, 'enable')
+    await expect.poll(async () => (await resourceStatus(page)).phase).toBe('ready')
+    if (damaged)
+      await page.evaluate(
+        async (hash) => {
+          const db = await new Promise<IDBDatabase>((resolve, reject) => {
+            const request = indexedDB.open('fufu-resources-v1', 1)
+            request.onsuccess = () => resolve(request.result)
+            request.onerror = () => reject(request.error)
+          })
+          const tx = db.transaction('blocks', 'readwrite')
+          tx.objectStore('blocks').put({
+            key: `site:${hash}:0`,
+            group: 'site',
+            data: new Uint8Array(128 * 1024),
+          })
+          await new Promise<void>((resolve, reject) => {
+            tx.oncomplete = () => resolve()
+            tx.onabort = () => reject(tx.error)
+          })
+          db.close()
+        },
+        manifests[0].resources.find((resource) => resource.path === 'assets/delta.bin')!.hash,
+      )
+    version = 2
+    deltaRanges = []
+    const before = downloads
+    await sendCommand(page, 'startup', true)
+    await expect.poll(async () => (await resourceStatus(page)).phase).toBe('ready')
+    const saved = await resourceStatus(page)
+    expect(saved.updating).toBe(true)
+    expect(saved.version).toBe('26.1.1')
+    expect(downloads).toBe(before)
+    expect(deltaRanges).toEqual([damaged ? 'bytes=131072-393215' : 'bytes=131072-262143'])
+    const changedSmall = manifests[1].resources
+      .filter((resource) => resource.path === 'index.html' || resource.path === 'assets/lazy-2.js')
+      .reduce((sum, resource) => sum + resource.bytes, 0)
+    expect(saved.reusedBytes).toBe(
+      manifests[1].resources
+        .filter((resource) => resource.group === 'site')
+        .reduce((sum, resource) => sum + resource.bytes, 0) -
+        changedSmall -
+        (damaged ? 2 : 1) * 128 * 1024,
+    )
+    expect(saved.downloadTotal).toBe(bundleCache.get(2)![0].bytes + (damaged ? 2 : 1) * 128 * 1024)
+    expect(saved.downloadLoaded).toBe(saved.downloadTotal)
+    await context.setOffline(true)
+    expect(
+      await page.evaluate(async (url) => {
+        const response = await fetch(url)
+        const bytes = new Uint8Array(await response.arrayBuffer())
+        return {
+          source: response.headers.get('x-fufu-resource-source'),
+          blocks: [bytes[0], bytes[131072], bytes[262144]],
+          length: bytes.length,
+        }
+      }, `${base}/assets/delta.bin`),
+    ).toEqual({ source: 'local', blocks: [31, 67, 17], length: 393216 })
+    await context.setOffline(false)
+    const localBefore = [...localDownloads]
+    await sendCommand(page, 'startup', true)
+    await expect.poll(async () => (await resourceStatus(page)).phase).toBe('ready')
+    expect((await resourceStatus(page)).downloadLoaded).toBe(0)
+    expect(localDownloads).toEqual(localBefore)
+    expect(downloads).toBe(before)
+    expect((await resourceStatus(page)).modelsBytes).toBe(0)
+  })
+}
+
+test('disabling offline use during block reuse prevents cleared resources from returning', async ({
+  context,
+  page,
+}) => {
+  await context.route(`${pages}**`, async (route) => {
+    const data = documents(version).get(new URL(route.request().url()).pathname.slice(1))!
+    const range = /^bytes=(\d+)-(\d+)$/.exec(route.request().headers().range ?? '')
+    await route.fulfill({
+      status: range ? 206 : 200,
+      body: range ? data.subarray(Number(range[1]), Number(range[2]) + 1) : data,
+      headers: { 'access-control-allow-origin': '*' },
+    })
+  })
+  await page.goto(base)
+  await registerWorker(page)
+  await sendCommand(page, 'enable')
+  await expect.poll(async () => (await resourceStatus(page)).phase).toBe('ready')
+  const worker = context.serviceWorkers()[0]
+  await worker.evaluate(() => {
+    const target = self as unknown as { reusing?: boolean; releaseReuse?: () => void }
+    const digest = crypto.subtle.digest.bind(crypto.subtle)
+    const pending = new Promise<void>((resolve) => {
+      target.releaseReuse = resolve
+    })
+    crypto.subtle.digest = async (...args) => {
+      target.reusing = true
+      await pending
+      crypto.subtle.digest = digest
+      return digest(...args)
+    }
+  })
+  version = 2
+  await sendCommand(page, 'startup', true)
+  await expect
+    .poll(() => worker.evaluate(() => (self as unknown as { reusing?: boolean }).reusing))
+    .toBe(true)
+  await sendCommand(page, 'disable')
+  await worker.evaluate(() => (self as unknown as { releaseReuse?: () => void }).releaseReuse?.())
+  expect((await sendCommand(page, 'status')).state.phase).toBe('idle')
+  expect(
+    await page.evaluate(async () => {
+      const request = indexedDB.open('fufu-resources-v1', 1)
+      const db = await new Promise<IDBDatabase>((resolve) => {
+        request.onsuccess = () => resolve(request.result)
+      })
+      const count = db.transaction('blocks').objectStore('blocks').index('group').count('site')
+      const value = await new Promise<number>((resolve) => {
+        count.onsuccess = () => resolve(count.result)
+      })
+      db.close()
+      return value
+    }),
+  ).toBe(0)
+})
+
 test('rejects a corrupt offline homepage without caching injected HTML or reporting a model failure', async ({
   context,
   page,
@@ -518,6 +710,39 @@ test('rejects a corrupt offline homepage without caching injected HTML or report
     await page.evaluate(() => (window as unknown as { proxyInjected?: boolean }).proxyInjected),
   ).toBeUndefined()
 })
+
+for (const tool of ['module', 'worker']) {
+  for (const fault of ['http', 'network', 'truncated']) {
+    test(`first ${tool} use recovers from a transient ${fault} resource failure`, async ({
+      page,
+    }) => {
+      await page.goto(base)
+      await registerWorker(page)
+      await sendCommand(page, 'startup', false)
+      toolFault = fault
+      faultPath = tool === 'module' ? 'assets/lazy-1.js' : 'assets/cold-worker.js'
+      const result = await page.evaluate(async (tool) => {
+        if (tool === 'module') return (await import('/assets/lazy-1.js')).value
+        return new Promise((resolve, reject) => {
+          const worker = new Worker('/assets/cold-worker.js', { type: 'module' })
+          worker.onmessage = ({ data }) => {
+            worker.terminate()
+            resolve(data)
+          }
+          worker.onerror = () => {
+            worker.terminate()
+            reject(new Error('First worker launch failed'))
+          }
+          worker.postMessage(41)
+        })
+      }, tool)
+      expect(result).toBe(tool === 'module' ? 'tool 1' : 42)
+      expect(toolAttempts).toBe(2)
+      expect((await resourceStatus(page)).modelPhase).toBe('idle')
+      expect((await resourceStatus(page)).phase).toBe('idle')
+    })
+  }
+}
 
 test('site timeouts reduce concurrency and status polling retains the backoff', async ({
   context,

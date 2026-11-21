@@ -13,6 +13,8 @@ export interface OfflineStatus {
   total: number
   downloadLoaded?: number
   downloadTotal?: number
+  reusedBytes?: number
+  updating?: boolean
   file: string
   error: string
   modelsBytes: number
@@ -35,6 +37,8 @@ let state: OfflineStatus = {
   total: 0,
   downloadLoaded: 0,
   downloadTotal: 0,
+  reusedBytes: 0,
+  updating: false,
   file: '',
   error: '',
   modelsBytes: 0,
@@ -96,6 +100,28 @@ export function ensureResourceWorker() {
     })
     throw error
   }))
+}
+// Wait for the shared resource controller before a first tool import. Cancelling
+// a tool only stops this wait; the site's shared registration continues.
+export async function prepareToolResources(
+  signal: AbortSignal,
+  ready: () => Promise<unknown> = ensureResourceWorker,
+) {
+  signal.throwIfAborted()
+  const loading = ready().catch(() => undefined)
+  await new Promise<void>((resolve, reject) => {
+    const abort = () => {
+      signal.removeEventListener('abort', abort)
+      reject(signal.reason)
+    }
+    signal.addEventListener('abort', abort, { once: true })
+    void loading.then(() => {
+      signal.removeEventListener('abort', abort)
+      resolve()
+    })
+    if (signal.aborted) abort()
+  })
+  signal.throwIfAborted()
 }
 async function command(type: string, enabled?: boolean, threads = modelDownloadThreads()) {
   const fail = (error: string) =>

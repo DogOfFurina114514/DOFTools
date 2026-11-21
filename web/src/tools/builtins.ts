@@ -1,6 +1,7 @@
 import { bilingual as b } from '../lib/locale'
 import type { ToolDefinition, ToolField, ToolValues } from './registry'
 import { midiAudioAccept, midiAudioFormats } from './processors/midi-formats'
+import { prepareToolResources } from '../lib/offline'
 
 const files = (accept: string, multiple = false): ToolField => ({
   type: 'files',
@@ -34,7 +35,11 @@ function define(
     category,
     fields,
     initialValues,
-    execute,
+    execute: async (values, context) => {
+      context.onStatus?.(b('正在准备工具资源…', 'Preparing tool resources…'))
+      await prepareToolResources(context.signal)
+      return execute(values, context)
+    },
     inputSchema: {
       type: 'object',
       additionalProperties: false,

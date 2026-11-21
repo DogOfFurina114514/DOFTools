@@ -7,6 +7,7 @@ import {
   resourceControl,
   resourceCoverage,
   resourceCoverages,
+  reuseSiteBlocks,
   savedModelBytes,
   saveResourceBytes,
   type OfflineManifest,
@@ -17,6 +18,7 @@ import {
 import { decodeBundle, gzipAvailable, receiveBytes, validBundles } from './lib/offline-bundles'
 import { createDownloadPool } from './lib/model-assets'
 import { createModelRequest, createResourceRequest } from './lib/model-network'
+import { retryResource } from './lib/resource-retry'
 import { PAGES_RESOURCE_BASE } from './lib/site-resources'
 
 declare const __OFFLINE_MANIFEST__: OfflineManifest
@@ -40,6 +42,12 @@ function resetNetworkLimit() {
   )
   pool.setLimit(networkLimit)
 }
+function backOffSite(error: unknown) {
+  if (error instanceof Error && error.name === 'TimeoutError') {
+    networkLimit = Math.max(4, Math.floor(networkLimit / 2))
+    pool.setLimit(networkLimit)
+  }
+}
 let saving: AbortController | undefined
 let modelSaving: AbortController | undefined
 let commandQueue = Promise.resolve()
@@ -50,6 +58,8 @@ let state = {
   total: 0,
   downloadLoaded: 0,
   downloadTotal: 0,
+  reusedBytes: 0,
+  updating: false,
   file: '',
   error: '',
   modelsBytes: 0,
@@ -164,6 +174,10 @@ async function download(
       throw error
     })
     if (!response.ok) {
+      if ([408, 429].includes(response.status) || response.status >= 500) {
+        await response.body?.cancel()
+        throw new TypeError(`HTTP ${response.status}: ${resource.path}`)
+      }
       if (!mustSave) return response
       throw new TypeError(`HTTP ${response.status}: ${resource.path}`)
     }
@@ -182,7 +196,9 @@ async function download(
     const bytes = await receiveBytes(response, signal, limits[1] - limits[0] + 1 + 65536, received)
     signal.throwIfAborted()
     if (bytes.length !== limits[1] - limits[0] + 1)
-      throw new Error(`Incomplete resource: ${resource.path}`)
+      throw Object.assign(new Error(`Incomplete resource: ${resource.path}`), {
+        name: 'IncompleteResourceError',
+      })
     if (mustSave || resource.group === 'model' || control.enabled) {
       try {
         await saveResourceBytes(
@@ -341,6 +357,7 @@ async function saveResources(
     for (const bundle of bundles) {
       if (!bundle.members.every((member) => files.has(member.path))) continue
       let missing = 0
+      const keys: string[] = []
       for (const member of bundle.members) {
         const resource = files.get(member.path)!
         const coverage = coverageByPath.get(member.path)!
@@ -349,12 +366,17 @@ async function saveResources(
           start < member.start + member.bytes;
           start += RESOURCE_BLOCK_BYTES
         ) {
-          transported.add(`${resource.hash}:${start}`)
+          keys.push(`${resource.hash}:${start}`)
           if (!coverage[start / RESOURCE_BLOCK_BYTES])
             missing += Math.min(RESOURCE_BLOCK_BYTES, resource.bytes - start)
         }
       }
-      if (missing) tasks.push({ bundle, missing })
+      // A mostly cached bundle can cost more than its few missing raw blocks.
+      // Download the cheaper representation when resuming or updating.
+      if (missing && bundle.bytes < missing) {
+        for (const key of keys) transported.add(key)
+        tasks.push({ bundle, missing })
+      }
     }
   for (const [resourceIndex, resource] of resources.entries()) {
     signal.throwIfAborted()
@@ -420,8 +442,8 @@ async function saveResources(
         }
       }
       let bundleMissing = false
-      for (let attempt = 0; ; attempt++) {
-        try {
+      await retryResource(
+        async () => {
           if (task.bundle) {
             const saved = bundleMissing
               ? false
@@ -452,27 +474,10 @@ async function saveResources(
             })
             await download(task.resource, request, signal, true, control, received)
           }
-          break
-        } catch (error) {
-          signal.throwIfAborted()
-          if (
-            resources[0]?.group === 'site' &&
-            error instanceof Error &&
-            error.name === 'TimeoutError'
-          ) {
-            networkLimit = Math.max(4, Math.floor(networkLimit / 2))
-            pool.setLimit(networkLimit)
-          }
-          if (
-            attempt >= 2 ||
-            !(
-              error instanceof TypeError ||
-              (error instanceof Error && error.name === 'TimeoutError')
-            )
-          )
-            throw error
-        }
-      }
+        },
+        signal,
+        resources[0]?.group === 'site' ? backOffSite : undefined,
+      )
       signal.throwIfAborted()
       loaded += task.missing
       if (Date.now() - lastReport > 250) {
@@ -531,7 +536,16 @@ async function saveModels(controller: AbortController) {
 async function saveOffline(controller: AbortController, checkUpdates: boolean) {
   const signal = controller.signal
   try {
-    await report({ enabled: true, phase: 'checking', file: '', error: '' })
+    await report({
+      enabled: true,
+      phase: 'checking',
+      file: '',
+      error: '',
+      reusedBytes: 0,
+      updating: false,
+      downloadLoaded: 0,
+      downloadTotal: 0,
+    })
     if (checkUpdates) {
       try {
         await checkManifest(signal)
@@ -554,6 +568,9 @@ async function saveOffline(controller: AbortController, checkUpdates: boolean) {
     const target = manifest
     const control = await resourceControl()
     const epoch = control.epoch
+    const updating = !!control.active && control.active.revision !== target.revision
+    if (updating) await reuseSiteBlocks(target.resources, control.active!.resources, epoch, signal)
+    let reusedBytes: number | undefined
     const total = await saveResources(
       target.resources.filter((resource) => resource.group === 'site'),
       signal,
@@ -561,6 +578,8 @@ async function saveOffline(controller: AbortController, checkUpdates: boolean) {
         signal.throwIfAborted()
         return report({
           phase: 'saving',
+          updating,
+          reusedBytes: (reusedBytes ??= loaded),
           loaded,
           total,
           file,
@@ -666,7 +685,11 @@ sw.addEventListener('fetch', (event) => {
         /* A storage failure must still allow an online tool to load. */
       }
       try {
-        return await download(resource, request, request.signal, false)
+        return await retryResource(
+          () => download(resource, request, request.signal, false),
+          request.signal,
+          resource.group === 'site' ? backOffSite : undefined,
+        )
       } catch (error) {
         const old = previous && findResource(request.url, previous)
         if (old && old.hash !== resource.hash) {
@@ -707,6 +730,8 @@ sw.addEventListener('message', (event) => {
           total: 0,
           downloadLoaded: 0,
           downloadTotal: 0,
+          reusedBytes: 0,
+          updating: false,
           file: '',
           modelsBytes: await savedModelBytes(),
         })
