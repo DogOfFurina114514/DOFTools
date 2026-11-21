@@ -15,7 +15,7 @@
 
 ## 模型随网页发布
 
-模型、tokenizer 与配置总计 873,485,707 字节，完整网页约 941 MiB。权重按最多 20 MiB 分为 42 块，tokenizer 按最多 2 MiB 分为 10 块；开发目录 `web/public/models/` 和发布目录 `docs/models/` 均包含完整资源，全部通过普通 Git 提交，不使用 Git LFS，也不需要外部模型服务。生产浏览器（包括 ESA 备用网址）从本站的 GitHub Pages CDN 使用共享 4 路并发池，以 512 KiB 字节范围读取分块和推理 WASM，按清单顺序、原始 Content-Length 提供给模型运行时。下载进度来自实际接收字节，连接或正文持续 30 秒无响应会报错并允许重新开启。开发环境从本地加载。关闭助手释放 Worker 和模型。
+模型、tokenizer 与配置总计 873,485,707 字节，完整网页约 941 MiB。权重按最多 20 MiB 分为 42 块，tokenizer 按最多 2 MiB 分为 10 块；开发目录 `web/public/models/` 和发布目录 `docs/models/` 均包含完整资源，全部通过普通 Git 提交，不使用 Git LFS，也不需要外部模型服务。生产浏览器（包括 ESA 备用网址）从本站的 GitHub Pages CDN 使用共享 32 路并发池，以 512 KiB 字节范围读取分块和推理 WASM，按清单顺序、原始 Content-Length 提供给模型运行时。下载进度来自实际接收字节，连接或正文持续 30 秒无响应会报错并允许重新开启。开发环境从本地加载。关闭助手释放 Worker 和模型。
 
 `npm run pages:check` 检查全部分块拼接后的 SHA-256、WASM、入口及站点大小。GitHub 普通 Git 推送的单文件限制为 100 MiB，Pages 站点上限为 1 GB，目前发布资源均符合要求。
 

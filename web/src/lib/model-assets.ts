@@ -1,5 +1,7 @@
 import { LocalizedError } from './locale'
 
+export const MODEL_DOWNLOAD_CONCURRENCY = 32
+
 export interface ModelAssetManifest {
   version: 1
   files: Record<string, { bytes: number; parts: { path: string; bytes: number }[] }>
@@ -47,8 +49,8 @@ export function createDownloadPool(limit: number) {
   }
 }
 
-// Prefetch a bounded window in parallel, then emit in manifest order. Only this
-// window is buffered in addition to the runtime's final weight buffer.
+// Refill downloads as ranges finish, then emit bytes in manifest order. Metadata
+// probes do not start the scheduler until their response body is consumed.
 export function createModelFetch(
   modelRoot: string,
   manifest: ModelAssetManifest,
@@ -57,9 +59,11 @@ export function createModelFetch(
 ): typeof fetch {
   const root = new URL(modelRoot)
   const localRoot = new URL(options.localRoot ?? root.href)
-  const concurrency = options.concurrency ?? 4
-  if (!Number.isInteger(concurrency) || concurrency < 1 || concurrency > 8)
-    throw new Error('Model download concurrency must be between 1 and 8')
+  const concurrency = options.concurrency ?? MODEL_DOWNLOAD_CONCURRENCY
+  if (!Number.isInteger(concurrency) || concurrency < 1 || concurrency > MODEL_DOWNLOAD_CONCURRENCY)
+    throw new Error(
+      `Model download concurrency must be between 1 and ${MODEL_DOWNLOAD_CONCURRENCY}`,
+    )
   const rangeBytes = options.rangeBytes ?? 512 * 1024
   if (!Number.isSafeInteger(rangeBytes) || rangeBytes < 1)
     throw new Error('Invalid model range size')
@@ -119,6 +123,7 @@ export function createModelFetch(
     const cleanup = () => externalSignal?.removeEventListener('abort', stop)
     const pending = new Map<number, Promise<Uint8Array>>()
     let scheduled = 0
+    let activeDownloads = 0
     let index = 0
     let received = 0
     let failure: unknown
@@ -136,8 +141,15 @@ export function createModelFetch(
       streamController.error(error)
     }
     const prefetch = () => {
-      while (scheduled < slices.length && scheduled < index + concurrency) {
+      while (
+        !finished &&
+        !failed &&
+        !abort.signal.aborted &&
+        scheduled < slices.length &&
+        activeDownloads < concurrency
+      ) {
         const partIndex = scheduled++
+        activeDownloads++
         const part = slices[partIndex]
         const task = download(abort.signal, async () => {
           const bytes = new Uint8Array(part.bytes)
@@ -212,9 +224,18 @@ export function createModelFetch(
           return bytes
         })
         pending.set(partIndex, task)
-        // Observe prefetch failures immediately, including later parts that
-        // finish before a slow earlier part.
-        void task.catch(fail)
+        // A completed later range immediately gets new work, even if an earlier
+        // range is still pending. All adapters still share the same pool limit.
+        void task.then(
+          () => {
+            activeDownloads--
+            prefetch()
+          },
+          (error) => {
+            activeDownloads--
+            fail(error)
+          },
+        )
       }
     }
     const body = new ReadableStream<Uint8Array>(

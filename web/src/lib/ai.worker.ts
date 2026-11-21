@@ -17,7 +17,12 @@ import {
 } from './ai'
 import { parseToolCalls, visibleAIText } from './ai-output'
 import { bilingual, errorMessage, LocalizedError } from './locale'
-import { createDownloadPool, createModelFetch, type ModelAssetManifest } from './model-assets'
+import {
+  createDownloadPool,
+  createModelFetch,
+  MODEL_DOWNLOAD_CONCURRENCY,
+  type ModelAssetManifest,
+} from './model-assets'
 import { resourceBase } from './site-resources'
 import { createModelRequest } from './model-network'
 
@@ -149,7 +154,7 @@ self.onmessage = async ({ data }: MessageEvent<AIWorkerRequest>) => {
         if (!assetsResponse.ok)
           throw new LocalizedError('模型资源清单缺失。', 'The model resource manifest is missing.')
         const assets = (await assetsResponse.json()) as ModelAssetManifest
-        const pool = createDownloadPool(4)
+        const pool = createDownloadPool(MODEL_DOWNLOAD_CONCURRENCY)
         const downloadSizes = new Map(
           Object.entries(assets.files).map(([name, asset]) => [name, asset.bytes]),
         )
@@ -177,7 +182,7 @@ self.onmessage = async ({ data }: MessageEvent<AIWorkerRequest>) => {
           })
         }
         env.fetch = createModelFetch(modelRoot.href, assets, request, {
-          concurrency: 4,
+          concurrency: MODEL_DOWNLOAD_CONCURRENCY,
           pool,
           onProgress: reportProgress,
           localRoot: new URL(`models/${LOCAL_MODEL.localId}/`, data.baseUrl).href,

@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createModelFetch, type ModelAssetManifest } from '../src/lib/model-assets'
+import {
+  createDownloadPool,
+  createModelFetch,
+  type ModelAssetManifest,
+} from '../src/lib/model-assets'
 
 const root = 'https://example.test/DOFTools/models/qwen3.5-0.8b/'
 const manifest: ModelAssetManifest = {
@@ -182,13 +186,14 @@ describe('static Pages model transport', () => {
     expect(request.mock.calls[1]).toEqual([root + 'onnx/model.onnx_data', { cache: 'no-store' }])
   })
 
-  it('shares four active body downloads across weights and preserves out-of-order bytes', async () => {
+  it('shares 32 active body downloads across fetch adapters and preserves out-of-order bytes', async () => {
+    const expected = Array.from({ length: 40 }, (_, index) => index + 1)
     const files = Object.fromEntries(
       ['a', 'b'].map((name) => [
         name,
         {
-          bytes: 6,
-          parts: Array.from({ length: 6 }, (_, index) => ({ path: `${name}.${index}`, bytes: 1 })),
+          bytes: 40,
+          parts: Array.from({ length: 40 }, (_, index) => ({ path: `${name}.${index}`, bytes: 1 })),
         },
       ]),
     )
@@ -207,16 +212,22 @@ describe('static Pages model transport', () => {
       )
     })
     const progress = vi.fn()
+    const pool = createDownloadPool(32)
     const transport = createModelFetch(root, { version: 1, files }, request, {
       onProgress: progress,
+      pool,
+    })
+    const runtimeTransport = createModelFetch(root, { version: 1, files }, request, {
+      onProgress: progress,
+      pool,
     })
     const a = await transport(root + 'a')
-    const b = await transport(root + 'b')
+    const b = await runtimeTransport(root + 'b')
     const result = Promise.all([a.arrayBuffer(), b.arrayBuffer()])
-    await vi.waitFor(() => expect(bodies.size).toBe(4))
-    expect(request).toHaveBeenCalledTimes(4)
+    await vi.waitFor(() => expect(bodies.size).toBe(32))
+    expect(request).toHaveBeenCalledTimes(32)
     let completed = 0
-    while (completed < 12) {
+    while (completed < 80) {
       await vi.waitFor(() => expect(bodies.size).toBeGreaterThan(0))
       for (const [url, controller] of [...bodies].reverse()) {
         bodies.delete(url)
@@ -227,36 +238,61 @@ describe('static Pages model transport', () => {
       }
     }
     const buffers = await result
-    expect(buffers.map((buffer) => [...new Uint8Array(buffer)])).toEqual([
-      [1, 2, 3, 4, 5, 6],
-      [1, 2, 3, 4, 5, 6],
-    ])
-    expect(maximum).toBe(4)
+    expect(buffers.map((buffer) => [...new Uint8Array(buffer)])).toEqual([expected, expected])
+    expect(maximum).toBe(32)
     for (const file of ['a', 'b'])
       expect(
         progress.mock.calls.filter(([name]) => name === file).map(([, bytes]) => bytes),
-      ).toEqual([1, 2, 3, 4, 5, 6])
+      ).toEqual(expected)
   })
 
-  it('bounds prefetch even when a response is not being consumed', async () => {
+  it('assigns the next range immediately when a later range finishes before the first', async () => {
     const asset = {
-      bytes: 10,
-      parts: Array.from({ length: 10 }, (_, index) => ({ path: `p${index}`, bytes: 1 })),
+      bytes: 40,
+      parts: Array.from({ length: 40 }, (_, index) => ({ path: `p${index}`, bytes: 1 })),
     }
-    const request = vi
-      .fn<typeof fetch>()
-      .mockImplementation(async () => new Response(new Uint8Array([1])))
+    const bodies = new Map<string, ReadableStreamDefaultController<Uint8Array>>()
+    let active = 0
+    let maximum = 0
+    const request = vi.fn<typeof fetch>().mockImplementation(async (input, init) => {
+      active++
+      maximum = Math.max(maximum, active)
+      return new Response(
+        new ReadableStream<Uint8Array>({
+          start(controller) {
+            bodies.set(String(input), controller)
+            init!.signal!.addEventListener('abort', () => controller.error(init!.signal!.reason), {
+              once: true,
+            })
+          },
+        }),
+      )
+    })
     const response = await createModelFetch(
       root,
       { version: 1, files: { weights: asset } },
       request,
     )(root + 'weights')
     const reader = response.body!.getReader()
-    await reader.read()
-    await vi.waitFor(() => expect(request).toHaveBeenCalledTimes(4))
-    await new Promise((resolve) => setTimeout(resolve, 20))
-    expect(request).toHaveBeenCalledTimes(4)
+    let emitted = false
+    const reading = reader.read().then((chunk) => {
+      emitted = true
+      return chunk
+    })
+    await vi.waitFor(() => expect(request).toHaveBeenCalledTimes(32))
+    for (const index of [1, 2]) {
+      const body = bodies.get(root + `p${index}`)!
+      body.enqueue(new Uint8Array([index]))
+      body.close()
+      active--
+      await vi.waitFor(() => expect(request).toHaveBeenCalledTimes(32 + index))
+      expect(bodies.has(root + `p${31 + index}`)).toBe(true)
+      expect(active).toBe(32)
+      expect(emitted).toBe(false)
+    }
+    expect(maximum).toBe(32)
     await reader.cancel()
+    await reading
     expect(request.mock.calls.every(([, init]) => init?.signal?.aborted)).toBe(true)
   })
 
@@ -276,8 +312,8 @@ describe('static Pages model transport', () => {
         ),
     )
     const asset = {
-      bytes: 8,
-      parts: Array.from({ length: 8 }, (_, index) => ({ path: `p${index}`, bytes: 1 })),
+      bytes: 40,
+      parts: Array.from({ length: 40 }, (_, index) => ({ path: `p${index}`, bytes: 1 })),
     }
     const response = await createModelFetch(
       root,
@@ -286,11 +322,11 @@ describe('static Pages model transport', () => {
     )(root + 'weights')
     const reader = response.body!.getReader()
     const reading = reader.read()
-    await vi.waitFor(() => expect(request).toHaveBeenCalledTimes(4))
+    await vi.waitFor(() => expect(request).toHaveBeenCalledTimes(32))
     await reader.cancel('cancelled')
     await reading
     expect(request.mock.calls.every(([, init]) => init?.signal?.aborted)).toBe(true)
-    expect(request).toHaveBeenCalledTimes(4)
+    expect(request).toHaveBeenCalledTimes(32)
   })
 
   it('fails immediately if a later part is missing while the first is stalled', async () => {
