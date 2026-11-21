@@ -1,7 +1,33 @@
 import { afterEach, expect, it, vi } from 'vitest'
-import { createModelRequest } from './model-network'
+import { createModelRequest, createResourceRequest } from './model-network'
 
 afterEach(() => vi.useRealTimers())
+
+it.each(['connection', 'body'])(
+  'identifies a stalled site %s by resource rather than as a model failure',
+  async (stage) => {
+    vi.useFakeTimers()
+    const cancel = vi.fn()
+    const request = vi
+      .fn<typeof fetch>()
+      .mockImplementation(() =>
+        stage === 'connection'
+          ? new Promise(() => {})
+          : Promise.resolve(new Response(new ReadableStream({ cancel }))),
+      )
+    const network = createResourceRequest('index.html', request, 30)
+    const task =
+      stage === 'connection'
+        ? network('https://example.test/offline/index.bin')
+        : (await network('https://example.test/offline/index.bin')).arrayBuffer()
+    const failure = expect(task).rejects.toThrow('Resource download timed out: index.html')
+    await vi.advanceTimersByTimeAsync(31)
+    await failure
+    expect(request.mock.calls[0][1]?.signal?.aborted).toBe(true)
+    if (stage === 'body') expect(cancel).toHaveBeenCalledOnce()
+    expect(vi.getTimerCount()).toBe(0)
+  },
+)
 
 it('rejects a stalled connection and aborts the underlying request', async () => {
   vi.useFakeTimers()

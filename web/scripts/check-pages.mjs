@@ -90,6 +90,23 @@ const revision = createHash('sha256')
 if (offline.revision !== revision) throw new Error('Offline manifest revision mismatch')
 await stat(new URL('sw.js', root))
 const offlineFiles = new Map(offline.resources.map((resource) => [resource.path, resource]))
+const indexResource = offlineFiles.get('index.html')
+if (
+  !indexResource ||
+  indexResource.group !== 'site' ||
+  indexResource.source !== 'site' ||
+  indexResource.downloadPath !== `offline/index.${indexResource.hash}.bin` ||
+  offlineFiles.has(indexResource.downloadPath)
+)
+  throw new Error('Offline homepage must use a separate immutable binary download')
+const indexBytes = await readFile(new URL('index.html', root))
+const offlineIndexBytes = await readFile(new URL(indexResource.downloadPath, root))
+if (
+  !indexBytes.equals(offlineIndexBytes) ||
+  offlineIndexBytes.length !== indexResource.bytes ||
+  createHash('sha256').update(offlineIndexBytes).digest('hex') !== indexResource.hash
+)
+  throw new Error('Offline homepage copy does not match the original HTML')
 const currentAssets = JSON.parse(await readFile(new URL('asset-history.json', root), 'utf8'))
   .builds[0]
 for (const path of [
@@ -100,6 +117,8 @@ for (const path of [
   if (!offlineFiles.has(path)) throw new Error(`Resource omitted from offline manifest: ${path}`)
 }
 for (const resource of offline.resources) {
+  if (resource.downloadPath && resource !== indexResource)
+    throw new Error(`Unexpected offline download alias: ${resource.path}`)
   if (resource.blocks.length !== Math.ceil(resource.bytes / (128 * 1024)))
     throw new Error(`Invalid offline block count: ${resource.path}`)
   if (resource.group !== (resource.path.startsWith('models/') ? 'model' : 'site'))

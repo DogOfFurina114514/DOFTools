@@ -6,13 +6,15 @@ import {
   readResourceBlocks,
   resourceControl,
   resourceCoverage,
+  resourceCoverages,
   savedModelBytes,
   saveResourceBytes,
   type OfflineManifest,
   type OfflineResource,
+  type ResourceControl,
 } from './lib/resource-cache'
 import { createDownloadPool } from './lib/model-assets'
-import { createModelRequest } from './lib/model-network'
+import { createModelRequest, createResourceRequest } from './lib/model-network'
 import { PAGES_RESOURCE_BASE } from './lib/site-resources'
 
 declare const __OFFLINE_MANIFEST__: OfflineManifest
@@ -59,7 +61,10 @@ async function report(update: Partial<typeof state> = {}) {
   await broadcast({ type: 'resource-status', state })
 }
 function resourceUrl(resource: OfflineResource) {
-  return new URL(resource.path, resource.source === 'pages' ? PAGES_RESOURCE_BASE : siteBase).href
+  return new URL(
+    resource.downloadPath ?? resource.path,
+    resource.source === 'pages' ? PAGES_RESOURCE_BASE : siteBase,
+  ).href
 }
 function findResource(url: string, target = manifest) {
   const location = new URL(url)
@@ -117,18 +122,26 @@ async function download(
   request: Request,
   signal: AbortSignal,
   mustSave: boolean,
+  knownControl?: ResourceControl,
 ) {
-  const control = await resourceControl(false)
+  const control = knownControl ?? (await resourceControl(false))
   return pool(signal, async () => {
     const headers = new Headers()
     const range = request.headers.get('range')
     if (range) headers.set('range', range)
-    const response = await createModelRequest()(resourceUrl(resource), {
+    const network =
+      resource.group === 'model' ? createModelRequest() : createResourceRequest(resource.path)
+    const response = await network(resourceUrl(resource), {
       headers,
       signal,
       cache: 'no-store',
       credentials: 'omit',
       mode: 'cors',
+    }).catch((error) => {
+      signal.throwIfAborted()
+      if (resource.group === 'site' && error instanceof TypeError)
+        throw new TypeError(`Resource download failed: ${resource.path}`)
+      throw error
     })
     if (!response.ok) {
       if (!mustSave) return response
@@ -167,7 +180,9 @@ async function download(
         if (mustSave) throw error
       }
     }
-    return new Response(bytes, { status: response.status, headers: response.headers })
+    const resultHeaders = new Headers(response.headers)
+    if (resource.downloadPath) resultHeaders.set('content-type', resource.type)
+    return new Response(bytes, { status: response.status, headers: resultHeaders })
   })
 }
 function storageError(error: unknown) {
@@ -188,6 +203,11 @@ function validManifest(value: unknown): value is OfflineManifest {
         /^[\w./@-]+$/.test(resource.path) &&
         !resource.path.startsWith('/') &&
         !resource.path.split('/').includes('..') &&
+        (resource.downloadPath === undefined ||
+          (resource.path === 'index.html' &&
+            resource.group === 'site' &&
+            resource.source === 'site' &&
+            resource.downloadPath === `offline/index.${resource.hash}.bin`)) &&
         Number.isSafeInteger(resource.bytes) &&
         resource.bytes >= 0 &&
         /^[a-f0-9]{64}$/.test(resource.hash) &&
@@ -201,10 +221,11 @@ function validManifest(value: unknown): value is OfflineManifest {
   )
 }
 async function checkManifest(signal: AbortSignal) {
-  const response = await createModelRequest(fetch, 15_000)(
-    new URL('offline-manifest.json', siteBase),
-    { cache: 'no-store', signal },
-  )
+  const response = await createResourceRequest(
+    'offline-manifest.json',
+    fetch,
+    15_000,
+  )(new URL('offline-manifest.json', siteBase), { cache: 'no-store', signal })
   if (!response.ok) throw new Error(`Offline manifest: HTTP ${response.status}`)
   const next: unknown = await response.json()
   if (!validManifest(next)) throw new Error('Invalid offline resource manifest')
@@ -231,9 +252,11 @@ async function saveResources(
   let loaded = 0
   const total = resources.reduce((sum, resource) => sum + resource.bytes, 0)
   const tasks: { resource: OfflineResource; start: number; end: number }[] = []
-  for (const resource of resources) {
+  const control = await resourceControl(false)
+  const coverageByResource = await resourceCoverages(resources)
+  for (const [resourceIndex, resource] of resources.entries()) {
     signal.throwIfAborted()
-    const coverage = await resourceCoverage(resource)
+    const coverage = coverageByResource[resourceIndex]
     coverage.forEach((present, index) => {
       if (present)
         loaded += Math.min(RESOURCE_BLOCK_BYTES, resource.bytes - index * RESOURCE_BLOCK_BYTES)
@@ -244,7 +267,10 @@ async function saveResources(
         continue
       }
       const first = index++
-      while (index < Math.min(first + 4, coverage.length) && !coverage[index]) index++
+      // Larger site ranges reduce mobile network and storage overhead. Models
+      // keep their existing 512 KiB ranges and independent download controls.
+      const rangeBlocks = resource.group === 'site' ? 16 : 4
+      while (index < Math.min(first + rangeBlocks, coverage.length) && !coverage[index]) index++
       tasks.push({
         resource,
         start: first * RESOURCE_BLOCK_BYTES,
@@ -265,7 +291,7 @@ async function saveResources(
       })
       for (let attempt = 0; ; attempt++) {
         try {
-          await download(task.resource, request, signal, true)
+          await download(task.resource, request, signal, true, control)
           break
         } catch (error) {
           signal.throwIfAborted()
@@ -289,9 +315,10 @@ async function saveResources(
   }
   await Promise.all(Array.from({ length: Math.min(threads, tasks.length) }, work))
   signal.throwIfAborted()
-  for (const resource of resources) {
+  const saved = await resourceCoverages(resources)
+  for (const [index, resource] of resources.entries()) {
     signal.throwIfAborted()
-    if ((await resourceCoverage(resource)).some((present) => !present))
+    if (saved[index].some((present) => !present))
       throw new Error(`Resource not saved: ${resource.path}`)
   }
   return total
@@ -423,7 +450,11 @@ sw.addEventListener('fetch', (event) => {
             (await cached(physical, request)) ?? download(physical, request, request.signal, false)
           )
         try {
-          const response = await createModelRequest(fetch, 5000)(new URL('index.html', siteBase), {
+          const response = await createResourceRequest(
+            'index.html',
+            fetch,
+            5000,
+          )(new URL('index.html', siteBase), {
             cache: 'no-store',
             signal: request.signal,
           })

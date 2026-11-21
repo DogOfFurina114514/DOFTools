@@ -94,8 +94,32 @@ export function SettingsPage({
     clearing: t('正在清除模型资源…', 'Clearing model resources…'),
     error: t('模型下载未完成，请重试', 'Model download is incomplete. Please retry'),
   }[resources.modelPhase]
-  const cacheError = (error: string) =>
-    error === 'quota'
+  const cacheError = (error: string) => {
+    const resourceMessages = [
+      [
+        'Resource download timed out: ',
+        '网站资源下载超时：{file}，请检查网络后重试。',
+        'Site resource download timed out: {file}. Check your connection and retry.',
+      ],
+      [
+        'Resource download failed: ',
+        '网站资源下载失败：{file}，请检查网络后重试。',
+        'Site resource download failed: {file}. Check your connection and retry.',
+      ],
+      [
+        'Incomplete resource: ',
+        '网站资源不完整：{file}，请重试保存。',
+        'Site resource is incomplete: {file}. Retry saving.',
+      ],
+      [
+        'Resource checksum mismatch: ',
+        '资源校验失败：{file}，请重试下载。',
+        'Resource verification failed: {file}. Retry downloading.',
+      ],
+    ]
+    for (const [prefix, zh, en] of resourceMessages)
+      if (error.startsWith(prefix)) return t(zh, en, { file: error.slice(prefix.length) })
+    return error === 'quota'
       ? t(
           '浏览器空间不足，请释放空间后重试。',
           'Browser storage is full. Free some space and retry.',
@@ -111,6 +135,7 @@ export function SettingsPage({
               'You are offline. Connect to the internet to download models.',
             )
           : t('资源操作失败：{error}', 'Resource operation failed: {error}', { error })
+  }
   return (
     <>
       <PageHeading

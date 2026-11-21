@@ -3,6 +3,7 @@ export const RESOURCE_BLOCK_BYTES = 128 * 1024
 export const RESOURCE_DATABASE = 'fufu-resources-v1'
 export interface OfflineResource {
   path: string
+  downloadPath?: string
   bytes: number
   hash: string
   blocks: string[]
@@ -28,7 +29,7 @@ export interface ResourceControl {
 interface BlockRecord {
   key: string
   group: OfflineResource['group']
-  data: Uint8Array
+  data: Uint8Array<ArrayBuffer>
 }
 let database: Promise<IDBDatabase> | undefined
 function openDatabase() {
@@ -115,9 +116,16 @@ export async function readResourceBlocks(resource: OfflineResource, start: numbe
   })
 }
 export async function resourceCoverage(resource: OfflineResource) {
+  return (await resourceCoverages([resource]))[0]
+}
+export async function resourceCoverages(resources: OfflineResource[]) {
   const db = await openDatabase()
   const store = db.transaction('blocks').objectStore('blocks')
-  return Promise.all(resource.blocks.map((_, index) => result(store.count(key(resource, index)))))
+  return Promise.all(
+    resources.map((resource) =>
+      Promise.all(resource.blocks.map((_, index) => result(store.count(key(resource, index))))),
+    ),
+  )
 }
 export async function saveResourceBytes(
   resource: OfflineResource,
@@ -133,14 +141,22 @@ export async function saveResourceBytes(
     const length = Math.min(RESOURCE_BLOCK_BYTES, resource.bytes - position)
     if (position % RESOURCE_BLOCK_BYTES || offset + length > bytes.length) break
     const data = bytes.slice(offset, offset + length)
-    const hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', data))]
-      .map((value) => value.toString(16).padStart(2, '0'))
-      .join('')
-    if (hash !== resource.blocks[index])
-      throw new Error(`Resource checksum mismatch: ${resource.path}`)
     blocks.push({ key: key(resource, index), group: resource.group, data })
     offset += length
   }
+  // Avoid one serialized crypto round trip per block on mobile. Bound the
+  // batch size and verify every block before starting a write transaction.
+  for (let first = 0; first < blocks.length; first += 8)
+    await Promise.all(
+      blocks.slice(first, first + 8).map(async (block, offset) => {
+        const hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', block.data))]
+          .map((value) => value.toString(16).padStart(2, '0'))
+          .join('')
+        const index = Math.floor(start / RESOURCE_BLOCK_BYTES) + first + offset
+        if (hash !== resource.blocks[index])
+          throw new Error(`Resource checksum mismatch: ${resource.path}`)
+      }),
+    )
   const db = await openDatabase()
   const transaction = db.transaction(['control', 'blocks'], 'readwrite')
   const done = completed(transaction)

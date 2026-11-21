@@ -6,6 +6,34 @@ export function createModelRequest(
   request: typeof fetch = fetch,
   timeoutMs = 30_000,
 ): typeof fetch {
+  return createRequest(
+    request,
+    timeoutMs,
+    () =>
+      new LocalizedError(
+        '模型下载连接超时，请检查网络后重新开启助手。',
+        'The model download stalled. Check your connection and start the assistant again.',
+      ),
+  )
+}
+
+export function createResourceRequest(
+  resource: string,
+  request: typeof fetch = fetch,
+  timeoutMs = 30_000,
+): typeof fetch {
+  return createRequest(
+    request,
+    timeoutMs,
+    () => new Error(`Resource download timed out: ${resource}`),
+  )
+}
+
+function createRequest(
+  request: typeof fetch,
+  timeoutMs: number,
+  timeoutError: () => Error,
+): typeof fetch {
   return async (input, init) => {
     const abort = new AbortController()
     const external = init?.signal ?? (input instanceof Request ? input.signal : undefined)
@@ -25,10 +53,7 @@ export function createModelRequest(
         abort.signal.addEventListener('abort', onAbort, { once: true })
       })
       timer = setTimeout(() => {
-        const error = new LocalizedError(
-          '模型下载连接超时，请检查网络后重新开启助手。',
-          'The model download stalled. Check your connection and start the assistant again.',
-        )
+        const error = timeoutError()
         error.name = 'TimeoutError'
         abort.abort(error)
       }, timeoutMs)

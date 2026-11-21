@@ -5,6 +5,7 @@ web/public/models/qwen3.5-0.8b/README.md -whitespace
 docs/assets/** -text -whitespace
 docs/runtime/** -text -whitespace
 docs/licenses/** -text
+docs/offline/** -text
 *.onnx binary
 *.onnx_data binary
 *.part-* binary

@@ -2,15 +2,15 @@ import { createHash } from 'node:crypto'
 import { createServer, type Server } from 'node:http'
 import { fileURLToPath } from 'node:url'
 import { build } from 'esbuild'
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
 
 // Small, deterministic resources exercise the production worker without a
 // network dependency or repeatedly downloading the real 900 MB model.
 const pages = 'https://toolbox.owo.lat/'
 const hash = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex')
 const weights = Buffer.from(Array.from({ length: 3 * 1024 * 1024 + 31 }, (_, index) => index % 251))
-const documents = (version: number) =>
-  new Map<string, Buffer>([
+const documents = (version: number) => {
+  const files = new Map<string, Buffer>([
     [
       'index.html',
       Buffer.from(
@@ -20,24 +20,32 @@ const documents = (version: number) =>
     [`assets/lazy-${version}.js`, Buffer.from(`export const value='tool ${version}'`)],
     ['models/test/weights.part-000', weights],
     ['runtime/test.wasm', Buffer.from([0, 97, 115, 109, 1, 0, 0, 0])],
+    ['runtime/site.wasm', weights],
   ])
+  const index = files.get('index.html')!
+  files.set(`offline/index.${hash(index)}.bin`, index)
+  return files
+}
 const manifests = [1, 2].map((version) => {
-  const resources = [...documents(version)].map(([path, data]) => ({
-    path,
-    bytes: data.length,
-    hash: hash(data),
-    blocks: Array.from({ length: Math.ceil(data.length / (128 * 1024)) }, (_, index) =>
-      hash(data.subarray(index * 128 * 1024, (index + 1) * 128 * 1024)),
-    ),
-    group: path.startsWith('models/') ? 'model' : 'site',
-    aiRequired: path.startsWith('models/'),
-    source: /^(models|runtime)\//.test(path) ? 'pages' : 'site',
-    type: path.endsWith('.html')
-      ? 'text/html'
-      : path.endsWith('.js')
-        ? 'text/javascript'
-        : 'application/octet-stream',
-  }))
+  const resources = [...documents(version)]
+    .filter(([path]) => !path.startsWith('offline/'))
+    .map(([path, data]) => ({
+      path,
+      ...(path === 'index.html' ? { downloadPath: `offline/index.${hash(data)}.bin` } : {}),
+      bytes: data.length,
+      hash: hash(data),
+      blocks: Array.from({ length: Math.ceil(data.length / (128 * 1024)) }, (_, index) =>
+        hash(data.subarray(index * 128 * 1024, (index + 1) * 128 * 1024)),
+      ),
+      group: path.startsWith('models/') ? 'model' : 'site',
+      aiRequired: path.startsWith('models/'),
+      source: /^(models|runtime)\//.test(path) ? 'pages' : 'site',
+      type: path.endsWith('.html')
+        ? 'text/html'
+        : path.endsWith('.js')
+          ? 'text/javascript'
+          : 'application/octet-stream',
+    }))
   return {
     format: 1,
     version: `26.1.${version - 1}`,
@@ -53,6 +61,9 @@ let version = 1
 let fail = false
 let pause: (() => Promise<void>) | undefined
 let downloads = 0
+let indexDownloads = 0
+let siteRanges: string[] = []
+let corruptIndex = false
 test.beforeAll(async () => {
   worker = (
     await build({
@@ -94,10 +105,21 @@ test.beforeAll(async () => {
       response.end()
       return
     }
-    const data =
+    let data =
       documents(version).get(path) ??
       documents(1).get(path) ??
       documents(version).get('index.html')!
+    if (path === 'index.html')
+      data = Buffer.from(
+        data.toString().replace('</body>', '<script>window.proxyInjected=true</script></body>'),
+      )
+    if (path.startsWith('offline/')) {
+      indexDownloads++
+      if (corruptIndex) {
+        data = Buffer.from(data)
+        data[0] ^= 1
+      }
+    }
     response.setHeader('content-type', path.endsWith('.js') ? 'text/javascript' : 'text/html')
     response.end(data)
   })
@@ -106,6 +128,70 @@ test.beforeAll(async () => {
 })
 test.afterAll(async () => {
   await new Promise<void>((resolve) => server.close(() => resolve()))
+})
+
+async function registerWorker(page: Page) {
+  await page.evaluate(async () => {
+    await navigator.serviceWorker.register('/sw.js')
+    await navigator.serviceWorker.ready
+    if (!navigator.serviceWorker.controller)
+      await new Promise<void>((resolve) =>
+        navigator.serviceWorker.addEventListener('controllerchange', () => resolve(), {
+          once: true,
+        }),
+      )
+  })
+}
+function sendCommand(page: Page, type: string, enabled?: boolean) {
+  return page.evaluate(
+    async ({ type, enabled }) =>
+      new Promise<{ ok: boolean; state: { phase: string; modelsBytes: number } }>((resolve) => {
+        const channel = new MessageChannel()
+        channel.port1.onmessage = ({ data }) => {
+          channel.port1.close()
+          resolve(data)
+        }
+        navigator.serviceWorker.controller!.postMessage({ type, enabled, threads: 64 }, [
+          channel.port2,
+        ])
+      }),
+    { type, enabled },
+  )
+}
+function resourceStatus(page: Page) {
+  return page.evaluate(
+    () =>
+      (
+        window as unknown as {
+          resourceStatus: {
+            phase: string
+            version: string
+            modelsBytes: number
+            modelPhase: string
+            modelError: string
+            error: string
+            aiReady: boolean
+          }
+        }
+      ).resourceStatus,
+  )
+}
+test.beforeEach(async ({ context }) => {
+  version = 1
+  fail = false
+  corruptIndex = false
+  downloads = 0
+  indexDownloads = 0
+  siteRanges = []
+  pause = undefined
+  await context.addInitScript(() => {
+    ;(window as unknown as { resourceEvents: unknown[] }).resourceEvents = []
+    navigator.serviceWorker.addEventListener('message', ({ data }) => {
+      const target = window as unknown as { resourceEvents: unknown[]; resourceStatus: unknown }
+      target.resourceEvents.push(data)
+      if (data.type === 'resource-status') target.resourceStatus = data.state
+    })
+  })
 })
 
 test('persists ranges, navigates offline, updates atomically and clears in-flight saves', async ({
@@ -119,6 +205,7 @@ test('persists ranges, navigates offline, updates atomically and clears in-fligh
     const path = new URL(route.request().url()).pathname.slice(1)
     const data = documents(version).get(path)!
     const range = /^bytes=(\d+)-(\d+)$/.exec(route.request().headers()['range'] ?? '')
+    if (path === 'runtime/site.wasm') siteRanges.push(route.request().headers()['range'])
     const body = range ? data.subarray(Number(range[1]), Number(range[2]) + 1) : data
     await route
       .fulfill({
@@ -133,61 +220,13 @@ test('persists ranges, navigates offline, updates atomically and clears in-fligh
       })
       .catch(() => {})
   })
-  await context.addInitScript(() => {
-    ;(window as unknown as { resourceEvents: unknown[] }).resourceEvents = []
-    navigator.serviceWorker.addEventListener('message', ({ data }) => {
-      const target = window as unknown as {
-        resourceEvents: unknown[]
-        resourceStatus: { phase: string; version: string; modelsBytes: number }
-      }
-      target.resourceEvents.push(data)
-      if (data.type === 'resource-status') target.resourceStatus = data.state
-    })
-  })
-  const command = (type: string, enabled?: boolean) =>
-    page.evaluate(
-      async ({ type, enabled }) => {
-        return new Promise<{ ok: boolean; state: { phase: string; modelsBytes: number } }>(
-          (resolve) => {
-            const channel = new MessageChannel()
-            channel.port1.onmessage = ({ data }) => {
-              channel.port1.close()
-              resolve(data)
-            }
-            navigator.serviceWorker.controller!.postMessage({ type, enabled, threads: 64 }, [
-              channel.port2,
-            ])
-          },
-        )
-      },
-      { type, enabled },
-    )
-  const status = () =>
-    page.evaluate(
-      () =>
-        (
-          window as unknown as {
-            resourceStatus: {
-              phase: string
-              version: string
-              modelsBytes: number
-              modelPhase: string
-              aiReady: boolean
-            }
-          }
-        ).resourceStatus,
-    )
+  const command = (type: string, enabled?: boolean) => sendCommand(page, type, enabled)
+  const status = () => resourceStatus(page)
   await page.goto(base)
-  await page.evaluate(async () => {
-    await navigator.serviceWorker.register('/sw.js')
-    await navigator.serviceWorker.ready
-    if (!navigator.serviceWorker.controller)
-      await new Promise<void>((resolve) =>
-        navigator.serviceWorker.addEventListener('controllerchange', () => resolve(), {
-          once: true,
-        }),
-      )
-  })
+  expect(
+    await page.evaluate(() => (window as unknown as { proxyInjected?: boolean }).proxyInjected),
+  ).toBe(true)
+  await registerWorker(page)
   await command('startup', false)
   const readRange = () =>
     page.evaluate(async (url) => {
@@ -209,6 +248,8 @@ test('persists ranges, navigates offline, updates atomically and clears in-fligh
   await expect.poll(async () => (await status()).phase).toBe('ready')
   expect((await status()).modelsBytes).toBe(512 * 1024)
   expect((await status()).aiReady).toBe(false)
+  expect(indexDownloads).toBe(1)
+  expect(siteRanges.sort()).toEqual(['bytes=0-2097151', `bytes=2097152-${weights.length - 1}`])
   expect(
     await page.evaluate(() =>
       (window as unknown as { resourceEvents: { type: string }[] }).resourceEvents.some(
@@ -220,6 +261,11 @@ test('persists ranges, navigates offline, updates atomically and clears in-fligh
   const offlinePage = await context.newPage()
   await offlinePage.goto(`${base}/tool/demo`)
   await expect(offlinePage.locator('h1')).toHaveText('Offline 1')
+  expect(
+    await offlinePage.evaluate(
+      () => (window as unknown as { proxyInjected?: boolean }).proxyInjected,
+    ),
+  ).toBeUndefined()
   await offlinePage.getByRole('button', { name: 'Tool' }).click()
   await expect(offlinePage.locator('output')).toHaveText('tool 1')
   await offlinePage.close()
@@ -319,4 +365,79 @@ test('persists ranges, navigates offline, updates atomically and clears in-fligh
     ),
   ).toBe('quota')
   expect((await status()).phase).toBe('ready')
+})
+
+test('rejects a corrupt offline homepage without caching injected HTML or reporting a model failure', async ({
+  context,
+  page,
+}) => {
+  await context.route(`${pages}**`, async (route) => {
+    const path = new URL(route.request().url()).pathname.slice(1)
+    const data = documents(1).get(path)!
+    const range = /^bytes=(\d+)-(\d+)$/.exec(route.request().headers()['range'] ?? '')
+    await route
+      .fulfill({
+        status: range ? 206 : 200,
+        body: range ? data.subarray(Number(range[1]), Number(range[2]) + 1) : data,
+        contentType: 'application/octet-stream',
+        headers: { 'access-control-allow-origin': '*' },
+      })
+      .catch(() => {})
+  })
+  await page.goto(base)
+  await registerWorker(page)
+  corruptIndex = true
+  await sendCommand(page, 'enable')
+  await expect.poll(async () => (await resourceStatus(page)).phase).toBe('error')
+  expect((await resourceStatus(page)).error).toBe('Resource checksum mismatch: index.html')
+  expect((await resourceStatus(page)).modelError).toBe('')
+  expect((await resourceStatus(page)).modelPhase).toBe('idle')
+  expect((await resourceStatus(page)).modelsBytes).toBe(0)
+  expect(indexDownloads).toBe(1)
+  await page.addScriptTag({ content: cacheTools })
+  const verification = await page.evaluate(
+    async ({ resource, bytes }) => {
+      const cache = (
+        window as unknown as {
+          resourceCache: {
+            saveResourceBytes(
+              resource: unknown,
+              start: number,
+              bytes: Uint8Array,
+              epoch: number,
+            ): Promise<void>
+            resourceCoverage(resource: unknown): Promise<number[]>
+          }
+        }
+      ).resourceCache
+      const data = new Uint8Array(bytes)
+      data[data.length - 1] ^= 1
+      let error = ''
+      try {
+        await cache.saveResourceBytes(resource, 0, data, 0)
+      } catch (failure) {
+        error = (failure as Error).message
+      }
+      return { error, coverage: await cache.resourceCoverage(resource) }
+    },
+    {
+      resource: manifests[0].resources.find((resource) => resource.group === 'model')!,
+      bytes: [...weights.subarray(0, 256 * 1024)],
+    },
+  )
+  expect(verification.error).toBe('Resource checksum mismatch: models/test/weights.part-000')
+  expect(verification.coverage.every((count) => count === 0)).toBe(true)
+  await context.setOffline(true)
+  await page.goto(base)
+  await expect(page.locator('body')).toHaveText('Offline resources are not ready.')
+  await context.setOffline(false)
+  corruptIndex = false
+  await sendCommand(page, 'retry')
+  await expect.poll(async () => (await resourceStatus(page)).phase).toBe('ready')
+  await context.setOffline(true)
+  await page.reload()
+  await expect(page.locator('h1')).toHaveText('Offline 1')
+  expect(
+    await page.evaluate(() => (window as unknown as { proxyInjected?: boolean }).proxyInjected),
+  ).toBeUndefined()
 })

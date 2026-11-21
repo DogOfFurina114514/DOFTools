@@ -43,3 +43,5 @@ npm run preview
 参考：[Pages 限制](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits)、[普通 Git 大文件限制](https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-large-files-on-github)。
 
 26.1.0 构建包含 `sw.js` 与 `offline-manifest.json`，需按原路径一并发布，Service Worker 通过 HTTPS 在站点根目录注册。离线开关后台保存模型以外的所有资源，每次联网启动检查并完整更新快照；关闭开关仅清除网站离线资源。模型独立按块保存、下载与清除，离线且模型不完整时提示 AI 无法使用。ESA 删除的大型 WASM 仍通过清单从 Pages CDN 保存，缓存按当前浏览器的站点域名独立管理。
+
+26.1.2 起还需发布 `docs/offline/` 下的带哈希二进制首页副本。离线保存使用该副本进行完整性校验，在线访问仍使用普通 `index.html`；这样代理注入或平台改写在线 HTML 不会破坏离线保存。网站资源失败会显示具体文件，模型下载错误单独显示。
