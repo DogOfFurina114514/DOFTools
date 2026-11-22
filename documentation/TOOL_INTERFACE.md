@@ -112,7 +112,7 @@ Fluent 主题保留稳定的 FluentProvider 和调色板，共享自绘控件与
 
 `tags` 为非空、不重复的 `ToolTagId[]`，取值来自 `web/src/data/tags.ts`：image、video、audio、document、parse、other。所有工具页 `/tools` 的重复查询参数 `tag` 使用 AND 筛选，与 `q` 搜索共同生效。工具注册时校验标签；展示、搜索和固定入口共用注册表。固定偏好键为 `fufu:pinned-tools`，只保存在浏览器。旧 `/category/:id` 自动重定向，保留其他查询参数。
 
-26.2.1 的 `web/src/tools/processors/social-service.ts` 实现 `SocialResolver`：签名 `(link: SocialLink, context: ToolRunContext) => Promise<SocialResolution>`；输入含平台与规范化 HTTPS 链接，输出含可选标题和非空媒体数组。`SocialMedia` 含 kind（video / audio / image）、HTTP(S) url，以及可选 label、width、height、size、format、codec。平台识别和结果控件分别位于 social-parser.ts / social-links.tsx，19 个平台共用同一接口，用户可选择画质、音轨或图片，并打开 / 复制所选直链。
+26.2.2 的 `web/src/tools/processors/social-service.ts` 实现 `SocialResolver`：签名 `(link: SocialLink, context: ToolRunContext) => Promise<SocialResolution>`；输入含平台与规范化 HTTPS 链接，输出含可选标题和非空媒体数组。`SocialMedia` 含 kind（video / audio / image）、HTTP(S) url，以及可选 label、width、height、size、format、codec。平台识别和结果控件分别位于 social-parser.ts / social-links.tsx，19 个平台共用同一接口，解析由 API 服务完成，无需用户自备代理；用户可选择画质、音轨或图片，并打开 / 复制所选直链。
 
 内置适配器使用 `GET https://openapi.dwo.cc/api/svparse`，仅发送经 URLSearchParams 编码的完整 `url` 参数，保留签名和分享查询参数。不得省略 url：服务会将空请求当作演示视频。请求使用 credentials: omit、referrerPolicy: no-referrer、cache: no-store，30 秒超时与 context.signal 合并；流式读取最多 2 MiB JSON，不缓存媒体直链。成功要求 code 为 200 或 "200"，再校验 data；HTTP 错误、服务错误、超时、网络 / 跨域失败均返回双语错误。
 

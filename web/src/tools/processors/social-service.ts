@@ -218,8 +218,8 @@ export const socialResolver: SocialResolver = async (link, context) => {
         'The resolver timed out. Try again later.',
       )
     throw new LocalizedError(
-      '无法连接解析服务，请检查网络或代理，稍后重试。',
-      'Cannot reach the resolver. Check your connection or proxy and try again later.',
+      '无法连接解析服务，请检查网络连接，稍后重试。',
+      'Cannot reach the resolver. Check your network connection and try again later.',
     )
   }
 }

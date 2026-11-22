@@ -52,7 +52,7 @@ test('pinning persists, opens with one click, and can be removed from the sideba
   await expect(page.locator('.pinned-tools a')).toHaveCount(0)
 })
 
-test('nineteen social platforms resolve through GET with proxy notices and mobile wrapping', async ({
+test('nineteen social platforms resolve through GET without requiring a personal proxy and with mobile wrapping', async ({
   page,
 }) => {
   test.setTimeout(60000)
@@ -69,7 +69,7 @@ test('nineteen social platforms resolve through GET with proxy notices and mobil
     })
   })
   await page.goto('/tool/social-link')
-  await expect(page.locator('.ui-panel-description')).toContainText('中国大陆用户需自备代理')
+  await expect(page.locator('.ui-panel-description')).toContainText('通过 API 解析，无需自备代理')
   await page
     .getByRole('textbox', { name: '视频或帖子链接 / 分享文案' })
     .fill(
@@ -87,7 +87,7 @@ test('nineteen social platforms resolve through GET with proxy notices and mobil
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   await page.getByRole('button', { name: 'English', exact: true }).click()
   await expect(page.locator('.ui-result')).toContainText('Resolved 19 / 19 links')
-  await expect(page.locator('.ui-panel-description')).toContainText('mainland China')
+  await expect(page.locator('.ui-panel-description')).toContainText('no personal proxy is required')
 })
 
 test('mobile all-tools filters and pinned navigation stay usable without overflow', async ({

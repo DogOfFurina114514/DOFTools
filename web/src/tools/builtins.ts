@@ -667,8 +667,8 @@ export const builtinTools: ToolDefinition[] = [
     'social-link',
     ['社交平台解析', 'Social platform parser'],
     [
-      '解析视频号、小红书、哔哩哔哩、抖音、快手、X、YouTube、TikTok、Instagram 等平台分享链接，可选择接口提供的画质、音轨或图片。中国大陆用户需自备代理。',
-      'Resolve WeChat Channels, Xiaohongshu, Bilibili, Douyin, Kuaishou, X, YouTube, TikTok, Instagram and other supported share links. Choose available video qualities, audio tracks or images. Users in mainland China need their own proxy.',
+      '解析视频号、小红书、哔哩哔哩、抖音、快手、X、YouTube、TikTok、Instagram 等平台分享链接，可选择接口提供的画质、音轨或图片。通过 API 解析，无需自备代理。',
+      'Resolve WeChat Channels, Xiaohongshu, Bilibili, Douyin, Kuaishou, X, YouTube, TikTok, Instagram and other supported share links. Choose available video qualities, audio tracks or images. Links are resolved through an API; no personal proxy is required.',
     ],
     ['video', 'parse'],
     [
@@ -682,8 +682,8 @@ export const builtinTools: ToolDefinition[] = [
           'Paste video or post links, one per line. Keep the full share URL and its parameters.',
         ),
         help: b(
-          '中国大陆用户需自备代理。开始处理后将分享链接发送至小渡 API；实际支持和画质由解析服务及原平台决定，部分链接可能需要登录或已失效。',
-          'Users in mainland China need their own proxy. Running this tool sends share URLs to Dwo API. Support and quality depend on the resolver and platform; some links require login or have expired.',
+          '开始处理后将分享链接发送至小渡 API，无需自备代理；实际支持和画质由解析服务及原平台决定，部分链接可能需要登录或已失效。',
+          'Running this tool sends share URLs to Dwo API; no personal proxy is required. Support and quality depend on the resolver and platform; some links require login or have expired.',
         ),
       },
     ],

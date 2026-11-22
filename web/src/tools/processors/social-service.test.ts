@@ -134,7 +134,7 @@ describe('Dwo social resolver', () => {
       .mockResolvedValueOnce(new Response('{', { headers: { 'Content-Type': 'application/json' } }))
       .mockRejectedValueOnce(new TypeError('Failed to fetch'))
     vi.stubGlobal('fetch', fetcher)
-    for (const expected of ['服务异常', 'HTTP 429', '无效媒体', '无效媒体', '网络或代理'])
+    for (const expected of ['服务异常', 'HTTP 429', '无效媒体', '无效媒体', '网络连接'])
       await expect(socialResolver(link, context())).rejects.toThrow(expected)
   })
   it('bounds streamed response bytes even without content-length', async () => {

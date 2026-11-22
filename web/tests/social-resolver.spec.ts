@@ -188,7 +188,7 @@ test('unsafe provider media and network failures are rejected; clipboard failure
   await run.click()
   await expect(page.getByRole('alert')).toContainText('无效媒体')
   await run.click()
-  await expect(page.getByRole('alert')).toContainText('网络或代理')
+  await expect(page.getByRole('alert')).toContainText('网络连接')
   await run.click()
   await expect(page.locator('.ui-result')).toContainText('已解析 1 / 1')
   await page.evaluate(() => {
