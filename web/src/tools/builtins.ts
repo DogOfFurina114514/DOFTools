@@ -19,6 +19,18 @@ const format = (formats: string[], initialLabel = b('输出格式', 'Output form
 })
 const mediaAccept = 'video/*,.mp4,.webm,.mov,.mkv,.avi,.m4v,.ts,.ogg'
 const audioAccept = 'audio/*,.mp3,.wav,.m4a,.aac,.ogg,.opus,.flac,.webm,.mp4'
+const gifMaxEdge: ToolField = {
+  type: 'number',
+  name: 'maxEdge',
+  label: b('最长边（像素）', 'Maximum edge (pixels)'),
+  min: 64,
+  max: 1280,
+  step: 1,
+  help: b(
+    '保持比例，不放大；尺寸越小，转换越快。',
+    'Keeps aspect ratio without upscaling. Smaller sizes convert faster.',
+  ),
+}
 const compressionMode: ToolField = {
   type: 'select',
   name: 'compressionMode',
@@ -290,6 +302,74 @@ export const builtinTools: ToolDefinition[] = [
     { files: [], format: 'mp4', resolution: '720' },
     async (values, context) =>
       (await import('./processors/media')).convertMedia(values, context, 'video'),
+  ),
+  define(
+    'video-gif',
+    ['视频转 GIF', 'Video to GIF'],
+    [
+      '将视频片段转换为 GIF 动画，可设置起点、时长、帧率、尺寸和循环。最长 30 秒、输入最多 128 MiB；GIF 不含音轨。',
+      'Convert a video clip to animated GIF with start time, duration, frame rate, size and looping. Up to 30 seconds and 128 MiB input; GIF has no audio.',
+    ],
+    'video',
+    [
+      files(mediaAccept),
+      {
+        type: 'number',
+        name: 'start',
+        label: b('开始时间（秒）', 'Start time (seconds)'),
+        min: 0,
+        max: 86400,
+        step: 0.1,
+      },
+      {
+        type: 'number',
+        name: 'duration',
+        label: b('片段时长（秒）', 'Clip duration (seconds)'),
+        min: 0.1,
+        max: 30,
+        step: 0.1,
+        help: b('到达视频结尾时自动结束。', 'Stops automatically at the end of the video.'),
+      },
+      {
+        type: 'number',
+        name: 'fps',
+        label: b('帧率（每秒帧数）', 'Frame rate (fps)'),
+        min: 1,
+        max: 30,
+        step: 1,
+      },
+      gifMaxEdge,
+      { type: 'checkbox', name: 'loop', label: b('无限循环', 'Loop forever') },
+    ],
+    { files: [], start: 0, duration: 5, fps: 10, maxEdge: 480, loop: true },
+    async (values, context) =>
+      (await import('./processors/gif')).convertGif(values, context, 'video-gif'),
+  ),
+  define(
+    'gif-video',
+    ['GIF 转视频', 'GIF to video'],
+    [
+      '将 GIF 动画转换为 MP4 或 WebM，保留播放节奏，可设置尺寸和透明区域背景色。仅播放一个循环，最长 60 秒、1800 帧，输入最多 128 MiB；无音轨。',
+      'Convert animated GIF to MP4 or WebM, preserving timing with size and background options. One cycle, up to 60 seconds, 1800 frames and 128 MiB input; no audio.',
+    ],
+    'video',
+    [
+      files('image/gif,.gif'),
+      format(['mp4', 'webm']),
+      gifMaxEdge,
+      {
+        type: 'select',
+        name: 'background',
+        label: b('透明区域背景色', 'Transparent area background'),
+        options: [
+          { value: 'white', label: b('白色', 'White') },
+          { value: 'black', label: b('黑色', 'Black') },
+        ],
+      },
+    ],
+    { files: [], format: 'mp4', maxEdge: 480, background: 'white' },
+    async (values, context) =>
+      (await import('./processors/gif')).convertGif(values, context, 'gif-video'),
   ),
   define(
     'audio-convert',

@@ -1,40 +1,6 @@
 import { LocalizedError } from '../../lib/locale'
 import { midiAudioFormats, type MidiAudioFormat } from './midi-formats'
-import { resourceBase } from '../../lib/site-resources'
-
-interface FFmpegCore {
-  FS: {
-    writeFile: (path: string, data: Uint8Array) => void
-    readFile: (path: string) => Uint8Array
-    unlink: (path: string) => void
-  }
-  exec: (...args: string[]) => number
-  reset: () => void
-  setTimeout: (milliseconds: number) => void
-  setProgress: (callback: (event: { time: number }) => void) => void
-}
-
-// Load the unmodified, single-thread runtime from Pages inside the existing
-// cancellable worker. It requires neither a server nor cross-origin isolation.
-let corePromise: Promise<FFmpegCore> | undefined
-async function getCore() {
-  if (!corePromise) {
-    const siteBase = new URL(import.meta.env.BASE_URL, self.location.href).href
-    const base = new URL('runtime/ffmpeg/', resourceBase(siteBase))
-    const script = new URL('ffmpeg-core.js', base).href
-    corePromise = import(/* @vite-ignore */ script)
-      .then(({ default: createCore }) =>
-        createCore({
-          mainScriptUrlOrBlob: `${script}#${btoa(JSON.stringify({ wasmURL: new URL('ffmpeg-core.wasm', base).href }))}`,
-        }),
-      )
-      .catch((error) => {
-        corePromise = undefined
-        throw error
-      })
-  }
-  return corePromise
-}
+import { getFFmpegCore } from './ffmpeg'
 
 async function convert(
   bytes: Uint8Array,
@@ -42,7 +8,7 @@ async function convert(
   args: string[],
   progress: (time: number) => void,
 ) {
-  const core = await getCore()
+  const core = await getFFmpegCore()
   core.FS.writeFile('input', bytes)
   try {
     core.setTimeout(120000)

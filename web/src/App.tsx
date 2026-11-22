@@ -237,9 +237,13 @@ function SearchDialog({ onClose }: { onClose: () => void }) {
   const results = pages
     .map((page, index) => ({
       page,
-      score: searchScore(
-        query,
-        `${page.title} ${page.description} ${alternate[index]?.title} ${alternate[index]?.description} ${toolSearchAliases[page.path.replace('/tool/', '')] ?? ''}`,
+      score: Math.max(
+        searchScore(query, page.title),
+        searchScore(query, alternate[index]?.title ?? ''),
+        searchScore(
+          query,
+          `${page.title} ${page.description} ${alternate[index]?.title} ${alternate[index]?.description} ${toolSearchAliases[page.path.replace('/tool/', '')] ?? ''}`,
+        ),
       ),
     }))
     .filter((item) => item.score > 0)

@@ -23,7 +23,7 @@
 | Spotify Basic Pitch 1.0.1 与随包模型              | Apache-2.0                         | 浏览器本地音频转 MIDI，模型从同一站点加载                                         |
 | TensorFlow.js 3.21.0 与 WASM 后端                 | Apache-2.0                         | Basic Pitch 的本地 WASM / WebGL / CPU 推理运行时                                  |
 | @tonejs/midi 2.0.28、midi-file                    | MIT                                | MIDI 读取、时间换算与生成                                                         |
-| @ffmpeg/core 0.12.10 与所链接编解码库             | GPL-2.0-or-later                   | MIDI 工具的独立单线程音频编解码运行时，保留完整对应源码和上游许可                 |
+| @ffmpeg/core 0.12.10 与所链接编解码库             | GPL-2.0-or-later                   | GIF 双向转换与 MIDI 工具的独立单线程编解码运行时，保留完整对应源码和上游许可        |
 
 自有工具箱代码采用 Apache-2.0；独立 FFmpeg WASM 运行时保留 GPL-2.0-or-later 及其组成库的许可，详见 [源码与重建说明](documentation/third-party/FFmpeg-SOURCES.md)。模型原始许可证保存在 `documentation/third-party/Qwen3.5-LICENSE.txt`。生成网页的 `docs/licenses/` 包含第三方通知、模型与字体许可证。视觉参考链接不授予对应游戏素材的使用权。
 

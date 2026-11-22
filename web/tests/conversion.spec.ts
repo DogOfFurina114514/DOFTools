@@ -126,10 +126,10 @@ async function zipTexts(bytes: number[], pattern: RegExp) {
 }
 test('overview counts and bilingual fuzzy task search open the actual tools', async ({ page }) => {
   await page.goto('/')
-  await expect(page.locator('.tool-total strong')).toHaveText('13')
+  await expect(page.locator('.tool-total strong')).toHaveText('15')
   for (const [id, count] of [
     ['image', 2],
-    ['video', 4],
+    ['video', 6],
     ['audio', 3],
     ['document', 2],
     ['other', 2],

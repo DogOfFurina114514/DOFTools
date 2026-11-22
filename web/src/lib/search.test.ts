@@ -25,6 +25,10 @@ describe('bilingual fuzzy task search', () => {
     ['audio to midi', 'audio-midi', 'midi-audio'],
     ['MIDI转音频', 'midi-audio', 'audio-midi'],
     ['midi to audio', 'midi-audio', 'audio-midi'],
+    ['视频转GIF', 'video-gif', 'gif-video'],
+    ['video to gif', 'video-gif', 'gif-video'],
+    ['GIF转视频', 'gif-video', 'video-gif'],
+    ['gif to video', 'gif-video', 'video-gif'],
   ])
     it(`preserves conversion direction for ${query}`, () => {
       expect(searchScore(query, toolSearchAliases[expected])).toBeGreaterThan(
