@@ -13,6 +13,7 @@ const replacements: [RegExp, string][] = [
   [/提取|extract(?:ion|ing)?/g, ' extract '],
   [/文档|documents?/g, ' document '],
   [/压缩包|archive|zip/g, ' zip '],
+  [/压缩|compress(?:or|ion|ing)?|减小|缩小/g, ' compress '],
   [/解密|破解|密码恢复|解锁|unlock|decrypt|recover(?:y)?/g, ' unlock '],
   [/帧|frames?/g, ' frame '],
   [/设置|settings?/g, ' settings '],
@@ -65,6 +66,8 @@ export function searchScore(query: string, text: string) {
 }
 
 export const toolSearchAliases: Record<string, string> = {
+  'image-compress': 'image compress jpg jpeg png webp quality target size 图片压缩 质量 目标大小',
+  'video-compress': 'video compress mp4 webm bitrate target size 视频压缩 码率 目标大小',
   'image-convert': 'image format convert png jpg jpeg webp bmp gif svg avif 图片格式转换',
   'video-convert': 'video format convert mp4 webm mov mkv m4v 视频格式转换',
   'audio-convert': 'audio format convert mp3 wav flac aac m4a ogg opus 音频格式转换',

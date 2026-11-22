@@ -25,6 +25,8 @@ export function ToolFields({
   return (
     <div className="ui-field-grid">
       {fields.map((field) => {
+        if (field.visibleWhen && values[field.visibleWhen.field] !== field.visibleWhen.value)
+          return null
         const value = values[field.name]
         const update = (value: ToolValues[string]) =>
           onValueChange({ ...values, [field.name]: value })
@@ -208,6 +210,13 @@ export function ToolWorkspace({ tool }: { tool: ToolDefinition }) {
       {result && (
         <div className="ui-result" role="status">
           <p>{resolve(result.summary)}</p>
+          {result.details && (
+            <ul>
+              {result.details.map((detail, index) => (
+                <li key={index}>{resolve(detail)}</li>
+              ))}
+            </ul>
+          )}
           {result.preview}
           {result.files?.map((file) => (
             <ToolUI.Button

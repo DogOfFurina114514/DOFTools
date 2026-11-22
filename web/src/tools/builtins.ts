@@ -19,6 +19,55 @@ const format = (formats: string[], initialLabel = b('输出格式', 'Output form
 })
 const mediaAccept = 'video/*,.mp4,.webm,.mov,.mkv,.avi,.m4v,.ts,.ogg'
 const audioAccept = 'audio/*,.mp3,.wav,.m4a,.aac,.ogg,.opus,.flac,.webm,.mp4'
+const compressionMode: ToolField = {
+  type: 'select',
+  name: 'compressionMode',
+  label: b('压缩方式', 'Compression mode'),
+  options: [
+    { value: 'manual', label: b('手动输入参数', 'Enter parameters') },
+    { value: 'target', label: b('按目标大小自动计算', 'Calculate from target size') },
+  ],
+}
+const targetFields: ToolField[] = [
+  {
+    type: 'number',
+    name: 'targetSize',
+    label: b('目标大小（每个文件）', 'Target size (per file)'),
+    min: 0.001,
+    max: 262144,
+    step: 0.001,
+    visibleWhen: { field: 'compressionMode', value: 'target' },
+    help: b(
+      '输出不超过此大小；目标过小时会提示无法达到。',
+      'Output must fit this limit; an unattainable target reports an error.',
+    ),
+  },
+  {
+    type: 'select',
+    name: 'sizeUnit',
+    label: b('大小单位', 'Size unit'),
+    options: [
+      { value: 'kib', label: b('KiB（1024 字节）', 'KiB (1024 bytes)') },
+      { value: 'mib', label: b('MiB（1024 KiB）', 'MiB (1024 KiB)') },
+    ],
+    visibleWhen: { field: 'compressionMode', value: 'target' },
+  },
+]
+function fieldSchema(field: ToolField): Record<string, unknown> {
+  if (field.type === 'files')
+    return { type: 'array', minItems: 1, ...(!field.multiple && { maxItems: 1 }) }
+  if (field.type === 'select')
+    return { type: 'string', enum: field.options.map((option) => option.value) }
+  if (field.type === 'number' || field.type === 'slider')
+    return {
+      type: 'number',
+      minimum: field.min,
+      maximum: field.max,
+      ...(field.step === 1 && { multipleOf: 1 }),
+    }
+  if (field.type === 'checkbox' || field.type === 'switch') return { type: 'boolean' }
+  return { type: 'string' }
+}
 function define(
   id: string,
   title: [string, string],
@@ -44,28 +93,152 @@ function define(
       type: 'object',
       additionalProperties: false,
       properties: Object.fromEntries(
-        fields.map((field) => [
-          field.name,
-          field.type === 'files'
-            ? { type: 'array', minItems: 1, ...(!field.multiple && { maxItems: 1 }) }
-            : field.type === 'select'
-              ? { type: 'string', enum: field.options.map((option) => option.value) }
-              : field.type === 'number' || field.type === 'slider'
-                ? {
-                    type: 'number',
-                    minimum: field.min,
-                    maximum: field.max,
-                    ...(field.step === 1 && { multipleOf: 1 }),
-                  }
-                : { type: 'string' },
-        ]),
+        fields.map((field) => [field.name, field.visibleWhen ? {} : fieldSchema(field)]),
       ),
-      required: fields.map((field) => field.name),
+      required: fields.filter((field) => !field.visibleWhen).map((field) => field.name),
+      ...(fields.some((field) => field.visibleWhen) && {
+        allOf: fields
+          .filter((field) => field.visibleWhen)
+          .map((field) => ({
+            if: {
+              properties: { [field.visibleWhen!.field]: { const: field.visibleWhen!.value } },
+              required: [field.visibleWhen!.field],
+            },
+            then: { properties: { [field.name]: fieldSchema(field) }, required: [field.name] },
+          })),
+      }),
     },
   }
 }
 
 export const builtinTools: ToolDefinition[] = [
+  define(
+    'image-compress',
+    ['图片压缩', 'Image compressor'],
+    [
+      '批量压缩为 JPG、WebP 或 PNG。手动输入质量与最长边，或输入每张目标大小自动计算质量与尺寸；JPG 白底，动图仅第一帧。',
+      'Batch compress images as JPG, WebP or PNG. Enter quality and maximum edge, or a per-image size limit for automatic quality and dimensions. JPEG uses white backgrounds; animations export their first frame.',
+    ],
+    'image',
+    [
+      files('image/*,.svg,.bmp,.gif,.avif', true),
+      format(['jpg', 'webp', 'png']),
+      compressionMode,
+      {
+        type: 'number',
+        name: 'quality',
+        label: b('图片质量（1–100）', 'Image quality (1–100)'),
+        min: 1,
+        max: 100,
+        step: 1,
+        visibleWhen: { field: 'compressionMode', value: 'manual' },
+        help: b(
+          'JPG / WebP 的有损质量；PNG 不使用此值。',
+          'Lossy quality for JPG / WebP; PNG ignores this value.',
+        ),
+      },
+      {
+        type: 'number',
+        name: 'maxEdge',
+        label: b('最长边（像素，0 为原始尺寸）', 'Maximum edge (pixels; 0 = original)'),
+        min: 0,
+        max: 32768,
+        step: 1,
+        help: b(
+          '保持比例且不放大。目标模式必要时自动进一步缩小。',
+          'Keeps aspect ratio without upscaling. Target mode may reduce dimensions further.',
+        ),
+      },
+      ...targetFields,
+    ],
+    {
+      files: [],
+      format: 'webp',
+      compressionMode: 'manual',
+      quality: 80,
+      maxEdge: 0,
+      targetSize: 200,
+      sizeUnit: 'kib',
+    },
+    async (values, context) =>
+      (await import('./processors/image-compression')).compressImages(values, context),
+  ),
+  define(
+    'video-compress',
+    ['视频压缩', 'Video compressor'],
+    [
+      '本地压缩为 MP4 或 WebM。手动输入视频 / 音频码率，或按目标大小和时长自动计算并校验结果；支持限制分辨率与帧率。',
+      'Compress locally as MP4 or WebM. Enter video / audio bitrates, or calculate from target size and duration and verify the output. Supports resolution and frame rate limits.',
+    ],
+    'video',
+    [
+      files(mediaAccept),
+      format(['mp4', 'webm']),
+      compressionMode,
+      {
+        type: 'number',
+        name: 'videoBitrate',
+        label: b('视频码率（kbps）', 'Video bitrate (kbps)'),
+        min: 16,
+        max: 100000,
+        step: 1,
+        visibleWhen: { field: 'compressionMode', value: 'manual' },
+      },
+      {
+        type: 'number',
+        name: 'audioBitrate',
+        label: b('音频码率（kbps，0 为移除音轨）', 'Audio bitrate (kbps; 0 = remove audio)'),
+        min: 0,
+        max: 320,
+        step: 1,
+        visibleWhen: { field: 'compressionMode', value: 'manual' },
+      },
+      {
+        type: 'select',
+        name: 'resolution',
+        label: b('最大分辨率', 'Maximum resolution'),
+        options: ['original', '1080', '720', '480', '360'].map((value) => ({
+          value,
+          label: value === 'original' ? b('原始尺寸', 'Original') : b(`${value}p`, `${value}p`),
+        })),
+      },
+      {
+        type: 'number',
+        name: 'frameRate',
+        label: b('最大帧率（fps，0 为原始帧率）', 'Maximum frame rate (fps; 0 = original)'),
+        min: 0,
+        max: 120,
+        step: 1,
+      },
+      ...targetFields,
+      {
+        type: 'select',
+        name: 'targetAudio',
+        label: b('目标模式音轨', 'Audio in target mode'),
+        visibleWhen: { field: 'compressionMode', value: 'target' },
+        options: [
+          {
+            value: 'keep',
+            label: b('保留（自动分配码率）', 'Keep (allocate bitrate automatically)'),
+          },
+          { value: 'remove', label: b('移除音轨', 'Remove audio') },
+        ],
+      },
+    ],
+    {
+      files: [],
+      format: 'mp4',
+      compressionMode: 'manual',
+      videoBitrate: 1500,
+      audioBitrate: 96,
+      resolution: '720',
+      frameRate: 0,
+      targetSize: 10,
+      sizeUnit: 'mib',
+      targetAudio: 'keep',
+    },
+    async (values, context) => (await import('./processors/media')).compressVideo(values, context),
+  ),
   define(
     'image-convert',
     ['图片格式转换', 'Image format converter'],

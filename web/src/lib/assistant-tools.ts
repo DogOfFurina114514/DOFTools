@@ -43,6 +43,7 @@ export function assistantCatalog(
       fields: tool.fields.map((field) => ({
         name: field.name,
         type: field.type,
+        ...(field.visibleWhen ? { visibleWhen: field.visibleWhen } : {}),
         ...('options' in field ? { options: field.options.map((option) => option.value) } : {}),
         ...('min' in field ? { min: field.min } : {}),
         ...('max' in field ? { max: field.max } : {}),

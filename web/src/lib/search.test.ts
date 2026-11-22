@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { searchScore, toolSearchAliases } from './search'
 describe('bilingual fuzzy task search', () => {
+  for (const [query, id] of [
+    ['图片压缩', 'image-compress'],
+    ['compress image', 'image-compress'],
+    ['视频压缩', 'video-compress'],
+    ['video compression', 'video-compress'],
+  ])
+    it(`finds compression for ${query}`, () =>
+      expect(searchScore(query, toolSearchAliases[id])).toBeGreaterThan(0))
   for (const query of ['PNG转JPG', 'PNG to JPG', 'png to jpgg', 'jpeg 转 png', '把图片转换为webp'])
     it(`finds image conversion for ${query}`, () =>
       expect(searchScore(query, toolSearchAliases['image-convert'])).toBeGreaterThan(0))

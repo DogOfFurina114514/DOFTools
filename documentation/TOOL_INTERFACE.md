@@ -105,3 +105,5 @@ const definition: ToolDefinition = {
 Fluent 主题保留稳定的 FluentProvider 和调色板，共享自绘控件与所有主题复用同一个值状态与文件接口。单一文件字段允许将模型返回的附件 ID 列表规范为字段绑定；模型写入 parameters 的文件字段元数据会被忽略，实际输入只取本次上传的 File，未知附件 ID 仍拒绝。
 
 `ToolRunContext.onStatus` 可选，接收双语处理阶段或尝试次数；`onProgress` 为实际处理进度。音视频转换和 ZIP 密码恢复在 Worker 中运行，取消或结束后终止 Worker。搜索别名位于 `src/lib/search.ts`，同一索引覆盖双语名称与格式关键词，并对短拼写错误作容错。
+
+字段可用 `visibleWhen: { field, value }` 指定模式条件：共享工作台仅显示满足条件的字段，内置工具 schema 仅在条件成立时要求并校验这些字段，切换模式后被清空的隐藏参数不会阻止执行。AI 工具目录同时提供该条件元数据。`ToolResult.details` 可提供双语结果明细数组，注册表校验完整翻译，工作台逐项显示；支持 Worker 的结构化传递。

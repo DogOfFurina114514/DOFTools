@@ -13,6 +13,7 @@ interface BaseField {
   label: LocalizedText
   help?: LocalizedText
   required?: boolean
+  visibleWhen?: { field: string; value: string }
 }
 export type ToolField = BaseField &
   (
@@ -25,6 +26,7 @@ export type ToolField = BaseField &
 export type ToolValues = Record<string, string | number | boolean | File[]>
 export interface ToolResult {
   summary: LocalizedText
+  details?: LocalizedText[]
   files?: { name: string; blob: Blob }[]
   preview?: ReactNode
 }
@@ -127,6 +129,7 @@ export class ToolRegistry {
     const result = await tool.execute(values, context)
     context.signal.throwIfAborted()
     assertLocalized(result.summary)
+    result.details?.forEach(assertLocalized)
     reportToolSuccess()
     return result
   }

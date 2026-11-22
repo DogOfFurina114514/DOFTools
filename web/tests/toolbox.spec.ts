@@ -11,9 +11,7 @@ const styles = [
   { id: 'minecraft', name: 'Minecraft', game: true },
 ]
 
-test('home removes tools, the dog and avatar, and blocks previous tool routes', async ({
-  page,
-}) => {
+test('home keeps category navigation and blocks unregistered tool routes', async ({ page }) => {
   const errors: string[] = []
   const external: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
@@ -26,7 +24,7 @@ test('home removes tools, the dog and avatar, and blocks previous tool routes', 
   await expect(page.locator('.tool-card, .hero-dog, .avatar, .hero-row, .ai-promo')).toHaveCount(0)
   await expect(page.locator('.sidebar a[href="/settings"]')).toHaveCount(1)
   await page.screenshot({ path: 'test-results/home-default.png', fullPage: true })
-  await page.goto('/tool/image-compress')
+  await page.goto('/tool/image-crop')
   await expect(page.getByRole('heading', { name: '这个角落，暂时留白。' })).toBeVisible()
   await expect(page.locator('input[type="file"]')).toHaveCount(0)
   expect(errors).toEqual([])
