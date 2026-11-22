@@ -19,6 +19,8 @@ describe('multi-tag tool discovery', () => {
   })
   it('combines the intersection with bilingual task search and conversion direction', () => {
     expect(filterTools(builtinTools, '哔哩哔哩', ['parse'])[0].id).toBe('social-link')
+    for (const query of ['视频号', '小红书', 'WeChat Channels', 'Xiaohongshu', 'Instagram', '画质'])
+      expect(filterTools(builtinTools, query, ['video', 'parse'])[0].id).toBe('social-link')
     expect(filterTools(builtinTools, 'X', [])[0].id).toBe('social-link')
     expect(filterTools(builtinTools, 'X', ['parse'])[0].id).toBe('social-link')
     expect(filterTools(builtinTools, 'cloud drive', ['video', 'parse'])).toEqual([])

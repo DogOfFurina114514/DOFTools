@@ -581,8 +581,8 @@ export function SettingsPage({
             <h3>{t('芙芙的狗工具箱', 'DogOfFurina Toolbox')}</h3>
             <p>
               {t(
-                '通过标签与搜索查找工具，可将常用工具固定到侧边栏。支持本地压缩、转换、MIDI、网盘解析等；社交解析接口待接入。',
-                'Find tools by tags and search, and pin frequent tools to the sidebar. Includes local compression, conversion, MIDI and cloud drive parsing; social resolver API pending.',
+                '通过标签与搜索查找工具，可将常用工具固定到侧边栏。支持本地压缩、转换、MIDI、网盘及社交平台解析，社交解析可选择画质等媒体选项。',
+                'Find tools by tags and search, and pin frequent tools to the sidebar. Includes local compression, conversion, MIDI, cloud drive and social platform parsing with media quality options.',
               )}
             </p>
           </div>

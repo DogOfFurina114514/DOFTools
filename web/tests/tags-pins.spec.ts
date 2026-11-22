@@ -52,13 +52,21 @@ test('pinning persists, opens with one click, and can be removed from the sideba
   await expect(page.locator('.pinned-tools a')).toHaveCount(0)
 })
 
-test('six social platforms are identified locally with pending API and proxy notices', async ({
+test('nineteen social platforms resolve through GET with proxy notices and mobile wrapping', async ({
   page,
 }) => {
-  const external: string[] = []
-  page.on('request', (request) => {
-    if (!request.url().startsWith('http://127.0.0.1:5173') && !/^(blob:|data:)/.test(request.url()))
-      external.push(request.url())
+  test.setTimeout(60000)
+  const submitted: string[] = []
+  await page.route('https://openapi.dwo.cc/api/svparse**', async (route) => {
+    expect(route.request().method()).toBe('GET')
+    submitted.push(new URL(route.request().url()).searchParams.get('url')!)
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        code: 200,
+        data: { type: 'video', title: '解析结果', url: 'https://cdn.example/video.mp4' },
+      }),
+    })
   })
   await page.goto('/tool/social-link')
   await expect(page.locator('.ui-panel-description')).toContainText('中国大陆用户需自备代理')
@@ -67,17 +75,18 @@ test('six social platforms are identified locally with pending API and proxy not
     .fill(
       'https://b23.tv/Abcd\nhttps://v.douyin.com/Abcd/\nhttps://v.kuaishou.com/Abcd\nhttps://x.com/u/status/123\nhttps://youtu.be/jNQXAC9IVRw?tracking=' +
         'x'.repeat(500) +
-        '\nhttps://vm.tiktok.com/Abcd/',
+        '\nhttps://vm.tiktok.com/Abcd/\nhttps://weixin.qq.com/sph/Abcd\nhttps://xhslink.com/o/Abcd\nhttps://www.instagram.com/reel/Abcd/\nhttps://v.ixigua.com/Abcd/\nhttps://haokan.baidu.com/v?vid=123\nhttps://h5.weishi.qq.com/weishi/feed/share.html?id=abc\nhttps://www.pearvideo.com/video_123\nhttps://www.acfun.cn/v/ac123\nhttps://www.zhihu.com/zvideo/123\nhttps://oasis.weibo.cn/v1/h5/share?sid=abc\nhttps://www.meipai.com/media/123\nhttps://quanmin.baidu.com/sv?source=share&vid=123\nhttps://v.huya.com/play/123.html',
     )
   await page.getByRole('button', { name: '开始处理', exact: true }).click()
-  await expect(page.locator('.ui-result')).toContainText('已识别 6 个链接')
-  await expect(page.locator('.social-pending')).toContainText('解析接口待接入')
-  await expect(page.locator('.share-preview')).toHaveCount(6)
+  await expect(page.locator('.ui-result')).toContainText('已解析 19 / 19 个链接', { timeout: 45000 })
+  await expect(page.locator('.share-preview')).toHaveCount(19)
+  expect(submitted).toHaveLength(19)
+  expect(submitted[4]).toContain('tracking=' + 'x'.repeat(500))
+  await expect(page.locator('.ui-result')).not.toContainText('待接入')
   await page.setViewportSize({ width: 390, height: 844 })
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
-  expect(external).toEqual([])
   await page.getByRole('button', { name: 'English', exact: true }).click()
-  await expect(page.locator('.social-pending')).toContainText('Resolver API pending')
+  await expect(page.locator('.ui-result')).toContainText('Resolved 19 / 19 links')
   await expect(page.locator('.ui-panel-description')).toContainText('mainland China')
 })
 
@@ -92,6 +101,6 @@ test('mobile all-tools filters and pinned navigation stay usable without overflo
   await page.getByRole('button', { name: '打开导航' }).click()
   await page.locator('.pinned-tools a').click()
   await expect(page.locator('.sidebar')).not.toHaveClass(/mobile-open/)
-  await expect(page.locator('.ui-panel-description')).toContainText('解析接口待接入')
+  await expect(page.locator('.ui-panel-description')).toContainText('可选择接口提供的画质')
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
 })

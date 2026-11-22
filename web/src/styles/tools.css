@@ -50,6 +50,22 @@
   text-decoration: underline;
   overflow-wrap: anywhere;
 }
+.social-media-picker {
+  min-width: 0;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.social-media-picker .ui-actions {
+  margin-block: 8px;
+}
+.social-selected-url {
+  max-height: 5em;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  color: var(--secondary);
+  font-size: 12px;
+}
 .share-files {
   list-style: none;
   padding: 0;

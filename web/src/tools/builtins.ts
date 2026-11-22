@@ -667,8 +667,8 @@ export const builtinTools: ToolDefinition[] = [
     'social-link',
     ['社交平台解析', 'Social platform parser'],
     [
-      '识别哔哩哔哩、抖音、快手、X、YouTube、TikTok 的分享链接。解析接口待接入，暂不能获取媒体直链。中国大陆用户需自备代理。',
-      'Identify Bilibili, Douyin, Kuaishou, X, YouTube and TikTok share links. Resolver API pending; media URLs are not available yet. Users in mainland China need their own proxy.',
+      '解析视频号、小红书、哔哩哔哩、抖音、快手、X、YouTube、TikTok、Instagram 等平台分享链接，可选择接口提供的画质、音轨或图片。中国大陆用户需自备代理。',
+      'Resolve WeChat Channels, Xiaohongshu, Bilibili, Douyin, Kuaishou, X, YouTube, TikTok, Instagram and other supported share links. Choose available video qualities, audio tracks or images. Users in mainland China need their own proxy.',
     ],
     ['video', 'parse'],
     [
@@ -678,12 +678,12 @@ export const builtinTools: ToolDefinition[] = [
         required: true,
         label: b('视频或帖子链接 / 分享文案', 'Video or post links / share text'),
         placeholder: b(
-          '粘贴六个平台的视频或帖子链接，多个链接可分行。',
-          'Paste video or post links from the six platforms, one per line.',
+          '粘贴视频或帖子链接，多个链接可分行；保留完整分享参数。',
+          'Paste video or post links, one per line. Keep the full share URL and its parameters.',
         ),
         help: b(
-          '中国大陆用户需自备代理。26.2.0 仅提供链接识别，解析接口待接入；当前不会发送分享链接到解析服务。',
-          'Users in mainland China need their own proxy. 26.2.0 provides link identification; resolver API pending. Links are currently not sent to a resolver.',
+          '中国大陆用户需自备代理。开始处理后将分享链接发送至小渡 API；实际支持和画质由解析服务及原平台决定，部分链接可能需要登录或已失效。',
+          'Users in mainland China need their own proxy. Running this tool sends share URLs to Dwo API. Support and quality depend on the resolver and platform; some links require login or have expired.',
         ),
       },
     ],

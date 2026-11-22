@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { parseSocialLinks } from './social-parser'
 import { resolveSocialLinks } from './social-links'
 
@@ -7,6 +7,7 @@ const context = () => ({
   signal: new AbortController().signal,
   onProgress: () => {},
 })
+afterEach(() => vi.useRealTimers())
 describe('social link identification and adapter boundary', () => {
   it('identifies all six platforms from multiline share text', () => {
     const links = parseSocialLinks(
@@ -52,10 +53,59 @@ describe('social link identification and adapter boundary', () => {
       ),
     ).toThrow()
   })
-  it('states the pending API accurately without reporting a media resolution', async () => {
-    const result = await resolveSocialLinks({ text: 'https://youtu.be/jNQXAC9IVRw' }, context())
-    expect(result.summary.en).toContain('Resolver API pending')
-    expect(result.summary.en).not.toContain('Resolved')
+  it('identifies additional documented platforms and preserves signed share parameters', () => {
+    const cases = [
+      ['https://weixin.qq.com/sph/Abcd123', 'wechat'],
+      ['https://channels.weixin.qq.com/web/pages/feed?objectId=123', 'wechat'],
+      ['https://finder.video.qq.com/251/abc.mp4', 'wechat'],
+      ['http://xhslink.com/o/AbCd123', 'xiaohongshu'],
+      [
+        'https://www.xiaohongshu.com/explore/abc123?xsec_token=Ab%2BC%3D&xsec_source=pc_share',
+        'xiaohongshu',
+      ],
+      ['https://www.xiaohongshu.com/discovery/item/abc123', 'xiaohongshu'],
+      ['https://www.instagram.com/reel/Abcd_123/', 'instagram'],
+      ['https://v.ixigua.com/Abcd/', 'ixigua'],
+      ['https://haokan.baidu.com/v?vid=123', 'haokan'],
+      ['https://h5.weishi.qq.com/weishi/feed/share.html?id=abc123', 'weishi'],
+      ['https://www.pearvideo.com/video_123', 'pearvideo'],
+      ['https://www.acfun.cn/v/ac123', 'acfun'],
+      ['https://www.zhihu.com/zvideo/123', 'zhihu'],
+      ['https://oasis.weibo.cn/v1/h5/share?sid=abc123', 'oasis'],
+      ['https://www.meipai.com/media/123', 'meipai'],
+      ['https://quanmin.baidu.com/sv?source=share&vid=123', 'quanmin'],
+      ['https://v.huya.com/play/123.html', 'huya'],
+    ]
+    for (const [url, platform] of cases) {
+      const link = parseSocialLinks(url)[0]
+      expect(link.platform).toBe(platform)
+      expect(link.url).toBe(url.replace(/^http:/, 'https:'))
+    }
+    for (const url of [
+      'https://weixin.qq.com.evil.test/sph/Abcd',
+      'https://www.xiaohongshu.com/user/profile/abc123',
+      'https://xhslink.com.evil.test/o/Abcd',
+      'https://www.instagram.com/some-user/',
+    ])
+      expect(() => parseSocialLinks(url)).toThrow()
+  })
+  it('keeps successful batch results when another link fails', async () => {
+    const progress = vi.fn()
+    const result = await resolveSocialLinks(
+      { text: 'https://youtu.be/jNQXAC9IVRw\nhttps://xhslink.com/o/Abcd' },
+      { ...context(), onProgress: progress },
+      async (link) => {
+        if (link.platform === 'xiaohongshu') throw new Error('expired')
+        return { media: [{ kind: 'video', url: 'https://example.com/a.mp4' }] }
+      },
+    )
+    expect(result.summary.en).toContain('Resolved 1 / 2 links; 1 failed')
+    expect(progress.mock.calls).toEqual([[0.5], [1]])
+    await expect(
+      resolveSocialLinks({ text: 'https://youtu.be/jNQXAC9IVRw' }, context(), async () => {
+        throw new Error('expired')
+      }),
+    ).rejects.toThrow('expired')
   })
   it('validates adapter media and propagates cancellation', async () => {
     const values = { text: 'https://youtu.be/jNQXAC9IVRw' }
@@ -77,6 +127,25 @@ describe('social link identification and adapter boundary', () => {
     const result = await resolveSocialLinks(values, context(), async () => ({
       media: [{ kind: 'video', url: 'https://example.com/a.mp4' }],
     }))
-    expect(result.summary.en).toContain('Resolved 1')
+    expect(result.summary.en).toContain('Resolved 1 / 1')
+  })
+  it('allows cancelling the pause before the next batch request', async () => {
+    vi.useFakeTimers()
+    const controller = new AbortController()
+    const resolver = vi.fn(async () => ({
+      media: [{ kind: 'video' as const, url: 'https://example.com/a.mp4' }],
+    }))
+    const pending = resolveSocialLinks(
+      { text: 'https://youtu.be/jNQXAC9IVRw\nhttps://xhslink.com/o/Abcd' },
+      { ...context(), signal: controller.signal },
+      resolver,
+    )
+    const rejected = expect(pending).rejects.toMatchObject({ name: 'AbortError' })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(resolver).toHaveBeenCalledTimes(1)
+    controller.abort()
+    await rejected
+    await vi.runAllTimersAsync()
+    expect(resolver).toHaveBeenCalledTimes(1)
   })
 })

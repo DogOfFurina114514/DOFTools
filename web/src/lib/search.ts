@@ -80,7 +80,7 @@ export const toolSearchAliases: Record<string, string> = {
   'share-link':
     'cloud drive share link parse resolver yunx lanzou ilanzou anonymous 网盘 链接 解析 提取码 蓝奏 优享 免登录 云析',
   'social-link':
-    'social platform video parse resolver bilibili douyin kuaishou twitter x youtube tiktok 社交 平台 视频 解析 哔哩哔哩 抖音 快手 代理',
+    'social platform video parse resolver bilibili douyin kuaishou twitter x youtube tiktok wechat channels xiaohongshu red instagram ins ixigua haokan weishi pearvideo acfun zhihu oasis meipai quanmin huya 社交 平台 视频 解析 哔哩哔哩 抖音 快手 视频号 小红书 西瓜 好看 微视 梨视频 知乎 绿洲 美拍 全民 虎牙 画质 音轨 图集 代理',
   'document-convert':
     'document format convert pdf docx word ppt pptx powerpoint excel xlsx xls csv txt html 文档格式转换',
   'images-pdf': 'image pdf convert png jpg jpeg webp svg bmp avif combine merge 图片转PDF 多图合并',
