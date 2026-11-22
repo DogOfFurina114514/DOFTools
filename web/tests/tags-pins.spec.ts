@@ -4,7 +4,7 @@ test('multiple tags use AND and search stays on the all-tools page', async ({ pa
   await page.goto('/')
   await expect(page.locator('.topbar .search-trigger')).toHaveCount(0)
   await page.locator('.all-tools-nav').click()
-  await expect(page.locator('.tool-list-card')).toHaveCount(16)
+  await expect(page.locator('.tool-list-card')).toHaveCount(17)
   const filters = page.getByRole('group', { name: '标签筛选' })
   await filters.getByRole('button', { name: /^解析/ }).click()
   await expect(page.locator('.tool-list-card')).toHaveCount(2)

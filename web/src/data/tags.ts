@@ -1,4 +1,4 @@
-import { FileText, Image, Link, Shapes, Video, Volume2 } from 'lucide-react'
+import { FileText, Globe, Image, Link, Shapes, Video, Volume2 } from 'lucide-react'
 import { bilingual as b } from '../lib/locale'
 
 export const toolTags = [
@@ -7,6 +7,7 @@ export const toolTags = [
   { id: 'audio', label: b('音频', 'Audio'), icon: Volume2, color: 'blue' },
   { id: 'document', label: b('文档', 'Document'), icon: FileText, color: 'orange' },
   { id: 'parse', label: b('解析', 'Parsing'), icon: Link, color: 'blue' },
+  { id: 'online', label: b('仅联网', 'Online only'), icon: Globe, color: 'blue' },
   { id: 'other', label: b('其他', 'Other'), icon: Shapes, color: 'blue' },
 ] as const
 

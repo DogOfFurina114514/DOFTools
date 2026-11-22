@@ -23,24 +23,16 @@ export function parseMidi(bytes: Uint8Array) {
   const count = midi.tracks.reduce((sum, track) => sum + track.notes.length, 0)
   if (!count)
     throw new LocalizedError('MIDI 中没有可合成的音符。', 'This MIDI contains no playable notes.')
-  if (count > 10000 || midi.tracks.length > 128)
-    throw new LocalizedError(
-      '最多支持 10000 个音符和 128 条音轨。',
-      'At most 10,000 notes and 128 tracks are supported.',
-    )
   if (
     !Number.isFinite(midi.duration) ||
-    renderedDuration(midi) > 180 ||
+    !Number.isFinite(renderedDuration(midi)) ||
     midi.tracks.some((track) =>
       track.notes.some(
         (note) => !Number.isFinite(note.time + note.duration) || note.time < 0 || note.duration < 0,
       ),
     )
   )
-    throw new LocalizedError(
-      'MIDI 时长无效或超过 3 分钟。',
-      'The MIDI duration is invalid or exceeds 3 minutes.',
-    )
+    throw new LocalizedError('MIDI 时长无效。', 'The MIDI duration is invalid.')
   return midi
 }
 

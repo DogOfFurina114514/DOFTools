@@ -19,11 +19,8 @@ export async function audioToMidi(values: ToolValues, context: ToolRunContext) {
     )
   }
   context.signal.throwIfAborted()
-  if (!Number.isFinite(decoded.duration) || decoded.duration > 180)
-    throw new LocalizedError(
-      '音频转 MIDI 最长支持 3 分钟，请先截取片段。',
-      'Audio to MIDI supports up to 3 minutes. Trim the audio first.',
-    )
+  if (!Number.isFinite(decoded.duration) || decoded.duration <= 0)
+    throw new LocalizedError('音频时长无效。', 'The audio duration is invalid.')
   const offline = new OfflineAudioContext(
     1,
     Math.max(1, Math.ceil(decoded.duration * 22050)),

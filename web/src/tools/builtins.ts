@@ -304,6 +304,40 @@ export const builtinTools: ToolDefinition[] = [
       (await import('./processors/media')).convertMedia(values, context, 'video'),
   ),
   define(
+    'video-audio-replace',
+    ['视频替换音频', 'Replace video audio'],
+    [
+      '用所选音频替换视频原音轨，可按视频或音频长度输出。较长素材截断，较短音频补静音、较短视频延长末帧，全程本地处理。',
+      'Replace the original video audio with a chosen audio file. Match the video or audio duration, trimming longer media and padding shorter audio with silence or video with its last frame. Processing stays local.',
+    ],
+    ['video', 'audio'],
+    [
+      { ...files(mediaAccept), name: 'videoFiles', label: b('选择视频', 'Choose video') },
+      {
+        ...files(audioAccept),
+        name: 'audioFiles',
+        label: b('选择替换音频', 'Choose replacement audio'),
+      },
+      format(['mp4', 'webm']),
+      {
+        type: 'select',
+        name: 'length',
+        label: b('输出长度', 'Output duration'),
+        options: [
+          { value: 'video', label: b('截取至视频长度', 'Match video duration') },
+          { value: 'audio', label: b('截取至音频长度', 'Match audio duration') },
+        ],
+        help: b(
+          '超出的部分截断；不足的音频补静音，不足的视频延长最后一帧。两份文件总计最多 256 MiB，输出最长 60 分钟。',
+          'Longer media is trimmed; shorter audio ends with silence and shorter video holds its last frame. Files must total no more than 256 MiB; output is limited to 60 minutes.',
+        ),
+      },
+    ],
+    { videoFiles: [], audioFiles: [], format: 'mp4', length: 'video' },
+    async (values, context) =>
+      (await import('./processors/video-audio-replace')).replaceVideoAudio(values, context),
+  ),
+  define(
     'video-gif',
     ['视频转 GIF', 'Video to GIF'],
     [
@@ -400,8 +434,8 @@ export const builtinTools: ToolDefinition[] = [
     'audio-midi',
     ['音频转 MIDI', 'Audio to MIDI'],
     [
-      '支持 MP3、WAV、FLAC、M4A / AAC / ALAC、OGG、Opus、WebM、AIFF 和 WMA，本地识别旋律与和弦生成 MIDI。独奏效果较好，完整歌曲可能需要人工修正；最长 3 分钟。',
-      'Transcribe MP3, WAV, FLAC, M4A / AAC / ALAC, OGG, Opus, WebM, AIFF and WMA melodies and chords to MIDI locally. Solo instruments work best; full songs may need editing. Up to 3 minutes.',
+      '支持 MP3、WAV、FLAC、M4A / AAC / ALAC、OGG、Opus、WebM、AIFF 和 WMA，本地识别旋律与和弦生成 MIDI。独奏效果较好，完整歌曲可能需要人工修正。',
+      'Transcribe MP3, WAV, FLAC, M4A / AAC / ALAC, OGG, Opus, WebM, AIFF and WMA melodies and chords to MIDI locally. Solo instruments work best; full songs may need editing.',
     ],
     ['audio'],
     [
@@ -434,8 +468,8 @@ export const builtinTools: ToolDefinition[] = [
     'midi-audio',
     ['MIDI 转音频', 'MIDI to audio'],
     [
-      '本地合成为 MP3、WAV、FLAC、M4A / AAC / ALAC、OGG、Opus、WebM、AIFF 或 WMA，可选择音色。原乐器使用近似合成音色；最长 3 分钟。',
-      'Render MIDI locally to MP3, WAV, FLAC, M4A / AAC / ALAC, OGG, Opus, WebM, AIFF or WMA with a choice of approximate synthesized timbres. Up to 3 minutes.',
+      '本地合成为 MP3、WAV、FLAC、M4A / AAC / ALAC、OGG、Opus、WebM、AIFF 或 WMA，可选择音色。原乐器使用近似合成音色。',
+      'Render MIDI locally to MP3, WAV, FLAC, M4A / AAC / ALAC, OGG, Opus, WebM, AIFF or WMA with a choice of approximate synthesized timbres.',
     ],
     ['audio'],
     [
@@ -633,7 +667,7 @@ export const builtinTools: ToolDefinition[] = [
       '免登录解析蓝奏云、蓝奏云优享版的公开分享，浏览文件并获取不超过 100 MiB 的小文件直链。',
       'Resolve public Lanzou Cloud and Lanzou Premium shares without login, browse files and get download URLs for files up to 100 MiB.',
     ],
-    ['parse'],
+    ['parse', 'online'],
     [
       {
         type: 'textarea',
@@ -670,7 +704,7 @@ export const builtinTools: ToolDefinition[] = [
       '解析视频号、小红书、哔哩哔哩、抖音、快手、X、YouTube、TikTok、Instagram 等平台分享链接，可选择接口提供的画质、音轨或图片。通过 API 解析，无需自备代理。',
       'Resolve WeChat Channels, Xiaohongshu, Bilibili, Douyin, Kuaishou, X, YouTube, TikTok, Instagram and other supported share links. Choose available video qualities, audio tracks or images. Links are resolved through an API; no personal proxy is required.',
     ],
-    ['video', 'parse'],
+    ['video', 'parse', 'online'],
     [
       {
         type: 'textarea',

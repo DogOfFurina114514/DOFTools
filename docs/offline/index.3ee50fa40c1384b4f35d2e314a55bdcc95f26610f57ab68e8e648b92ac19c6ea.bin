@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="zh-CN" data-style="default" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f7f9f5" />
+    <meta
+      name="description"
+      content="芙芙的狗工具箱：纯前端个人工具箱框架，预留图片、视频、音频、文档与其他分类，支持八种界面风格与电脑端本地 AI 接口。"
+    />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=furina" />
+    <title>芙芙的狗工具箱</title>
+    <style>
+      #boot-opening {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 200;
+        place-items: center;
+        background: #fff;
+        color: #666;
+        font: 18px sans-serif;
+      }
+      html[data-boot-opening] #boot-opening {
+        display: grid;
+      }
+      html[data-boot-opening='endfield'] #boot-opening {
+        background: #141414;
+        color: #fff;
+      }
+      html[data-boot-opening='zenless'] #boot-opening {
+        background: #101010;
+        color: #e9ff39;
+      }
+      html[data-boot-opening='minecraft'] #boot-opening {
+        background: #66aee4;
+        color: #fff;
+      }
+      html[data-boot-opening] #root,
+      html[data-boot-setup] #root {
+        visibility: hidden;
+      }
+      #boot-opening span {
+        letter-spacing: 0.3em;
+        font-size: 11px;
+      }
+    </style>
+    <script>
+      ;(() => {
+        const base = '/'
+        const url = new URL(location.href)
+        const restored = url.searchParams.get('__route')
+        const legacy = url.hash.startsWith('#/') ? url.hash.slice(1) : null
+        const route = restored || legacy
+        if (route && route.startsWith('/') && !route.startsWith('//'))
+          history.replaceState(null, '', base.replace(/\/$/, '') + route)
+        if (location.pathname.length > base.length && location.pathname.endsWith('/'))
+          history.replaceState(
+            null,
+            '',
+            location.pathname.replace(/\/+$/, '') + location.search + location.hash,
+          )
+        const read = (key) => {
+          try {
+            return JSON.parse(localStorage.getItem('fufu:' + key))
+          } catch {
+            return null
+          }
+        }
+        const style = read('style')
+        const theme = read('theme')
+        const language = read('language')
+        document.documentElement.lang = language === 'en' ? 'en' : 'zh-CN'
+        document.documentElement.dataset.language = language === 'en' ? 'en' : 'zh-CN'
+        if (language === 'en') document.title = 'DogOfFurina Toolbox'
+        if (
+          [
+            'default',
+            'material',
+            'fluent',
+            'glass',
+            'genshin',
+            'zenless',
+            'endfield',
+            'minecraft',
+          ].includes(style)
+        )
+          document.documentElement.dataset.style = style
+        if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme
+        else
+          document.documentElement.dataset.theme = matchMedia('(prefers-color-scheme: dark)')
+            .matches
+            ? 'dark'
+            : 'light'
+        if (read('onboarded') !== true) document.documentElement.dataset.bootSetup = ''
+        else if (
+          ['genshin', 'zenless', 'endfield', 'minecraft'].includes(style) &&
+          read('openings') !== false
+        )
+          document.documentElement.dataset.bootOpening = style
+      })()
+    </script>
+    <script type="module" crossorigin src="/assets/index-CQudXWUB.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-hKDkRuIt.css">
+  </head>
+  <body>
+    <div id="boot-opening" aria-label="DogOfFurina Toolbox"><span>DogOfFurina Toolbox</span></div>
+    <div id="root"></div>
+  </body>
+</html>

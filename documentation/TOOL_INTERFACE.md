@@ -98,7 +98,7 @@ const definition: ToolDefinition = {
 - `ToolResult.summary` 用于聊天说明，`files` 中的 Blob 用于预览和下载；只将摘要、文件名、类型和大小送回模型，不序列化 Blob 或预览 ReactNode。需要视觉处理的工具可读取文件字段中的真实图片。
 - 成功调用后直接展示实际卡片或文件结果，立即完成当前消息，避免第二轮生成复述输出。错误参数可由模型重试，每条消息最多四轮生成；同一成功调用及参数在单次消息内复用结果，避免重复执行。长任务使用 `signal` 和 `onProgress`，页内导航期间继续执行；关闭助手取消任务并释放模型。
 
-`ToolDefinition.ai` 与 `toolRegistry.invoke()` 保留给显式调用方，但助手推荐和上传处理使用上面的统一 UI 执行路径，无需为新工具重复实现 AI 版本。正式注册表有 16 个工具入口；测试工具仍只在测试页面按需注册。音频与 MIDI 工具可绑定上传文件直接执行；网盘和社交链接解析没有文件字段，助手只推荐前往工具页面使用。
+`ToolDefinition.ai` 与 `toolRegistry.invoke()` 保留给显式调用方，但助手推荐和上传处理使用上面的统一 UI 执行路径，无需为新工具重复实现 AI 版本。正式注册表有 17 个工具入口；测试工具仍只在测试页面按需注册。音频与 MIDI 工具可绑定上传文件直接执行；视频替换音频使用 videoFiles / audioFiles 两个文件字段，AI 调用需显式绑定对应附件；网盘和社交链接解析没有文件字段，助手只推荐前往工具页面使用。
 
 聊天、上传的附件和结果文件通过 IndexedDB 结构化保存；刷新后可继续查看和下载，模型会回到未开启状态。清空对话清除持久记录，关闭助手保留历史。界面语言切换即时翻译工具卡片和结果摘要，文件名及生成的聊天原文不被改写。
 
@@ -110,7 +110,7 @@ Fluent 主题保留稳定的 FluentProvider 和调色板，共享自绘控件与
 
 ## 多标签与社交解析适配器
 
-`tags` 为非空、不重复的 `ToolTagId[]`，取值来自 `web/src/data/tags.ts`：image、video、audio、document、parse、other。所有工具页 `/tools` 的重复查询参数 `tag` 使用 AND 筛选，与 `q` 搜索共同生效。工具注册时校验标签；展示、搜索和固定入口共用注册表。固定偏好键为 `fufu:pinned-tools`，只保存在浏览器。旧 `/category/:id` 自动重定向，保留其他查询参数。
+`tags` 为非空、不重复的 `ToolTagId[]`，取值来自 `web/src/data/tags.ts`：image、video、audio、document、parse、online、other。online 的中英文名称为“仅联网 / Online only”，表示需要调用外部 API；目前添加到 share-link 与 social-link，其余工具本地处理。所有工具页 `/tools` 的重复查询参数 `tag` 使用 AND 筛选，与 `q` 搜索共同生效。工具注册时校验标签；展示、搜索和固定入口共用注册表。固定偏好键为 `fufu:pinned-tools`，只保存在浏览器。旧 `/category/:id` 自动重定向，保留其他查询参数。侧栏导航 data-scroll-area 共用主题滚动条；导航直接子项与侧栏其他区域不收缩，固定项溢出时独立滚动。
 
 26.2.2 的 `web/src/tools/processors/social-service.ts` 实现 `SocialResolver`：签名 `(link: SocialLink, context: ToolRunContext) => Promise<SocialResolution>`；输入含平台与规范化 HTTPS 链接，输出含可选标题和非空媒体数组。`SocialMedia` 含 kind（video / audio / image）、HTTP(S) url，以及可选 label、width、height、size、format、codec。平台识别和结果控件分别位于 social-parser.ts / social-links.tsx，19 个平台共用同一接口，解析由 API 服务完成，无需用户自备代理；用户可选择画质、音轨或图片，并打开 / 复制所选直链。
 

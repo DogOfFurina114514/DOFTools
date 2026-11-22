@@ -11,7 +11,8 @@ async function convert(
   const core = await getFFmpegCore()
   core.FS.writeFile('input', bytes)
   try {
-    core.setTimeout(120000)
+    // Long MIDI conversions remain cancellable by terminating the owning Worker.
+    core.setTimeout(-1)
     core.setProgress(({ time }) => progress(time / 1_000_000))
     if (
       core.exec(
@@ -47,19 +48,12 @@ async function convert(
 }
 
 export async function decodeMidiAudio(bytes: Uint8Array, progress: (time: number) => void) {
-  // Bound output before decoding: even an hours-long compressed upload cannot
-  // allocate hours of PCM. The extra second detects the duration limit.
   const pcm = await convert(
     bytes,
     'decoded.f32',
-    ['-t', '181', '-ac', '1', '-ar', '22050', '-c:a', 'pcm_f32le', '-f', 'f32le'],
+    ['-ac', '1', '-ar', '22050', '-c:a', 'pcm_f32le', '-f', 'f32le'],
     progress,
   )
-  if (pcm.byteLength > 180 * 22050 * 4)
-    throw new LocalizedError(
-      '音频转 MIDI 最长支持 3 分钟，请先截取片段。',
-      'Audio to MIDI supports up to 3 minutes. Trim the audio first.',
-    )
   return new Float32Array(pcm.buffer)
 }
 

@@ -15,7 +15,14 @@ describe('multi-tag tool discovery', () => {
       'share-link',
       'social-link',
     ])
-    expect(filterTools(builtinTools, '', [])).toHaveLength(16)
+    expect(filterTools(builtinTools, '', [])).toHaveLength(17)
+    expect(filterTools(builtinTools, '', ['online']).map((tool) => tool.id)).toEqual([
+      'share-link',
+      'social-link',
+    ])
+    expect(
+      filterTools(builtinTools, '', ['online', 'video', 'parse']).map((tool) => tool.id),
+    ).toEqual(['social-link'])
   })
   it('combines the intersection with bilingual task search and conversion direction', () => {
     expect(filterTools(builtinTools, '哔哩哔哩', ['parse'])[0].id).toBe('social-link')
@@ -29,5 +36,7 @@ describe('multi-tag tool discovery', () => {
     for (const query of ['GIF转视频', 'gif to video'])
       expect(filterTools(builtinTools, query, [])[0].id).toBe('gif-video')
     expect(filterTools(builtinTools, 'png to jpgg', [])[0].id).toBe('image-convert')
+    for (const query of ['视频替换音频', 'replace video audio', '配音'])
+      expect(filterTools(builtinTools, query, ['video', 'audio'])[0].id).toBe('video-audio-replace')
   })
 })

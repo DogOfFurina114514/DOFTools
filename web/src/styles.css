@@ -121,7 +121,17 @@ p {
 .sidebar-nav {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
   gap: 5px;
+  padding: 8px 14px 8px 8px;
+  margin: 0 -14px 0 -8px;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+}
+.sidebar > :not(.sidebar-nav),
+.sidebar-nav > * {
+  flex-shrink: 0;
 }
 .nav-item {
   display: flex;
@@ -868,10 +878,6 @@ h2 {
   line-height: 1.7;
   color: var(--muted);
   padding: 0 12px 12px;
-}
-.sidebar-nav {
-  min-height: 0;
-  overflow-y: auto;
 }
 @media (max-width: 680px) {
   .all-tools-grid {

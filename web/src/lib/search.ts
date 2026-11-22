@@ -70,6 +70,8 @@ export const toolSearchAliases: Record<string, string> = {
   'video-compress': 'video compress mp4 webm bitrate target size 视频压缩 码率 目标大小',
   'image-convert': 'image format convert png jpg jpeg webp bmp gif svg avif 图片格式转换',
   'video-convert': 'video format convert mp4 webm mov mkv m4v 视频格式转换',
+  'video-audio-replace':
+    'video replace audio soundtrack dubbing music duration mp4 webm 视频替换音频 替换音轨 配音 背景音乐 视频长度 音频长度',
   'video-gif': 'video convert gif mp4 webm mov mkv clip animation 视频转GIF 动图 片段',
   'gif-video': 'gif convert video mp4 webm animation GIF转视频 动图',
   'audio-convert': 'audio format convert mp3 wav flac aac m4a ogg opus 音频格式转换',

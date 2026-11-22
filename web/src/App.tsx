@@ -495,7 +495,7 @@ function Application() {
               {locale === 'zh-CN' && <small>DogOfFurina Toolbox</small>}
             </span>
           </Link>
-          <nav className="sidebar-nav" aria-label={t('主导航', 'Main navigation')}>
+          <nav className="sidebar-nav" data-scroll-area aria-label={t('主导航', 'Main navigation')}>
             <NavLink to="/" end className="nav-item home-nav">
               <Home size={19} />
               <span>{t('工具箱概览', 'Overview')}</span>
