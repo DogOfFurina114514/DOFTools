@@ -52,9 +52,7 @@ export function SetupWizard({
           }
           if (event.key !== 'Tab') return
           const elements = [
-            ...(dialog.current?.querySelectorAll<HTMLElement>(
-              'button:not(:disabled)',
-            ) ?? []),
+            ...(dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled)') ?? []),
           ]
           const first = elements[0],
             last = elements.at(-1)
@@ -188,19 +186,19 @@ export function GuidedTour({ onFinish }: { onFinish: () => void }) {
     {
       path: '/',
       target: '.category-section',
-      title: t('从五个分类开始', 'Start with five categories'),
+      title: t('从所有工具和标签开始', 'Start with All tools and tags'),
       text: t(
-        '图片、视频、音频、文档和其他。点击分类，就能找到对应的工具空间。',
-        'Images, videos, audio, documents and other utilities. Open a category to find its tool space.',
+        '进入所有工具，或从图片、视频、音频、文档、解析等标签进入。同一个工具可以拥有多个标签。',
+        'Open All tools or start from tags such as Image, Video, Audio, Document and Parsing. A tool can have multiple tags.',
       ),
     },
     {
-      path: '/category/image',
-      target: '.empty-state, .category-grid',
-      title: t('这里是工具空间', 'This is a tool space'),
+      path: '/tools',
+      target: '.tool-tag-filters',
+      title: t('组合标签，缩小范围', 'Combine tags to narrow results'),
       text: t(
-        '工具会列在分类里。打开工具后可以添加本地文件、调整选项并下载结果。当前先为工具留好位置。',
-        'Tools appear in each category. Open a tool to add local files, adjust options and download results. These spaces are ready for future tools.',
+        '可选择多个标签，只显示同时包含全部标签的工具。例如选择视频和解析，就能找到社交平台解析。清除标签可恢复全部工具。',
+        'Select multiple tags to require all of them. Video and Parsing find the social platform parser. Clear tags to see all tools.',
       ),
     },
     {
@@ -226,12 +224,12 @@ export function GuidedTour({ onFinish }: { onFinish: () => void }) {
         ]
       : []),
     {
-      path: '/',
-      target: '.search-trigger',
-      title: t('搜索可以更快抵达', 'Search takes you there faster'),
+      path: '/tools',
+      target: '.all-tools-search',
+      title: t('搜索要求，固定常用工具', 'Search tasks and pin frequent tools'),
       text: t(
-        '点击右上角搜索，或按 Ctrl / ⌘ + K，查找分类和页面。现在可以开始使用了。',
-        'Click search in the top-right corner, or press Ctrl / ⌘ + K to find categories and pages. You’re ready to begin.',
+        '搜索框在所有工具页面，Ctrl / ⌘ + K 可直接前往。点击工具卡片的图钉，将它固定到侧边栏；再次点击可取消固定。手机上打开导航即可进入固定工具。',
+        'Search lives in All tools; Ctrl / ⌘ + K takes you there. Pin a tool card for sidebar access; click again to unpin. On phones, open navigation to access pinned tools.',
       ),
     },
   ]

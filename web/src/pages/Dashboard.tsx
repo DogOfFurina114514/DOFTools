@@ -1,6 +1,6 @@
 import { ArrowRight, ArrowUpRight, Palette, ShieldCheck } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { categories } from '../data/tools'
+import { toolTags } from '../data/tags'
 import { useAppearance, styleName } from '../lib/appearance'
 import { useLocale } from '../lib/i18n'
 import { StylePreview } from '../components/UI'
@@ -37,8 +37,8 @@ export function Dashboard() {
           </h1>
           <p>
             {t(
-              '选择分类或搜索处理要求，文件在本地浏览器中处理。',
-              'Choose a category or search for a task. Files are processed in your browser.',
+              '在所有工具中搜索或筛选标签；文件处理在本地，链接解析使用在线服务。',
+              'Search or filter tags in All tools. Files are processed locally; link parsing uses online services.',
             )}
           </p>
         </div>
@@ -47,23 +47,26 @@ export function Dashboard() {
           {t('本地处理', 'Local processing')}
         </span>
       </div>
-      <section className="category-section">
+      <section className="category-section tag-section">
         <div className="section-heading">
           <div>
-            <h2>{t('工具分类', 'Tool categories')}</h2>
+            <h2>{t('按标签发现工具', 'Explore by tag')}</h2>
             <p>
               {t(
-                '图片、视频、音频、文档，还有日常里的其他小事。',
-                'Images, videos, audio, documents and everyday utilities.',
+                '一个工具可以有多个标签，进入所有工具后可组合筛选。',
+                'Tools can have multiple tags. Combine them in All tools to filter.',
               )}
             </p>
           </div>
-          <span className="section-note">A PLACE FOR EVERY LITTLE THING</span>
+          <Link to="/tools" className="text-button">
+            {t('所有工具', 'All tools')}
+            <ArrowRight size={14} />
+          </Link>
         </div>
         <div className="category-grid">
-          {categories.map((category, index) => (
+          {toolTags.map((category, index) => (
             <Link
-              to={`/category/${category.id}`}
+              to={`/tools?tag=${category.id}`}
               key={category.id}
               className={`category-card ${category.color}`}
             >
@@ -75,7 +78,7 @@ export function Dashboard() {
                 <h3>{resolve(category.label)}</h3>
                 <span>
                   {t('{count} 个工具', '{count} tools', {
-                    count: tools.filter((tool) => tool.category === category.id).length,
+                    count: tools.filter((tool) => tool.tags.includes(category.id)).length,
                   })}
                 </span>
               </div>

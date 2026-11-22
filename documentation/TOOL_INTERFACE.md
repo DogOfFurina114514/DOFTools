@@ -45,9 +45,9 @@ function OutputName() {
 
 1. 在 `src/tools/` 新增定义，使用 `ToolDefinition`。
 2. 在 `src/tools/index.ts` 导入定义并调用 `toolRegistry.register(definition)`。
-3. `/tool/<id>` 自动提供 `ToolWorkspace`；对应分类与搜索自动读取注册表。
+3. `/tool/<id>` 自动提供 `ToolWorkspace`；标签筛选、搜索与固定入口自动读取注册表。
 
-定义包含 `id`、`title`、`description`、`category`、`fields`、`initialValues`、`inputSchema`、`execute`。`fields` 是区分联合类型，支持 text、textarea、number、slider、select、checkbox、switch、files。名称、说明、字段标签、帮助、占位符、选项标签及结果摘要均使用 `LocalizedText`：`{'zh-CN': string, en: string}`，可通过 `bilingual(中文, English)` 创建。注册时校验双语言完整性。
+定义包含 `id`、`title`、`description`、`tags`、`fields`、`initialValues`、`inputSchema`、`execute`。`fields` 是区分联合类型，支持 text、textarea、number、slider、select、checkbox、switch、files。名称、说明、字段标签、帮助、占位符、选项标签及结果摘要均使用 `LocalizedText`：`{'zh-CN': string, en: string}`，可通过 `bilingual(中文, English)` 创建。注册时校验双语言完整性。
 
 ```ts
 import { bilingual, LocalizedError, type ToolDefinition } from '../tools'
@@ -56,7 +56,7 @@ const definition: ToolDefinition = {
   id: 'your-tool',
   title: bilingual('工具名称', 'Tool name'),
   description: bilingual('工具的用途', 'What this tool does'),
-  category: 'other',
+  tags: ['other'],
   fields: [
     {
       type: 'text',
@@ -98,7 +98,7 @@ const definition: ToolDefinition = {
 - `ToolResult.summary` 用于聊天说明，`files` 中的 Blob 用于预览和下载；只将摘要、文件名、类型和大小送回模型，不序列化 Blob 或预览 ReactNode。需要视觉处理的工具可读取文件字段中的真实图片。
 - 成功调用后直接展示实际卡片或文件结果，立即完成当前消息，避免第二轮生成复述输出。错误参数可由模型重试，每条消息最多四轮生成；同一成功调用及参数在单次消息内复用结果，避免重复执行。长任务使用 `signal` 和 `onProgress`，页内导航期间继续执行；关闭助手取消任务并释放模型。
 
-`ToolDefinition.ai` 与 `toolRegistry.invoke()` 保留给显式调用方，但助手推荐和上传处理使用上面的统一 UI 执行路径，无需为新工具重复实现 AI 版本。正式注册表已有十一个工具；测试工具仍只在测试页面按需注册。音频与 MIDI 工具可绑定上传文件直接执行；网盘链接解析没有文件字段，助手只推荐前往工具页面使用。
+`ToolDefinition.ai` 与 `toolRegistry.invoke()` 保留给显式调用方，但助手推荐和上传处理使用上面的统一 UI 执行路径，无需为新工具重复实现 AI 版本。正式注册表有 16 个工具入口；测试工具仍只在测试页面按需注册。音频与 MIDI 工具可绑定上传文件直接执行；网盘和社交链接解析没有文件字段，助手只推荐前往工具页面使用。
 
 聊天、上传的附件和结果文件通过 IndexedDB 结构化保存；刷新后可继续查看和下载，模型会回到未开启状态。清空对话清除持久记录，关闭助手保留历史。界面语言切换即时翻译工具卡片和结果摘要，文件名及生成的聊天原文不被改写。
 
@@ -107,3 +107,9 @@ Fluent 主题保留稳定的 FluentProvider 和调色板，共享自绘控件与
 `ToolRunContext.onStatus` 可选，接收双语处理阶段或尝试次数；`onProgress` 为实际处理进度。音视频转换和 ZIP 密码恢复在 Worker 中运行，取消或结束后终止 Worker。搜索别名位于 `src/lib/search.ts`，同一索引覆盖双语名称与格式关键词，并对短拼写错误作容错。
 
 字段可用 `visibleWhen: { field, value }` 指定模式条件：共享工作台仅显示满足条件的字段，内置工具 schema 仅在条件成立时要求并校验这些字段，切换模式后被清空的隐藏参数不会阻止执行。AI 工具目录同时提供该条件元数据。`ToolResult.details` 可提供双语结果明细数组，注册表校验完整翻译，工作台逐项显示；支持 Worker 的结构化传递。
+
+## 多标签与社交解析适配器
+
+`tags` 为非空、不重复的 `ToolTagId[]`，取值来自 `web/src/data/tags.ts`：image、video、audio、document、parse、other。所有工具页 `/tools` 的重复查询参数 `tag` 使用 AND 筛选，与 `q` 搜索共同生效。工具注册时校验标签；展示、搜索和固定入口共用注册表。固定偏好键为 `fufu:pinned-tools`，只保存在浏览器。旧 `/category/:id` 自动重定向，保留其他查询参数。
+
+26.2.0 的社交解析接口尚未接入，由用户提供后实现 `web/src/tools/processors/social-service.ts` 的 `SocialResolver`。签名 `(link: SocialLink, context: ToolRunContext) => Promise<SocialResolution>`；输入含平台与规范化 HTTPS 链接，输出含可选标题和非空媒体数组（kind: video / audio / image，url: HTTP(S)，可选 label）。适配器必须处理服务错误、响应校验、请求超时，并响应 context.signal；工作台继续负责取消、进度与双语错误。平台识别与展示分别位于 social-parser.ts / social-links.tsx，未配置适配器时只报告链接识别与待接入状态，不返回媒体直链或虚构解析成功。

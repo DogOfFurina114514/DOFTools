@@ -139,8 +139,8 @@ export function AIPage() {
         icon={<Laptop size={30} />}
         title={t('AI 助手仅在电脑端提供', 'AI is available on desktop')}
         description={t(
-          '请在电脑浏览器中打开。手机和平板可以浏览分类与切换风格。',
-          'Open this page on a desktop browser. Phones and tablets can browse categories and switch styles.',
+          '请在电脑浏览器中打开。手机和平板可以使用所有工具、筛选标签与切换风格。',
+          'Open this page on a desktop browser. Phones and tablets can use All tools, filter tags and switch styles.',
         )}
       />
     )

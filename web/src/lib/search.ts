@@ -79,6 +79,8 @@ export const toolSearchAliases: Record<string, string> = {
     'midi convert audio mid mp3 wav flac m4a aac alac ogg opus webm aiff aif wma synth render MIDI转音频 合成',
   'share-link':
     'cloud drive share link parse resolver yunx lanzou ilanzou anonymous 网盘 链接 解析 提取码 蓝奏 优享 免登录 云析',
+  'social-link':
+    'social platform video parse resolver bilibili douyin kuaishou twitter x youtube tiktok 社交 平台 视频 解析 哔哩哔哩 抖音 快手 代理',
   'document-convert':
     'document format convert pdf docx word ppt pptx powerpoint excel xlsx xls csv txt html 文档格式转换',
   'images-pdf': 'image pdf convert png jpg jpeg webp svg bmp avif combine merge 图片转PDF 多图合并',

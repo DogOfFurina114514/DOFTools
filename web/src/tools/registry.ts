@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import type { AIToolCall, AIToolDefinition } from '../lib/ai'
 import { LOCALES, localize, LocalizedError, type Locale, type LocalizedText } from '../lib/locale'
 import { reportToolSuccess } from '../lib/tool-events'
+import { isToolTag, type ToolTagId } from '../data/tags'
 export interface ToolOption {
   value: string
   label: LocalizedText
@@ -40,7 +41,7 @@ export interface ToolDefinition {
   id: string
   title: LocalizedText
   description: LocalizedText
-  category: 'image' | 'video' | 'audio' | 'document' | 'other'
+  tags: readonly ToolTagId[]
   fields: readonly ToolField[]
   initialValues: ToolValues
   inputSchema: Record<string, unknown>
@@ -60,6 +61,16 @@ export class ToolRegistry {
   private aiValidators = new Map<string, ValidateFunction>()
   private ajv = new Ajv({ allErrors: true, strict: true, ownProperties: true })
   register(tool: ToolDefinition) {
+    if (
+      !Array.isArray(tool.tags) ||
+      !tool.tags.length ||
+      tool.tags.some((tag) => !isToolTag(tag)) ||
+      new Set(tool.tags).size !== tool.tags.length
+    )
+      throw new LocalizedError(
+        '工具必须提供有效且不重复的标签。',
+        'Tools must have valid, unique tags.',
+      )
     assertLocalized(tool.title)
     assertLocalized(tool.description)
     for (const field of tool.fields) {

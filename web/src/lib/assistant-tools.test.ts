@@ -18,7 +18,7 @@ function fixture() {
     id: 'file-fixture',
     title: bilingual('文件测试', 'File fixture'),
     description: bilingual('处理文本附件', 'Process text files'),
-    category: 'document',
+    tags: ['document'],
     fields: [
       {
         type: 'files',

@@ -20,7 +20,7 @@ test('home keeps category navigation and blocks unregistered tool routes', async
       external.push(request.url())
   })
   await page.goto('/')
-  await expect(page.locator('.category-card')).toHaveCount(5)
+  await expect(page.locator('.category-card')).toHaveCount(6)
   await expect(page.locator('.tool-card, .hero-dog, .avatar, .hero-row, .ai-promo')).toHaveCount(0)
   await expect(page.locator('.sidebar a[href="/settings"]')).toHaveCount(1)
   await page.screenshot({ path: 'test-results/home-default.png', fullPage: true })
@@ -31,20 +31,16 @@ test('home keeps category navigation and blocks unregistered tool routes', async
   expect(external).toEqual([])
 })
 
-test('categories expose registered tools and global search opens the image category', async ({
-  page,
-}) => {
+test('all tools expose the registry and Ctrl K focuses page search', async ({ page }) => {
   await page.goto('/')
   await page.keyboard.press('Control+k')
-  const dialog = page.getByRole('dialog', { name: '搜索页面' })
-  await expect(dialog.getByRole('textbox')).toBeFocused()
-  await dialog.getByRole('textbox').fill('图片')
-  await page.keyboard.press('Enter')
-  await expect(page).toHaveURL(/\/category\/image$/)
-  await expect(page.getByRole('heading', { name: '图片工具' })).toBeVisible()
-  await expect(page.locator('.category-grid .category-card')).toHaveCount(1)
-  await expect(page.locator('.category-grid a[href="/tool/image-convert"]')).toBeVisible()
-  await expect(page.locator('.tool-card')).toHaveCount(0)
+  await expect(page).toHaveURL(/\/tools$/)
+  const search = page.getByRole('searchbox', { name: '搜索关键词' })
+  await expect(search).toBeFocused()
+  await search.fill('PNG转JPG')
+  await expect(page.locator('.tool-list-card').first()).toContainText('图片格式转换')
+  await search.press('Enter')
+  await expect(page).toHaveURL(/\/tool\/image-convert$/)
 })
 
 test('Material 3 uses drawn buttons and switches with persistent values', async ({ page }) => {
@@ -52,11 +48,12 @@ test('Material 3 uses drawn buttons and switches with persistent values', async 
   await page.getByRole('radio', { name: 'Material 3', exact: true }).click()
   await expect(page.locator('html')).toHaveAttribute('data-style', 'material')
   await expect(page.locator('button.button')).not.toHaveCount(0)
-  await expect(page.getByRole('switch')).toHaveCount(1)
+  const openings = page.getByRole('switch', { name: '游戏风格开屏动画' })
+  await expect(openings).toHaveCount(1)
   await expect(page.locator('md-filled-button, md-switch')).toHaveCount(0)
   await page.getByRole('button', { name: '深色', exact: true }).click()
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
-  await page.getByRole('switch').click()
+  await openings.click()
   expect(await page.evaluate(() => localStorage.getItem('fufu:openings'))).toBe('false')
   await page.reload()
   await expect(page.getByRole('radio', { name: 'Material 3', exact: true })).toHaveAttribute(
@@ -74,8 +71,6 @@ for (const style of styles.filter((item) => item.game)) {
     const opening = page.getByRole('dialog', { name: `${style.name}开屏动画` })
     await expect(opening).toBeVisible()
     await expect(opening).toHaveClass(new RegExp(`opening-${style.id}`))
-    await page.waitForTimeout(550)
-    await page.screenshot({ path: `test-results/opening-${style.id}.png` })
     await opening.getByRole('button', { name: '跳过' }).click()
     await expect(opening).toHaveCount(0)
     await page.getByRole('button', { name: '重播开屏' }).click()

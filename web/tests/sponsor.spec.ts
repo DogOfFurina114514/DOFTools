@@ -46,7 +46,7 @@ test('completion waits for an existing dialog and repeated completions do not st
         id: 'sponsor-fixture',
         title: text,
         description: text,
-        category: 'other',
+        tags: ['other'],
         fields: [],
         initialValues: {},
         inputSchema: { type: 'object' },

@@ -14,7 +14,7 @@ export function registerModelFixture() {
       '仅在真实模型测试中注册。',
       'Only registered during the real-model test.',
     ),
-    category: 'other',
+    tags: ['other'],
     fields: [],
     initialValues: { a: 0, b: 0 },
     inputSchema: schema,

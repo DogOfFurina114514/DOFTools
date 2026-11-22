@@ -7,7 +7,7 @@ export function registerAssistantFixture() {
     id: 'file-fixture',
     title: bilingual('文件处理测试', 'File processing fixture'),
     description: bilingual('将文本转为大写', 'Convert text to uppercase'),
-    category: 'document',
+    tags: ['document'],
     fields: [
       {
         type: 'files',

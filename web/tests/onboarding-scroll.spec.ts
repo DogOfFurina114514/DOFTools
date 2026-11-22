@@ -42,16 +42,16 @@ test('phone navigation, teaching and help omit AI, and a direct URL never loads 
 test('page navigation animates lightly and respects reduced motion', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' })
   await page.goto('/')
-  await page.locator('.sidebar-nav a[href="/category/audio"]').click()
-  await expect(page).toHaveURL(/\/category\/audio$/)
+  await page.locator('.sidebar-nav a[href="/tools"]').click()
+  await expect(page).toHaveURL(/\/tools$/)
   expect(
     await page
       .locator('.route-page')
       .evaluate((element) => getComputedStyle(element).animationName),
   ).toBe('page-enter')
   await page.emulateMedia({ reducedMotion: 'reduce' })
-  await page.locator('.sidebar-nav a[href="/category/video"]').click()
-  await expect(page.getByRole('heading', { name: '视频工具' })).toBeVisible()
+  await page.locator('.sidebar-nav a[href="/settings"]').click()
+  await expect(page.getByRole('heading', { name: '设置与外观' })).toBeVisible()
   await expect
     .poll(() =>
       page.locator('.route-page').evaluate((element) => getComputedStyle(element).animationName),
@@ -77,17 +77,17 @@ test('first visit setup saves preferences, teaches by navigation, and can reopen
   await expect(page.locator('html')).toHaveAttribute('data-style', 'material')
   await setup.getByRole('button', { name: 'Enter toolbox & start tour' }).click()
   const tour = page.getByRole('dialog', { name: 'Guided tour' })
-  await expect(tour).toContainText('Start with five categories')
+  await expect(tour).toContainText('Start with All tools and tags')
   await expect(page.locator('.app-shell')).not.toHaveAttribute('inert')
   await tour.getByRole('button', { name: 'Next' }).click()
-  await expect(page).toHaveURL(/\/category\/image$/)
+  await expect(page).toHaveURL(/\/tools$/)
   await tour.getByRole('button', { name: 'Next' }).click()
   await expect(page).toHaveURL(/\/settings$/)
   await tour.getByRole('button', { name: 'Next' }).click()
   await expect(page).toHaveURL(/\/ai$/)
   await expect(page.getByRole('button', { name: 'Start assistant', exact: true })).toBeVisible()
   await tour.getByRole('button', { name: 'Next' }).click()
-  await expect(page).toHaveURL(/\/$/)
+  await expect(page).toHaveURL(/\/tools$/)
   await tour.getByRole('button', { name: 'Start exploring' }).click()
   await page.reload()
   await expect(page.locator('.setup-dialog, .tour-card')).toHaveCount(0)
@@ -132,23 +132,23 @@ test('dismissed local chat notice stays hidden across routes, reload and languag
   await expect(page.locator('.ai-storage-notice')).toHaveCount(0)
 })
 
-test('audio follows video in navigation and search, with three enabled tools', async ({ page }) => {
+test('audio follows video in tags, with four matching tools', async ({ page }) => {
   await page.goto('/')
-  await expect(page.locator('.category-card')).toHaveCount(5)
-  const labels = await page.locator('.sidebar-nav .nav-item').allTextContents()
-  expect(labels.join(' ')).toMatch(/视频工具.*音频工具.*文档工具/)
+  await expect(page.locator('.category-card')).toHaveCount(6)
+  const labels = await page.locator('.category-card h3').allTextContents()
+  expect(labels.join(' ')).toMatch(/视频.*音频.*文档.*解析/)
   await page.locator('[data-ai-nav]').click()
   await expect(page.locator('[data-ai-nav]')).toHaveClass(/nav-item active/)
   await expect(page.locator('.sidebar-ai, .ai-running-bar')).toHaveCount(0)
   await page.keyboard.press('Control+k')
-  await page.getByRole('textbox', { name: '搜索关键词' }).fill('audio')
-  await page.keyboard.press('Enter')
-  await expect(page).toHaveURL(/\/category\/audio$/)
-  await expect(page.getByRole('heading', { name: '音频工具' })).toBeVisible()
-  await expect(page.locator('.category-grid')).toHaveCount(1)
-  await expect(page.locator('.category-grid .category-card')).toHaveCount(3)
+  await page.getByRole('searchbox', { name: '搜索关键词' }).fill('audio')
+  await page.getByRole('group', { name: '标签筛选' }).getByRole('button', { name: /^音频/ }).click()
+  await expect(page).toHaveURL(/\/tools/)
+  await expect(page.getByRole('heading', { name: '所有工具' })).toBeVisible()
+  await expect(page.locator('.all-tools-grid')).toHaveCount(1)
+  await expect(page.locator('.tool-list-card')).toHaveCount(4)
   await page.getByRole('button', { name: 'English', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Audio tools' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'All tools' })).toBeVisible()
 })
 
 test('themed page scrollbar drags and scrolls with keyboard; native chrome is hidden', async ({
@@ -232,8 +232,8 @@ test('scroll overlays follow CSS transforms and clear detached areas without a w
   expect(Math.abs(overlay!.x + overlay!.width - (area!.x + area!.width - 2))).toBeLessThan(1)
   await page.evaluate(() => document.getElementById('moving-scroll-wrapper')!.remove())
   await expect(rail).toHaveCount(0)
-  await page.locator('.sidebar-nav a[href="/category/audio"]').click()
-  await expect(page.getByRole('heading', { name: '音频工具' })).toBeVisible()
+  await page.locator('.sidebar-nav a[href="/tools"]').click()
+  await expect(page.getByRole('heading', { name: '所有工具' })).toBeVisible()
   expect(
     await page
       .locator('.themed-scrollbar')

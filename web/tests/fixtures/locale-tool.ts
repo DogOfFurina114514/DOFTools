@@ -6,7 +6,7 @@ export function registerLocaleFixture() {
     id: 'locale-fixture',
     title: bilingual('双语测试工具', 'Bilingual fixture'),
     description: bilingual('验证工具的语言与输入状态。', 'Checks tool language and input state.'),
-    category: 'other',
+    tags: ['other'],
     fields: [
       {
         type: 'text',

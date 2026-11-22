@@ -330,9 +330,9 @@ test('both tools are discoverable in Chinese and English and the workspace downl
     ['video to gif', '视频转 GIF'],
     ['gif to video', 'GIF 转视频'],
   ]) {
-    await page.locator('.search-trigger').click()
-    await page.getByRole('textbox', { name: '搜索关键词' }).fill(query)
-    await expect(page.locator('.search-result').first()).toContainText(title)
+    await page.keyboard.press('Control+k')
+    await page.getByRole('searchbox', { name: '搜索关键词' }).fill(query)
+    await expect(page.locator('.tool-list-card').first()).toContainText(title)
     await page.keyboard.press('Escape')
   }
   await page.goto('/tool/gif-video')

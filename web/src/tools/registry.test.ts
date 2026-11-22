@@ -14,7 +14,7 @@ const sample = (): ToolDefinition => ({
   id: 'test-sum',
   title: bilingual('测试加法', 'Test sum'),
   description: bilingual('测试工具', 'Fixture tool'),
-  category: 'other',
+  tags: ['other'],
   fields: [],
   initialValues: { a: 0, b: 0 },
   inputSchema: schema,
@@ -38,6 +38,13 @@ const context = () => ({
 })
 
 describe('shared tool registry', () => {
+  it('requires nonempty valid unique tags and accepts multiple tags', () => {
+    const registry = new ToolRegistry()
+    for (const tags of [[], ['other', 'other'], ['missing']] as ToolDefinition['tags'][])
+      expect(() => registry.register({ ...sample(), tags })).toThrow()
+    registry.register({ ...sample(), tags: ['video', 'parse'] })
+    expect(registry.get('test-sum')?.tags).toEqual(['video', 'parse'])
+  })
   for (const ai of [false, true]) {
     it(`${ai ? 'AI' : 'UI'} signals only completed, validated and uncancelled tools`, async () => {
       const events = new EventTarget(),

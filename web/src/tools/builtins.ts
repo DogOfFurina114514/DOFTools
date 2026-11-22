@@ -84,7 +84,7 @@ function define(
   id: string,
   title: [string, string],
   description: [string, string],
-  category: ToolDefinition['category'],
+  tags: ToolDefinition['tags'],
   fields: ToolField[],
   initialValues: ToolValues,
   execute: ToolDefinition['execute'],
@@ -93,7 +93,7 @@ function define(
     id,
     title: b(...title),
     description: b(...description),
-    category,
+    tags,
     fields,
     initialValues,
     execute: async (values, context) => {
@@ -131,7 +131,7 @@ export const builtinTools: ToolDefinition[] = [
       '批量压缩为 JPG、WebP 或 PNG。手动输入质量与最长边，或输入每张目标大小自动计算质量与尺寸；JPG 白底，动图仅第一帧。',
       'Batch compress images as JPG, WebP or PNG. Enter quality and maximum edge, or a per-image size limit for automatic quality and dimensions. JPEG uses white backgrounds; animations export their first frame.',
     ],
-    'image',
+    ['image'],
     [
       files('image/*,.svg,.bmp,.gif,.avif', true),
       format(['jpg', 'webp', 'png']),
@@ -182,7 +182,7 @@ export const builtinTools: ToolDefinition[] = [
       '本地压缩为 MP4 或 WebM。手动输入视频 / 音频码率，或按目标大小和时长自动计算并校验结果；支持限制分辨率与帧率。',
       'Compress locally as MP4 or WebM. Enter video / audio bitrates, or calculate from target size and duration and verify the output. Supports resolution and frame rate limits.',
     ],
-    'video',
+    ['video'],
     [
       files(mediaAccept),
       format(['mp4', 'webm']),
@@ -258,7 +258,7 @@ export const builtinTools: ToolDefinition[] = [
       '批量转换为 PNG、JPG 或 WebP。透明背景转 JPG 时填充白色，动图导出第一帧。',
       'Batch convert to PNG, JPG or WebP. JPEG uses a white background; animations export their first frame.',
     ],
-    'image',
+    ['image'],
     [
       files('image/*,.svg,.bmp,.gif,.avif', true),
       format(['png', 'jpg', 'webp']),
@@ -285,7 +285,7 @@ export const builtinTools: ToolDefinition[] = [
       '本地转换 MP4、WebM。可用编码取决于浏览器；建议使用新版 Chrome 或 Edge。',
       'Convert to MP4 or WebM locally. Codec availability depends on your browser; use a recent Chrome or Edge.',
     ],
-    'video',
+    ['video'],
     [
       files(mediaAccept),
       format(['mp4', 'webm']),
@@ -310,7 +310,7 @@ export const builtinTools: ToolDefinition[] = [
       '将视频片段转换为 GIF 动画，可设置起点、时长、帧率、尺寸和循环。最长 30 秒、输入最多 128 MiB；GIF 不含音轨。',
       'Convert a video clip to animated GIF with start time, duration, frame rate, size and looping. Up to 30 seconds and 128 MiB input; GIF has no audio.',
     ],
-    'video',
+    ['video', 'image'],
     [
       files(mediaAccept),
       {
@@ -352,7 +352,7 @@ export const builtinTools: ToolDefinition[] = [
       '将 GIF 动画转换为 MP4 或 WebM，保留播放节奏，可设置尺寸和透明区域背景色。仅播放一个循环，最长 60 秒、1800 帧，输入最多 128 MiB；无音轨。',
       'Convert animated GIF to MP4 or WebM, preserving timing with size and background options. One cycle, up to 60 seconds, 1800 frames and 128 MiB input; no audio.',
     ],
-    'video',
+    ['video', 'image'],
     [
       files('image/gif,.gif'),
       format(['mp4', 'webm']),
@@ -378,7 +378,7 @@ export const builtinTools: ToolDefinition[] = [
       '转换为 MP3、WAV、FLAC、M4A / AAC 或 OGG / Opus。WAV / FLAC 保存解码后的音质，M4A / OGG 取决于浏览器编码支持。',
       'Convert to MP3, WAV, FLAC, M4A / AAC or OGG / Opus. WAV / FLAC preserve decoded audio; M4A / OGG require browser encoder support.',
     ],
-    'audio',
+    ['audio'],
     [
       files(audioAccept),
       format(['mp3', 'wav', 'flac', 'm4a', 'ogg']),
@@ -403,7 +403,7 @@ export const builtinTools: ToolDefinition[] = [
       '支持 MP3、WAV、FLAC、M4A / AAC / ALAC、OGG、Opus、WebM、AIFF 和 WMA，本地识别旋律与和弦生成 MIDI。独奏效果较好，完整歌曲可能需要人工修正；最长 3 分钟。',
       'Transcribe MP3, WAV, FLAC, M4A / AAC / ALAC, OGG, Opus, WebM, AIFF and WMA melodies and chords to MIDI locally. Solo instruments work best; full songs may need editing. Up to 3 minutes.',
     ],
-    'audio',
+    ['audio'],
     [
       files(midiAudioAccept),
       {
@@ -437,7 +437,7 @@ export const builtinTools: ToolDefinition[] = [
       '本地合成为 MP3、WAV、FLAC、M4A / AAC / ALAC、OGG、Opus、WebM、AIFF 或 WMA，可选择音色。原乐器使用近似合成音色；最长 3 分钟。',
       'Render MIDI locally to MP3, WAV, FLAC, M4A / AAC / ALAC, OGG, Opus, WebM, AIFF or WMA with a choice of approximate synthesized timbres. Up to 3 minutes.',
     ],
-    'audio',
+    ['audio'],
     [
       files('.mid,.midi,audio/midi,audio/x-midi'),
       {
@@ -503,7 +503,7 @@ export const builtinTools: ToolDefinition[] = [
       'PDF、Word（DOCX）、PPT（PPTX）互转，Excel（XLS / XLSX / CSV）与 TXT 可导出为其中任一种。支持文字、表格和图片；复杂排版、图表、公式与动画可能无法完整保留。',
       'Convert PDF, Word (DOCX) and PowerPoint (PPTX). Export Excel (XLS / XLSX / CSV) or TXT to any of them. Text, tables and images are supported; complex layouts, charts, formulas and animations may not be preserved.',
     ],
-    'document',
+    ['document'],
     [
       files('.pdf,.docx,.pptx,.xlsx,.xls,.csv,.txt'),
       format(['pdf', 'docx', 'pptx', 'xlsx', 'csv', 'txt', 'html']),
@@ -538,7 +538,7 @@ export const builtinTools: ToolDefinition[] = [
       '按选择顺序将多张图片合并为 PDF。支持 PNG、JPG、WebP 等浏览器可读取的图片，最多 100 张。',
       'Combine images into a PDF in selection order. Supports PNG, JPG, WebP and other browser-readable images, up to 100 images.',
     ],
-    'document',
+    ['image', 'document'],
     [
       files('image/*,.svg,.bmp,.gif,.avif', true),
       {
@@ -562,7 +562,7 @@ export const builtinTools: ToolDefinition[] = [
       '从视频中提取音轨为 MP3、WAV、FLAC、M4A 或 OGG；可以指定开始时间与时长。',
       'Extract a video soundtrack to MP3, WAV, FLAC, M4A or OGG, with an optional start time and duration.',
     ],
-    'video',
+    ['video', 'audio'],
     [
       files(mediaAccept),
       format(['mp3', 'wav', 'flac', 'm4a', 'ogg']),
@@ -594,7 +594,7 @@ export const builtinTools: ToolDefinition[] = [
       '按时间间隔提取视频画面，最多 100 帧，打包为 ZIP。仅支持当前浏览器可播放的视频。',
       'Extract frames at a time interval and download up to 100 images as a ZIP. The video must be playable in this browser.',
     ],
-    'video',
+    ['video', 'image'],
     [
       files(mediaAccept),
       format(['png', 'jpg', 'webp']),
@@ -633,7 +633,7 @@ export const builtinTools: ToolDefinition[] = [
       '免登录解析蓝奏云、蓝奏云优享版的公开分享，浏览文件并获取不超过 100 MiB 的小文件直链。',
       'Resolve public Lanzou Cloud and Lanzou Premium shares without login, browse files and get download URLs for files up to 100 MiB.',
     ],
-    'other',
+    ['parse'],
     [
       {
         type: 'textarea',
@@ -664,13 +664,41 @@ export const builtinTools: ToolDefinition[] = [
       (await import('./processors/share-links')).resolveShareLinks(values, context),
   ),
   define(
+    'social-link',
+    ['社交平台解析', 'Social platform parser'],
+    [
+      '识别哔哩哔哩、抖音、快手、X、YouTube、TikTok 的分享链接。解析接口待接入，暂不能获取媒体直链。中国大陆用户需自备代理。',
+      'Identify Bilibili, Douyin, Kuaishou, X, YouTube and TikTok share links. Resolver API pending; media URLs are not available yet. Users in mainland China need their own proxy.',
+    ],
+    ['video', 'parse'],
+    [
+      {
+        type: 'textarea',
+        name: 'text',
+        required: true,
+        label: b('视频或帖子链接 / 分享文案', 'Video or post links / share text'),
+        placeholder: b(
+          '粘贴六个平台的视频或帖子链接，多个链接可分行。',
+          'Paste video or post links from the six platforms, one per line.',
+        ),
+        help: b(
+          '中国大陆用户需自备代理。26.2.0 仅提供链接识别，解析接口待接入；当前不会发送分享链接到解析服务。',
+          'Users in mainland China need their own proxy. 26.2.0 provides link identification; resolver API pending. Links are currently not sent to a resolver.',
+        ),
+      },
+    ],
+    { text: '' },
+    async (values, context) =>
+      (await import('./processors/social-links')).resolveSocialLinks(values, context),
+  ),
+  define(
     'archive-unlock',
     ['压缩包密码恢复', 'Archive password recovery'],
     [
       '恢复 ZIP（ZipCrypto / AES）密码并输出无密码 ZIP。支持已知密码、常见密码、字典和限定范围穷举；不能保证破解强密码，暂不支持 RAR / 7Z。',
       'Recover ZIP (ZipCrypto / AES) passwords and export an unlocked ZIP. Try a known password, common passwords, a dictionary or a bounded brute-force search. Strong passwords may not be recovered; RAR / 7Z are not supported yet.',
     ],
-    'other',
+    ['other'],
     [
       files('.zip,application/zip'),
       {

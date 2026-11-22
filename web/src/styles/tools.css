@@ -48,6 +48,7 @@
 .share-preview a {
   color: var(--green);
   text-decoration: underline;
+  overflow-wrap: anywhere;
 }
 .share-files {
   list-style: none;

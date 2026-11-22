@@ -9,14 +9,23 @@ import {
   useState,
   type RefObject,
 } from 'react'
-import { Link, NavLink, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
+import {
+  Link,
+  NavLink,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+  useParams,
+  Navigate,
+} from 'react-router-dom'
 import {
   ArrowRight,
   ArrowUpRight,
   Check,
   ChevronRight,
   CircleHelp,
-  Command,
+  Grid2X2,
   Home,
   Menu,
   Moon,
@@ -26,9 +35,10 @@ import {
   Sparkles,
   Sun,
   X,
-  type LucideIcon,
 } from 'lucide-react'
-import { categories } from './data/tools'
+import { isToolTag, tagOf } from './data/tags'
+import { AllTools } from './pages/AllTools'
+import { PinToolButton } from './components/PinToolButton'
 import { isStringArray, useStoredState, readStorage, writeStorage } from './lib/storage'
 import { detectAICapability } from './lib/ai'
 import { AppearanceProvider, presetFor, useAppearance, type StyleId } from './lib/appearance'
@@ -40,9 +50,7 @@ import { PageBoundary } from './components/PageBoundary'
 import { AISessionProvider } from './lib/ai-session'
 import { toolRegistry, ToolWorkspace } from './tools'
 import { LocaleProvider, useLocale } from './lib/i18n'
-import { localize, translate, type Locale } from './lib/locale'
 import { styleName } from './lib/appearance'
-import { searchScore, toolSearchAliases } from './lib/search'
 import { LanguageSlider } from './components/LanguageSlider'
 import { IconButton } from './components/controls'
 import { SetupWizard, GuidedTour } from './components/Onboarding'
@@ -62,6 +70,8 @@ const AIPage = lazy(() => workspacePages.ai().then((module) => ({ default: modul
 
 // Existing tool workbenches are dormant until tools are explicitly enabled again.
 interface ToolboxContext {
+  pinned: string[]
+  togglePin: (id: string) => void
   favorites: string[]
   recent: string[]
   toggleFavorite: (id: string) => void
@@ -112,55 +122,43 @@ function useDialogFocus(ref: RefObject<HTMLElement | null>) {
   }, [ref])
 }
 
-function CategoryPage() {
-  const { t, resolve } = useLocale()
+function LegacyCategoryPage() {
   const { id } = useParams()
-  const category = categories.find((item) => item.id === id)
-  if (!category) return <UnavailablePage />
-  const registered = toolRegistry.list().filter((tool) => tool.category === id)
-  return (
-    <>
-      <div className="page-heading category-page-heading">
-        <span className={`tool-icon large ${category.color}`}>
-          <category.icon size={28} />
-        </span>
-        <span className="eyebrow">{category.english} · A SPACE RESERVED</span>
-        <h1>
-          {resolve(category.label)}
-          <span className="heading-dot">.</span>
-        </h1>
-        <p>{resolve(category.description)}</p>
-      </div>
-      {registered.length ? (
-        <div className="category-grid">
-          {registered.map((tool) => (
-            <Link key={tool.id} to={`/tool/${tool.id}`} className="category-card">
-              <div>
-                <h3>{resolve(tool.title)}</h3>
-                <span>{resolve(tool.description)}</span>
-              </div>
-              <ArrowUpRight size={18} />
-            </Link>
-          ))}
-        </div>
-      ) : (
-        <EmptyPanel
-          icon={<category.icon size={34} strokeWidth={1.4} />}
-          title={t('这里，先留一个位置。', 'A space for what comes next.')}
-          description={t(
-            '当前暂未添加工具。分类框架已经准备好，等下一份好用的灵感。',
-            'No tools have been added yet. This category is ready for future additions.',
-          )}
-        />
-      )}
-    </>
-  )
+  const location = useLocation()
+  if (!id || !isToolTag(id)) return <UnavailablePage />
+  const params = new URLSearchParams(location.search)
+  params.delete('tag')
+  params.append('tag', id)
+  return <Navigate replace to={`/tools?${params}`} />
 }
 
 function RegisteredToolPage() {
   const { id } = useParams()
   const tool = toolRegistry.get(id ?? '')
-  return tool ? <ToolWorkspace key={tool.id} tool={tool} /> : <UnavailablePage />
+  const { pinned, togglePin } = useToolbox()
+  const { t, resolve } = useLocale()
+  return tool ? (
+    <>
+      <div className="registered-tool-nav">
+        <Link to="/tools" className="text-button">
+          {t('所有工具', 'All tools')}
+        </Link>
+        <div className="tool-tag-list">
+          {tool.tags.map((id) => (
+            <span key={id}>{resolve(tagOf(id).label)}</span>
+          ))}
+        </div>
+        <PinToolButton
+          title={resolve(tool.title)}
+          pinned={pinned.includes(tool.id)}
+          onToggle={() => togglePin(tool.id)}
+        />
+      </div>
+      <ToolWorkspace key={tool.id} tool={tool} />
+    </>
+  ) : (
+    <UnavailablePage />
+  )
 }
 
 function UnavailablePage() {
@@ -170,160 +168,10 @@ function UnavailablePage() {
       icon={<Search size={30} />}
       title={t('这个角落，暂时留白。', 'Nothing here just yet.')}
       description={t(
-        '找不到这个工具或页面，请通过分类或搜索重新选择。',
-        'This tool or page could not be found. Choose another from categories or search.',
+        '找不到这个工具或页面，请通过所有工具中的标签或搜索重新选择。',
+        'This tool or page could not be found. Choose another using tags or search in All tools.',
       )}
     />
-  )
-}
-
-function navigationPages(
-  desktop: boolean,
-  locale: Locale,
-): { title: string; description: string; path: string; icon: LucideIcon }[] {
-  const t = (zh: string, en: string) => translate(locale, zh, en)
-  return [
-    {
-      title: t('工具箱概览', 'Overview'),
-      description: t('你的个人小空间', 'Your personal workspace'),
-      path: '/',
-      icon: Home,
-    },
-    ...categories.map((category) => ({
-      title: localize(locale, category.label),
-      description: localize(locale, category.description),
-      path: `/category/${category.id}`,
-      icon: category.icon,
-    })),
-    ...(desktop
-      ? [
-          {
-            title: t('AI 助手', 'AI assistant'),
-            description: t(
-              '在电脑端运行的本地多模态助手',
-              'A local multimodal assistant for desktop',
-            ),
-            path: '/ai',
-            icon: Sparkles,
-          },
-        ]
-      : []),
-    {
-      title: t('设置与外观', 'Settings & appearance'),
-      description: t(
-        '普通与游戏主题、明暗主题与游戏开屏动画',
-        'Standard and game themes, color preferences, and openings',
-      ),
-      path: '/settings',
-      icon: Settings2,
-    },
-    ...toolRegistry.list().map((tool) => ({
-      title: localize(locale, tool.title),
-      description: localize(locale, tool.description),
-      path: `/tool/${tool.id}`,
-      icon: categories.find((category) => category.id === tool.category)!.icon,
-    })),
-  ]
-}
-
-function SearchDialog({ onClose }: { onClose: () => void }) {
-  const { t, locale } = useLocale()
-  const [query, setQuery] = useState('')
-  const dialog = useRef<HTMLElement>(null)
-  const navigate = useNavigate()
-  useDialogFocus(dialog)
-  const pages = navigationPages(detectAICapability().desktop, locale)
-  const alternate = navigationPages(detectAICapability().desktop, locale === 'en' ? 'zh-CN' : 'en')
-  const results = pages
-    .map((page, index) => ({
-      page,
-      score: Math.max(
-        searchScore(query, page.title),
-        searchScore(query, alternate[index]?.title ?? ''),
-        searchScore(
-          query,
-          `${page.title} ${page.description} ${alternate[index]?.title} ${alternate[index]?.description} ${toolSearchAliases[page.path.replace('/tool/', '')] ?? ''}`,
-        ),
-      ),
-    }))
-    .filter((item) => item.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .map((item) => item.page)
-  const open = (path: string) => {
-    navigate(path)
-    onClose()
-  }
-  return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <section
-        ref={dialog}
-        className="search-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-label={t('搜索页面', 'Search pages')}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <div className="search-dialog-input">
-          <Search size={20} />
-          <input
-            aria-label={t('搜索关键词', 'Search keywords')}
-            placeholder={t(
-              '搜索工具或要求，如 PNG 转 JPG…',
-              'Search tools or tasks, e.g. PNG to JPG…',
-            )}
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' && results[0]) {
-                event.preventDefault()
-                open(results[0].path)
-              }
-            }}
-          />
-          <button
-            className="icon-button"
-            onClick={onClose}
-            aria-label={t('关闭搜索', 'Close search')}
-          >
-            <X size={18} />
-          </button>
-        </div>
-        <div className="search-results">
-          <span className="search-result-label">
-            {query
-              ? t('找到 {count} 个页面', '{count} pages found', { count: results.length })
-              : t('逛逛这个小空间', 'Explore the toolbox')}
-          </span>
-          {results.map((page) => (
-            <button key={page.path} className="search-result" onClick={() => open(page.path)}>
-              <span className="search-result-icon">
-                <page.icon size={19} strokeWidth={1.6} />
-              </span>
-              <span>
-                <strong>{page.title}</strong>
-                <small>{page.description}</small>
-              </span>
-              <ChevronRight size={16} />
-            </button>
-          ))}
-          {!results.length && (
-            <p className="search-no-results">
-              {t('暂时没有找到，试试“设置”或“图片”。', 'No results. Try “settings” or “image”.')}
-            </p>
-          )}
-        </div>
-        <div className="search-dialog-footer">
-          <span>
-            <kbd>↵</kbd>
-            {t('打开第一个结果', 'Open first result')}
-          </span>
-          <span>
-            <kbd>esc</kbd>
-            {t('关闭', 'Close')}
-          </span>
-        </div>
-      </section>
-    </div>
   )
 }
 
@@ -353,8 +201,8 @@ function HelpDialog({ onClose }: { onClose: () => void }) {
         <h2 id="help-title">{t('欢迎来到你的小空间。', 'Welcome to your workspace.')}</h2>
         <p>
           {t(
-            '从五个分类中选择工具，或搜索“PNG 转 JPG”这样的处理要求。',
-            'Choose a tool from five categories, or search for a task like “PNG to JPG”.',
+            '在所有工具中搜索要求或筛选标签；多选标签只显示同时包含全部标签的工具。点击图钉可将工具固定到侧栏。',
+            'Search tasks or filter tags in All tools. Multiple tags require every tag to match. Pin tools for sidebar shortcuts.',
           )}
         </p>
         <div className="help-steps">
@@ -384,7 +232,7 @@ function HelpDialog({ onClose }: { onClose: () => void }) {
               <strong>
                 {detectAICapability().desktop
                   ? t('使用 AI 助手', 'Use AI assistant')
-                  : t('搜索分类与页面', 'Search categories and pages')}
+                  : t('搜索和固定工具', 'Search and pin tools')}
               </strong>
               {detectAICapability().desktop
                 ? t(
@@ -392,8 +240,8 @@ function HelpDialog({ onClose }: { onClose: () => void }) {
                     'Start the assistant on desktop to chat, understand images and process files. Content stays on your device.',
                   )
                 : t(
-                    '右上角搜索可以直接找到分类或设置，点击结果即可前往。',
-                    'Use search in the top-right corner to find categories or settings, then select a result to open it.',
+                    '进入所有工具搜索，点击结果打开工具；点击图钉可固定到侧边栏，一键进入。',
+                    'Search in All tools and open a result. Pin it to the sidebar for one-click access.',
                   )}
             </p>
           </div>
@@ -412,7 +260,9 @@ function Application() {
   const { style, setStyle, mode, setMode, openings, reducedMotion } = useAppearance()
   const [favorites, setFavorites] = useStoredState('favorites', [] as string[], isStringArray)
   const [recent, setRecent] = useStoredState('recent', [] as string[], isStringArray)
-  const [searchOpen, setSearchOpen] = useState(false)
+  const [pinned, setPinned] = useStoredState('pinned-tools', [] as string[], isStringArray)
+  const navigate = useNavigate()
+  const searchRequested = useRef(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [sponsorMode, setSponsorMode] = useState<'manual' | 'automatic' | null>(null)
@@ -496,7 +346,6 @@ function Application() {
   const openGuide = () => {
     setSponsorMode(null)
     setSponsorPending(false)
-    setSearchOpen(false)
     setHelpOpen(false)
     setMobileOpen(false)
     setSplash(null)
@@ -510,6 +359,10 @@ function Application() {
   useEffect(() => {
     setMobileOpen(false)
     window.scrollTo({ top: 0 })
+    if (searchRequested.current && location.pathname === '/tools') {
+      searchRequested.current = false
+      document.querySelector<HTMLInputElement>('.all-tools-search input')?.focus()
+    }
   }, [location.pathname])
   useEffect(() => {
     const success = () => {
@@ -542,7 +395,6 @@ function Application() {
       sponsorPending &&
       !sponsorDisabled &&
       !sponsorMode &&
-      !searchOpen &&
       !helpOpen &&
       !mobileOpen &&
       !guide &&
@@ -551,16 +403,7 @@ function Application() {
       setSponsorPending(false)
       setSponsorMode('automatic')
     }
-  }, [
-    sponsorPending,
-    sponsorDisabled,
-    sponsorMode,
-    searchOpen,
-    helpOpen,
-    mobileOpen,
-    guide,
-    splash,
-  ])
+  }, [sponsorPending, sponsorDisabled, sponsorMode, helpOpen, mobileOpen, guide, splash])
   useEffect(() => {
     const handle = (event: KeyboardEvent) => {
       if (sponsorRef.current) return
@@ -568,10 +411,13 @@ function Application() {
       if (document.querySelector('.opening') && event.key !== 'Escape') return
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault()
-        setSearchOpen((open) => !open)
+        searchRequested.current = window.location.pathname !== '/tools'
+        if (searchRequested.current) navigate('/tools')
+        requestAnimationFrame(() =>
+          document.querySelector<HTMLInputElement>('.all-tools-search input')?.focus(),
+        )
       }
       if (event.key === 'Escape') {
-        setSearchOpen(false)
         setHelpOpen(false)
         setMobileOpen(false)
         setSplash(null)
@@ -582,7 +428,7 @@ function Application() {
       window.removeEventListener('keydown', handle)
       if (toastTimer.current) clearTimeout(toastTimer.current)
     }
-  }, [])
+  }, [navigate])
   useEffect(() => {
     if (!mobileOpen) return
     const original = document.body.style.overflow
@@ -591,24 +437,32 @@ function Application() {
       document.body.style.overflow = original
     }
   }, [mobileOpen])
-  const sectionName = location.pathname.startsWith('/category/')
-    ? resolve(categories.find((category) => location.pathname.endsWith(category.id))?.label ?? '')
-    : location.pathname === '/ai'
-      ? t('AI 助手', 'AI assistant')
-      : location.pathname === '/settings'
-        ? t('设置与外观', 'Settings & appearance')
-        : location.pathname === '/'
-          ? t('概览', 'Overview')
-          : location.pathname.startsWith('/tool/')
-            ? resolve(
-                toolRegistry.get(location.pathname.slice('/tool/'.length))?.title ??
-                  t('工具未找到', 'Tool not found'),
-              )
-            : t('页面未找到', 'Page not found')
+  const sectionName =
+    location.pathname === '/tools'
+      ? t('所有工具', 'All tools')
+      : location.pathname === '/ai'
+        ? t('AI 助手', 'AI assistant')
+        : location.pathname === '/settings'
+          ? t('设置与外观', 'Settings & appearance')
+          : location.pathname === '/'
+            ? t('概览', 'Overview')
+            : location.pathname.startsWith('/tool/')
+              ? resolve(
+                  toolRegistry.get(location.pathname.slice('/tool/'.length))?.title ??
+                    t('工具未找到', 'Tool not found'),
+                )
+              : t('页面未找到', 'Page not found')
   useEffect(() => {
     document.title = `${sectionName} · ${brand}`
   }, [sectionName, brand])
   const context: ToolboxContext = {
+    pinned,
+    togglePin: (id) => {
+      if (!toolRegistry.get(id)) return
+      setPinned((previous) =>
+        previous.includes(id) ? previous.filter((item) => item !== id) : [...previous, id],
+      )
+    },
     favorites,
     recent,
     notify,
@@ -647,19 +501,41 @@ function Application() {
               <span>{t('工具箱概览', 'Overview')}</span>
               <span className="nav-home-dot" />
             </NavLink>
-            <span className="nav-section-label">
-              {t('分类空间', 'Categories')}
-              {locale === 'zh-CN' && <small>CATEGORIES</small>}
-            </span>
-            {categories.map((category) => (
-              <NavLink to={`/category/${category.id}`} key={category.id} className="nav-item">
-                <category.icon size={19} />
-                <span>{resolve(category.label)}</span>
-                <span className="nav-count">
-                  {toolRegistry.list().filter((tool) => tool.category === category.id).length}
-                </span>
-              </NavLink>
-            ))}
+            <NavLink to="/tools" className="nav-item all-tools-nav">
+              <Grid2X2 size={19} />
+              <span>{t('所有工具', 'All tools')}</span>
+              <span className="nav-count">{toolRegistry.list().length}</span>
+            </NavLink>
+            <span className="nav-section-label">{t('固定工具', 'Pinned tools')}</span>
+            <div className="pinned-tools">
+              {pinned
+                .filter((id) => toolRegistry.get(id))
+                .map((id) => {
+                  const tool = toolRegistry.get(id)!
+                  const Icon = tagOf(tool.tags[0]).icon
+                  return (
+                    <div className="pinned-tool-row" key={id}>
+                      <NavLink to={`/tool/${id}`} className="nav-item">
+                        <Icon size={18} />
+                        <span>{resolve(tool.title)}</span>
+                      </NavLink>
+                      <PinToolButton
+                        title={resolve(tool.title)}
+                        pinned
+                        onToggle={() => context.togglePin(id)}
+                      />
+                    </div>
+                  )
+                })}
+              {!pinned.some((id) => toolRegistry.get(id)) && (
+                <p className="pinned-tools-empty">
+                  {t(
+                    '在所有工具中点击图钉，添加快捷入口。',
+                    'Use a pin in All tools to add a shortcut.',
+                  )}
+                </p>
+              )}
+            </div>
             <div className="nav-divider" />
             <span className="nav-section-label">
               {t('我的空间', 'Workspace')}
@@ -718,7 +594,6 @@ function Application() {
                 type="button"
                 className="sponsor-trigger"
                 onClick={() => {
-                  setSearchOpen(false)
                   setHelpOpen(false)
                   setMobileOpen(false)
                   setSponsorPending(false)
@@ -728,13 +603,6 @@ function Application() {
                 {t('赞助', 'Sponsor')}
               </button>
               <LanguageSlider />
-              <button className="search-trigger" onClick={() => setSearchOpen(true)}>
-                <Search size={16} />
-                <span>{t('搜索页面…', 'Search pages…')}</span>
-                <kbd>
-                  <Command size={10} /> K
-                </kbd>
-              </button>
               <span className="topbar-divider" />
               <IconButton
                 onClick={() => setMode(mode === 'light' ? 'dark' : 'light')}
@@ -764,7 +632,11 @@ function Application() {
                 <div className="route-page">
                   <Routes>
                     <Route path="/" element={<Dashboard />} />
-                    <Route path="/category/:id" element={<CategoryPage />} />
+                    <Route
+                      path="/tools"
+                      element={<AllTools pinned={pinned} onTogglePin={context.togglePin} />}
+                    />
+                    <Route path="/category/:id" element={<LegacyCategoryPage />} />
                     <Route path="/tool/:id" element={<RegisteredToolPage />} />
                     <Route path="/ai" element={<AIPage />} />
                     <Route
@@ -796,7 +668,6 @@ function Application() {
           </main>
         </div>
       </div>
-      {searchOpen && <SearchDialog onClose={() => setSearchOpen(false)} />}
       {helpOpen && <HelpDialog onClose={() => setHelpOpen(false)} />}
       {sponsorMode && (
         <SponsorDialog

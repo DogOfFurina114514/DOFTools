@@ -126,15 +126,16 @@ async function zipTexts(bytes: number[], pattern: RegExp) {
 }
 test('overview counts and bilingual fuzzy task search open the actual tools', async ({ page }) => {
   await page.goto('/')
-  await expect(page.locator('.tool-total strong')).toHaveText('15')
+  await expect(page.locator('.tool-total strong')).toHaveText('16')
   for (const [id, count] of [
-    ['image', 2],
-    ['video', 6],
-    ['audio', 3],
+    ['image', 6],
+    ['video', 7],
+    ['audio', 4],
     ['document', 2],
-    ['other', 2],
+    ['other', 1],
+    ['parse', 2],
   ])
-    await expect(page.locator(`.category-card[href="/category/${id}"]`)).toContainText(
+    await expect(page.locator(`.category-card[href="/tools?tag=${id}"]`)).toContainText(
       `${count} 个工具`,
     )
   for (const query of [
@@ -145,28 +146,28 @@ test('overview counts and bilingual fuzzy task search open the actual tools', as
     'PPT to PDF',
     '压缩包解密',
   ]) {
-    await page.locator('.search-trigger').click()
-    await page.getByRole('textbox', { name: '搜索关键词' }).fill(query)
+    await page.keyboard.press('Control+k')
+    await page.getByRole('searchbox', { name: '搜索关键词' }).fill(query)
     const id = query.toLowerCase().includes('png')
       ? 'image-convert'
       : query.includes('压缩')
         ? 'archive-unlock'
         : 'document-convert'
-    await expect(page.locator('.search-result').first()).toContainText(
+    await expect(page.locator('.tool-list-card').first()).toContainText(
       id === 'image-convert'
         ? '图片格式转换'
         : id === 'archive-unlock'
           ? '压缩包密码恢复'
           : '文档格式转换',
     )
-    await page.getByRole('textbox', { name: '搜索关键词' }).press('Enter')
+    await page.getByRole('searchbox', { name: '搜索关键词' }).press('Enter')
     await expect(page).toHaveURL(new RegExp(`/tool/${id}$`))
     await expect(page.locator('.search-dialog')).toHaveCount(0)
   }
   await page.getByRole('button', { name: 'English', exact: true }).click()
-  await page.locator('.search-trigger').click()
-  await page.getByRole('textbox', { name: 'Search keywords' }).fill('PNG转JPG')
-  await expect(page.locator('.search-result').first()).toContainText('Image format converter')
+  await page.keyboard.press('Control+k')
+  await page.getByRole('searchbox', { name: 'Search keywords' }).fill('PNG转JPG')
+  await expect(page.locator('.tool-list-card').first()).toContainText('Image format converter')
 })
 test('image UI produces a JPEG with dimensions and keeps options across language changes', async ({
   page,

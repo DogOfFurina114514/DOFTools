@@ -130,5 +130,5 @@ test('resource failure keeps progress incomplete and offers a keyboard-accessibl
   await expect(page.getByRole('button', { name: '重新加载' })).toBeFocused()
   await page.keyboard.press('Escape')
   await expect(page.locator('.opening')).toHaveCount(0)
-  await expect(page.locator('.category-card')).toHaveCount(5)
+  await expect(page.locator('.category-card')).toHaveCount(6)
 })
