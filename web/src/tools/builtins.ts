@@ -2,6 +2,7 @@ import { bilingual as b } from '../lib/locale'
 import type { ToolDefinition, ToolField, ToolValues } from './registry'
 import { midiAudioAccept, midiAudioFormats } from './processors/midi-formats'
 import { prepareToolResources } from '../lib/offline'
+import { builtinToolIcons } from './icons'
 
 const files = (accept: string, multiple = false): ToolField => ({
   type: 'files',
@@ -81,7 +82,7 @@ function fieldSchema(field: ToolField): Record<string, unknown> {
   return { type: 'string' }
 }
 function define(
-  id: string,
+  id: keyof typeof builtinToolIcons,
   title: [string, string],
   description: [string, string],
   tags: ToolDefinition['tags'],
@@ -91,6 +92,7 @@ function define(
 ): ToolDefinition {
   return {
     id,
+    icon: builtinToolIcons[id],
     title: b(...title),
     description: b(...description),
     tags,

@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
+import { FileOutput } from 'lucide-react'
+import { ToolIcon } from '../components/ToolIcon'
+import { presetFor, useAppearance } from '../lib/appearance'
 import { ToolUI } from '../components/controls'
 import { useLocale } from '../lib/i18n'
 import { errorMessage, type DisplayText } from '../lib/locale'
@@ -127,6 +130,7 @@ export function ToolFields({
 
 export function ToolWorkspace({ tool }: { tool: ToolDefinition }) {
   const { t, resolve, locale } = useLocale()
+  const { style } = useAppearance()
   const [values, setValues] = useState<ToolValues>(tool.initialValues)
   const [result, setResult] = useState<ToolResult | null>(null)
   const [busy, setBusy] = useState(false)
@@ -172,70 +176,98 @@ export function ToolWorkspace({ tool }: { tool: ToolDefinition }) {
     }
   }
   return (
-    <ToolUI.Panel title={resolve(tool.title)}>
+    <ToolUI.Panel
+      title={
+        <span className="workspace-tool-heading">
+          <ToolIcon tool={tool} size={25} />
+          <span>{resolve(tool.title)}</span>
+        </span>
+      }
+    >
       <p className="ui-panel-description">{resolve(tool.description)}</p>
-      <ToolFields fields={tool.fields} values={values} onValueChange={setValues} disabled={busy} />
-      {busy && (
-        <ToolUI.Progress
-          label={status ? resolve(status) : t('正在处理', 'Processing')}
-          value={progress}
-        />
-      )}
-      {error && (
-        <p className="error-message" role="alert">
-          {resolve(error)}
-        </p>
-      )}
-      <div className="ui-actions">
-        <ToolUI.Button type="button" disabled={busy} onClick={run}>
-          {t('开始处理', 'Run tool')}
-        </ToolUI.Button>
-        {busy ? (
-          <ToolUI.Button variant="secondary" onClick={() => controller.current?.abort()}>
-            {t('取消', 'Cancel')}
-          </ToolUI.Button>
-        ) : (
-          <ToolUI.Button
-            variant="secondary"
-            onClick={() => {
-              setValues(tool.initialValues)
-              setResult(null)
-              setError('')
-            }}
-          >
-            {t('重置', 'Reset')}
-          </ToolUI.Button>
+      <div className="workspace-body">
+        <div className="workspace-input">
+          <ToolFields
+            fields={tool.fields}
+            values={values}
+            onValueChange={setValues}
+            disabled={busy}
+          />
+          {busy && (
+            <ToolUI.Progress
+              label={status ? resolve(status) : t('正在处理', 'Processing')}
+              value={progress}
+            />
+          )}
+          {error && (
+            <p className="error-message" role="alert">
+              {resolve(error)}
+            </p>
+          )}
+          <div className="ui-actions">
+            <ToolUI.Button type="button" disabled={busy} onClick={run}>
+              {t('开始处理', 'Run tool')}
+            </ToolUI.Button>
+            {busy ? (
+              <ToolUI.Button variant="secondary" onClick={() => controller.current?.abort()}>
+                {t('取消', 'Cancel')}
+              </ToolUI.Button>
+            ) : (
+              <ToolUI.Button
+                variant="secondary"
+                onClick={() => {
+                  setValues(tool.initialValues)
+                  setResult(null)
+                  setError('')
+                }}
+              >
+                {t('重置', 'Reset')}
+              </ToolUI.Button>
+            )}
+          </div>
+        </div>
+        {result && (
+          <div className="ui-result workspace-output" role="status">
+            <p>{resolve(result.summary)}</p>
+            {result.details && (
+              <ul>
+                {result.details.map((detail, index) => (
+                  <li key={index}>{resolve(detail)}</li>
+                ))}
+              </ul>
+            )}
+            {result.preview}
+            {result.files?.map((file) => (
+              <ToolUI.Button
+                key={file.name}
+                variant="secondary"
+                onClick={() => {
+                  const url = URL.createObjectURL(file.blob)
+                  const link = document.createElement('a')
+                  link.href = url
+                  link.download = file.name
+                  link.click()
+                  setTimeout(() => URL.revokeObjectURL(url), 1000)
+                }}
+              >
+                {t('下载', 'Download')} {file.name}
+              </ToolUI.Button>
+            ))}
+          </div>
+        )}
+        {!result && presetFor(style).game && (
+          <div className="workspace-output workspace-output-empty">
+            <FileOutput size={34} strokeWidth={1.2} />
+            <h3>{t('处理结果', 'Your output')}</h3>
+            <p>
+              {t(
+                '选择素材并开始处理，完成后的文件和解析结果将在这里显示。',
+                'Choose your input and run the tool. Completed files and resolved links will appear here.',
+              )}
+            </p>
+          </div>
         )}
       </div>
-      {result && (
-        <div className="ui-result" role="status">
-          <p>{resolve(result.summary)}</p>
-          {result.details && (
-            <ul>
-              {result.details.map((detail, index) => (
-                <li key={index}>{resolve(detail)}</li>
-              ))}
-            </ul>
-          )}
-          {result.preview}
-          {result.files?.map((file) => (
-            <ToolUI.Button
-              key={file.name}
-              variant="secondary"
-              onClick={() => {
-                const url = URL.createObjectURL(file.blob)
-                const link = document.createElement('a')
-                link.href = url
-                link.download = file.name
-                link.click()
-                setTimeout(() => URL.revokeObjectURL(url), 1000)
-              }}
-            >
-              {t('下载', 'Download')} {file.name}
-            </ToolUI.Button>
-          ))}
-        </div>
-      )}
     </ToolUI.Panel>
   )
 }

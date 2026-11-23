@@ -19,7 +19,8 @@ import { useLocalAI, type ChatItem } from '../lib/ai-session'
 import { EmptyPanel, PageHeading } from '../components/UI'
 import { IconButton } from '../components/controls'
 import { ChatMarkdown } from '../components/ChatMarkdown'
-import { ToolUI } from '../tools'
+import { ToolUI, toolRegistry } from '../tools'
+import { ToolIcon } from '../components/ToolIcon'
 import { useLocale } from '../lib/i18n'
 import { bilingual, type DisplayText } from '../lib/locale'
 import { useStoredState } from '../lib/storage'
@@ -74,6 +75,9 @@ function Message({ item }: { item: ChatItem }) {
       ))}
       {item.tools?.map((tool) => (
         <Link className="ai-tool-card" to={`/tool/${tool.id}`} key={tool.id}>
+          <span className="ai-tool-icon">
+            <ToolIcon tool={toolRegistry.get(tool.id) ?? tool} size={24} />
+          </span>
           <div>
             <strong>{resolve(tool.title)}</strong>
             <p>{resolve(tool.description)}</p>

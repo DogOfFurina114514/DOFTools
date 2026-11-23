@@ -1,10 +1,11 @@
 import { ArrowRight, ArrowUpRight, Palette, ShieldCheck } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { toolTags } from '../data/tags'
-import { useAppearance, styleName } from '../lib/appearance'
+import { useAppearance, styleName, presetFor } from '../lib/appearance'
 import { useLocale } from '../lib/i18n'
 import { StylePreview } from '../components/UI'
 import { toolRegistry } from '../tools'
+import { GameDashboard } from './GameDashboard'
 
 const makeCopy = (t: ReturnType<typeof useLocale>['t']) => ({
   default: t('你的日常，轻一点', 'A little lighter, every day'),
@@ -17,11 +18,12 @@ const makeCopy = (t: ReturnType<typeof useLocale>['t']) => ({
   minecraft: t('从一个方块，开始创造', 'Build from the first block'),
 })
 
-export function Dashboard() {
+export function Dashboard({ pinned = [] }: { pinned?: string[] }) {
   const { t, resolve, locale } = useLocale()
   const copy = makeCopy(t)
   const { style } = useAppearance()
   const tools = toolRegistry.list()
+  if (presetFor(style).game) return <GameDashboard pinned={pinned} />
   return (
     <>
       <div className="page-heading welcome-heading">

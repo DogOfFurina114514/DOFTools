@@ -511,7 +511,7 @@ export function Panel({
   children,
   actions,
 }: {
-  title: string
+  title: ReactNode
   children: ReactNode
   actions?: ReactNode
 }) {

@@ -57,7 +57,7 @@ export const STYLE_PRESETS = [
     id: 'genshin',
     name: '原神',
     english: 'A JOURNEY AMONG STARS',
-    description: '蓝白金、星轨与云间的冒险。',
+    description: '星云背景、双页冒险手册与章节目录。',
     game: true,
     opening: '星门开启',
   },
@@ -65,7 +65,7 @@ export const STYLE_PRESETS = [
     id: 'zenless',
     name: '绝区零',
     english: 'WELCOME TO YOUR ZONE',
-    description: '荧光绿、街头排版与唱片节奏。',
+    description: '荧光频道、街头海报与票券式工具卡。',
     game: true,
     opening: '频道接入',
   },
@@ -73,7 +73,7 @@ export const STYLE_PRESETS = [
     id: 'endfield',
     name: '终末地',
     english: 'YOUR NEXT FRONTIER',
-    description: '工业黄、坐标网格与功能主义。',
+    description: '动态等高线、工业终端与分栏工作台。',
     game: true,
     opening: '终端启动',
   },
@@ -81,7 +81,7 @@ export const STYLE_PRESETS = [
     id: 'minecraft',
     name: 'Minecraft',
     english: 'BUILD YOUR WORKSPACE',
-    description: '方块纹理、像素边框与草地上的新起点。',
+    description: '方块地形、物品栏与立体制作台控件。',
     game: true,
     opening: '世界准备',
   },
@@ -100,22 +100,22 @@ const englishStyles = {
   glass: ['Liquid Glass', 'Flowing colors, translucent surfaces and soft highlights.', ''],
   genshin: [
     'Genshin Impact',
-    'Blue, white and gold, stars and adventures above the clouds.',
+    'Celestial scenery, a two-page handbook and chapter contents.',
     'Celestial gate',
   ],
   zenless: [
     'Zenless Zone Zero',
-    'Neon green, street typography and vinyl rhythms.',
+    'Neon channels, street posters and ticket-style tool cards.',
     'Channel connection',
   ],
   endfield: [
     'Arknights: Endfield',
-    'Industrial yellow, coordinate grids and functional panels.',
+    'Changing terrain contours, an industrial terminal and a split workbench.',
     'Terminal startup',
   ],
   minecraft: [
     'Minecraft',
-    'Block textures, pixel borders and a fresh start on the grass.',
+    'Block landscapes, inventory slots and bevelled crafting controls.',
     'World preparation',
   ],
 } as const
@@ -135,6 +135,8 @@ interface Appearance {
   openings: boolean
   setOpenings: (enabled: boolean) => void
   reducedMotion: boolean
+  sceneMotion: boolean
+  setSceneMotion: (enabled: boolean) => void
   accentColors: ThemeAccents
   setAccentColor: (color: string) => void
   resetAccentColor: () => void
@@ -183,6 +185,11 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
   )
   const [reducedMotion, setReducedMotion] = useState(
     () => matchMedia('(prefers-reduced-motion: reduce)').matches,
+  )
+  const [sceneMotion, setSceneMotion] = useStoredState(
+    'scene-motion',
+    true,
+    (value): value is boolean => typeof value === 'boolean',
   )
   const themeTransition = useRef<ViewTransition | null>(null)
   const themeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -236,6 +243,7 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
   useLayoutEffect(() => {
     document.documentElement.dataset.style = style
     document.documentElement.dataset.theme = mode
+    document.documentElement.dataset.sceneMotion = sceneMotion && !reducedMotion ? 'on' : 'off'
     const root = document.documentElement
     const color = accentColors[style as OrdinaryStyle]
     const tokens = themeColorTokens(color ?? '#617e53', mode === 'dark')
@@ -254,7 +262,7 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
     )
     const background = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', background)
-  }, [style, mode, accentColors, glassGradient])
+  }, [style, mode, accentColors, glassGradient, sceneMotion, reducedMotion])
 
   useEffect(() => {
     const media = matchMedia('(prefers-reduced-motion: reduce)')
@@ -274,6 +282,8 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
         openings,
         setOpenings,
         reducedMotion,
+        sceneMotion,
+        setSceneMotion,
         accentColors,
         setAccentColor,
         resetAccentColor,

@@ -93,7 +93,7 @@ export function StylePicker({ onSelect }: { onSelect: (style: StyleId) => void }
                   {preset.game ? (
                     <>
                       <span className="mini-dot" />
-                      {t('专属开屏动画', 'Includes an opening')}
+                      {t('专属界面与开屏', 'Unique interface & opening')}
                     </>
                   ) : preset.id === 'material' ? (
                     'Material 3'

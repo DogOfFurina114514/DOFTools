@@ -49,11 +49,15 @@ function OutputName() {
 
 定义包含 `id`、`title`、`description`、`tags`、`fields`、`initialValues`、`inputSchema`、`execute`。`fields` 是区分联合类型，支持 text、textarea、number、slider、select、checkbox、switch、files。名称、说明、字段标签、帮助、占位符、选项标签及结果摘要均使用 `LocalizedText`：`{'zh-CN': string, en: string}`，可通过 `bilingual(中文, English)` 创建。注册时校验双语言完整性。
 
+`icon` 可提供 `lucide-react` 的 `LucideIcon`，表示工具本身，独立于标签图标。内置工具在 `src/tools/icons.ts` 中分别指定不同图标，定义函数的 ID 类型保证新增内置工具时必须添加映射。`src/components/ToolIcon.tsx` 统一目录、首页、固定栏、工作台和 AI 推荐的显示；图标对辅助技术隐藏，链接和标题名称保留原文。外部定义未提供图标时使用扳手图标。
+
 ```ts
+import { Wrench } from 'lucide-react'
 import { bilingual, LocalizedError, type ToolDefinition } from '../tools'
 
 const definition: ToolDefinition = {
   id: 'your-tool',
+  icon: Wrench,
   title: bilingual('工具名称', 'Tool name'),
   description: bilingual('工具的用途', 'What this tool does'),
   tags: ['other'],

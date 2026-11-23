@@ -1,3 +1,36 @@
+.catalog-tool-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding-right: 24px;
+}
+.tool-list-link .catalog-tool-heading h2 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  padding-right: 0;
+}
+.catalog-tool-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  color: var(--green);
+  background: var(--soft-green);
+  border: 1px solid var(--line);
+  border-radius: var(--button-radius, 8px);
+}
+.workspace-tool-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  overflow-wrap: anywhere;
+}
+.workspace-tool-heading > svg {
+  flex-shrink: 0;
+  color: var(--green);
+}
 .tool-total {
   display: flex;
   align-items: baseline;

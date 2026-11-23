@@ -1,0 +1,1851 @@
+/* Game interfaces: independent scenery, layouts, navigation and control surfaces. */
+.theme-scenery {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+:is(
+    [data-style='genshin'],
+    [data-style='zenless'],
+    [data-style='endfield'],
+    [data-style='minecraft']
+  )
+  .main-shell {
+  position: relative;
+  z-index: 1;
+}
+.catalog-tool-index {
+  display: none;
+}
+.game-dashboard {
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+}
+.game-welcome {
+  grid-area: welcome;
+  display: flex;
+  align-items: center;
+  position: relative;
+  min-height: 300px;
+  gap: 28px;
+  padding: 40px;
+}
+.game-welcome-copy {
+  min-width: 0;
+  z-index: 1;
+  flex: 1;
+}
+.game-kicker {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 2.5px;
+  margin-bottom: 20px;
+}
+.game-welcome h1 {
+  font-size: clamp(30px, 3vw, 48px);
+  line-height: 1.22;
+  margin: 0;
+  font-family: var(--heading-font);
+}
+.game-welcome p {
+  max-width: 480px;
+  margin-top: 18px;
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--secondary);
+}
+.game-enter {
+  margin-top: 26px;
+  min-height: 44px;
+}
+.game-availability {
+  align-self: flex-start;
+  text-align: right;
+  z-index: 1;
+}
+.game-availability strong {
+  display: block;
+  font-size: 38px;
+  font-weight: 400;
+  line-height: 1;
+}
+.game-availability span {
+  font-size: 10px;
+  display: block;
+  margin-top: 9px;
+  white-space: nowrap;
+}
+.game-emblem {
+  position: relative;
+  flex: 0 0 130px;
+  height: 130px;
+  display: grid;
+  place-items: center;
+}
+.game-emblem > svg {
+  width: 60px;
+  height: 60px;
+}
+.game-emblem > i {
+  position: absolute;
+  inset: 0;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  opacity: 0.4;
+}
+.game-emblem > i:nth-of-type(2) {
+  inset: 9px;
+}
+.game-emblem > i:nth-of-type(3) {
+  inset: -9px;
+  border-style: dashed;
+}
+.game-tag-section {
+  grid-area: tags;
+  min-width: 0;
+}
+.game-shortcuts {
+  grid-area: shortcuts;
+  min-width: 0;
+}
+.game-section-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  min-height: 30px;
+}
+.game-section-heading > span {
+  font-size: 10px;
+  color: var(--muted);
+}
+.game-section-heading h2 {
+  font-size: 16px;
+  font-weight: 600;
+}
+.game-section-heading > a {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+  font-size: 11px;
+  align-items: center;
+  color: var(--secondary);
+}
+.game-tag-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.game-tag-link {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 66px;
+  padding: 10px 16px;
+  transition:
+    background 0.18s,
+    border-color 0.18s;
+}
+.game-tag-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 40px;
+  height: 40px;
+}
+.game-tag-name {
+  min-width: 0;
+  font-size: 14px;
+}
+.game-tag-name > small {
+  display: block;
+  font-size: 10px;
+  color: var(--secondary);
+  margin-top: 5px;
+}
+.game-tag-number {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--muted);
+}
+.game-shortcut-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.game-tool-link {
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  min-width: 0;
+  transition:
+    background 0.18s,
+    border-color 0.18s,
+    box-shadow 0.18s;
+}
+.game-tool-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.game-tool-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+}
+.game-tool-number {
+  font-size: 11px;
+  color: var(--muted);
+}
+.game-tool-link h3 {
+  font-size: 18px;
+  line-height: 1.45;
+}
+.game-tool-link p {
+  color: var(--secondary);
+  font-size: 12px;
+  line-height: 1.75;
+  margin: 12px 0 24px;
+}
+.game-tool-bottom {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  font-size: 10px;
+}
+.game-settings-link {
+  grid-area: settings;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  font-size: 11px;
+  color: var(--secondary);
+}
+.game-settings-link > a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.workspace-input {
+  min-width: 0;
+}
+.workspace-output-empty {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  color: var(--secondary);
+  padding: 35px 24px;
+}
+.workspace-output-empty h3 {
+  color: var(--text);
+  font-size: 16px;
+}
+.workspace-output-empty p {
+  max-width: 260px;
+  line-height: 1.8;
+  font-size: 12px;
+}
+:is(
+  [data-style='genshin'],
+  [data-style='zenless'],
+  [data-style='endfield'],
+  [data-style='minecraft']
+) {
+  --app-sidebar-width: 242px;
+}
+:is(
+    [data-style='genshin'],
+    [data-style='zenless'],
+    [data-style='endfield'],
+    [data-style='minecraft']
+  )
+  .sidebar {
+  width: var(--app-sidebar-width);
+}
+:is(
+    [data-style='genshin'],
+    [data-style='zenless'],
+    [data-style='endfield'],
+    [data-style='minecraft']
+  )
+  .main-shell {
+  margin-left: var(--app-sidebar-width);
+}
+:is(
+    [data-style='genshin'],
+    [data-style='zenless'],
+    [data-style='endfield'],
+    [data-style='minecraft']
+  )
+  .topbar {
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(14px);
+}
+:is(
+    [data-style='genshin'],
+    [data-style='zenless'],
+    [data-style='endfield'],
+    [data-style='minecraft']
+  )
+  .catalog-tool-index {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 1px;
+  margin-bottom: 16px;
+  color: var(--secondary);
+}
+:is(
+    [data-style='genshin'],
+    [data-style='zenless'],
+    [data-style='endfield'],
+    [data-style='minecraft']
+  )
+  .tool-list-card,
+:is(
+    [data-style='genshin'],
+    [data-style='zenless'],
+    [data-style='endfield'],
+    [data-style='minecraft']
+  )
+  .ui-panel {
+  background: color-mix(in srgb, var(--surface) 96%, transparent);
+}
+:is(
+    [data-style='genshin'],
+    [data-style='zenless'],
+    [data-style='endfield'],
+    [data-style='minecraft']
+  )
+  .workspace-output-empty {
+  margin-top: 24px;
+  border: 1px dashed var(--line);
+}
+
+/* Adventurer's handbook: two paper pages, binding, chapter tabs and entry rows. */
+[data-style='genshin'] {
+  --app-sidebar-width: 230px;
+  --control-radius: 22px;
+  --heading-font: var(--interface-font);
+}
+[data-style='genshin'] body {
+  background-image: linear-gradient(
+    155deg,
+    color-mix(in srgb, var(--bg) 83%, #a8bddb),
+    var(--bg) 65%
+  );
+  background-attachment: fixed;
+}
+.scenery-genshin {
+  color: color-mix(in srgb, var(--accent) 60%, transparent);
+}
+.celestial-map {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.55;
+}
+.celestial-haze {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 70% 0%, #a9cdeb55, transparent 60%);
+}
+.celestial-cloud {
+  position: absolute;
+  width: 80vw;
+  height: 46vh;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, #f6f4e366, transparent 65%);
+  filter: blur(25px);
+  animation: cloud-drift 36s ease-in-out infinite alternate;
+}
+.celestial-cloud.cloud-one {
+  top: 15%;
+  right: -30%;
+}
+.celestial-cloud.cloud-two {
+  bottom: -15%;
+  left: 20%;
+  animation-delay: -18s;
+}
+[data-style='genshin'] .sidebar {
+  background: color-mix(in srgb, var(--sidebar) 94%, transparent);
+  backdrop-filter: blur(16px);
+  border-right: 1px solid var(--hero-border);
+}
+[data-style='genshin'] .brand {
+  margin-bottom: 32px;
+}
+[data-style='genshin'] .nav-item {
+  border-radius: 3px;
+}
+[data-style='genshin'] .nav-item.active {
+  border: 1px solid var(--hero-border);
+  border-radius: 3px;
+  position: relative;
+}
+[data-style='genshin'] .nav-item.active::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  margin-left: 5px;
+  border: 1px solid currentColor;
+  transform: rotate(45deg);
+  flex-shrink: 0;
+}
+[data-style='genshin'] .main-content {
+  padding-top: 36px;
+  max-width: 1320px;
+  margin: auto;
+}
+[data-style='genshin'] .game-dashboard {
+  position: relative;
+  grid-template-columns: minmax(0, 0.42fr) minmax(0, 0.58fr);
+  grid-template-areas: 'welcome shortcuts' 'tags shortcuts' 'settings settings';
+  gap: 0;
+  padding: 30px 32px 0;
+  border: 9px solid #46536a;
+  border-radius: 7px 12px 12px 7px;
+  background: linear-gradient(90deg, var(--surface) 40%, var(--bg) 42%, var(--surface) 44%);
+  box-shadow:
+    0 3px 0 #e0d8c9,
+    0 7px 0 #46536a,
+    0 18px 40px #15223735;
+}
+[data-style='genshin'] .handbook-binding {
+  position: absolute;
+  left: 42%;
+  top: 0;
+  bottom: 56px;
+  width: 24px;
+  transform: translateX(-50%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #25334615 35%,
+    #25334635 49%,
+    #fff2 52%,
+    transparent
+  );
+  pointer-events: none;
+}
+[data-style='genshin'] .game-welcome {
+  display: block;
+  padding: 8px 34px 26px 6px;
+  min-height: 0;
+  border-bottom: 1px solid var(--hero-border);
+  margin-right: 24px;
+}
+[data-style='genshin'] .game-emblem {
+  display: none;
+}
+[data-style='genshin'] .game-kicker {
+  color: var(--accent);
+  font-size: 9px;
+  letter-spacing: 1.2px;
+  margin-bottom: 12px;
+}
+[data-style='genshin'] .game-welcome h1 {
+  font-size: clamp(26px, 2.2vw, 34px);
+  font-weight: 600;
+}
+[data-style='genshin'] .game-welcome p {
+  font-size: 12px;
+  margin-top: 12px;
+}
+[data-style='genshin'] .game-enter {
+  margin-top: 16px;
+}
+[data-style='genshin'] .game-availability {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 18px;
+  color: var(--accent);
+}
+[data-style='genshin'] .game-availability strong {
+  font-size: 20px;
+  font-weight: 600;
+}
+[data-style='genshin'] .game-tag-section {
+  padding: 24px 28px 30px 6px;
+}
+[data-style='genshin'] .game-section-heading {
+  border-bottom: 1px solid var(--hero-border);
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+}
+[data-style='genshin'] .game-tag-link {
+  position: relative;
+  min-height: 54px;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--line);
+}
+[data-style='genshin'] .game-tag-link:hover {
+  background: var(--hover);
+}
+[data-style='genshin'] .game-tag-icon {
+  border: 1px solid var(--hero-border);
+  border-radius: 4px 12px 12px 4px;
+  color: var(--accent);
+  background: var(--soft-green);
+  flex-basis: 34px;
+  height: 34px;
+}
+[data-style='genshin'] .game-tag-number {
+  display: block;
+}
+[data-style='genshin'] .game-shortcuts {
+  padding: 8px 0 30px 32px;
+}
+[data-style='genshin'] .game-shortcut-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+[data-style='genshin'] .game-tool-link {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 28px;
+  grid-template-areas: 'icon title action' 'icon description action';
+  gap: 6px 14px;
+  padding: 20px 8px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+[data-style='genshin'] .game-tool-link:hover {
+  background: var(--hover);
+}
+[data-style='genshin'] .game-tool-top {
+  grid-area: icon;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  align-self: center;
+  margin-bottom: 0;
+}
+[data-style='genshin'] .game-tool-icon {
+  border: 1px solid var(--hero-border);
+  border-radius: 50%;
+  background: var(--soft-green);
+  color: var(--green-dark);
+}
+[data-style='genshin'] .game-tool-link h3 {
+  grid-area: title;
+  font-size: 16px;
+}
+[data-style='genshin'] .game-tool-link p {
+  grid-area: description;
+  font-size: 11px;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+[data-style='genshin'] .game-tool-bottom {
+  grid-area: action;
+  align-self: center;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+[data-style='genshin'] .game-tool-bottom > span {
+  display: none;
+}
+[data-style='genshin'] .game-tool-bottom > svg {
+  border: 1px solid var(--hero-border);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  padding: 5px;
+}
+[data-style='genshin'] .game-settings-link {
+  padding: 18px 6px;
+  border-top: 1px solid var(--hero-border);
+}
+@media (max-width: 800px) {
+  [data-style='genshin'] .game-dashboard {
+    padding: 22px 18px 0;
+    border-width: 6px;
+    background: var(--surface);
+  }
+  [data-style='genshin'] .handbook-binding {
+    display: none;
+  }
+  [data-style='genshin'] .game-welcome {
+    margin-right: 0;
+    min-height: 0;
+  }
+  [data-style='genshin'] .game-shortcuts {
+    padding: 0 0 20px;
+  }
+  [data-style='genshin'] .game-tag-section {
+    padding: 0;
+  }
+  [data-style='genshin'] .game-tag-number {
+    display: none;
+  }
+}
+[data-style='genshin'] .all-tools-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+[data-style='genshin'] .tool-list-card {
+  border-radius: 5px;
+  border: 1px solid var(--hero-border);
+  box-shadow: inset 0 0 0 4px color-mix(in srgb, var(--accent) 6%, transparent);
+}
+[data-style='genshin'] .tool-list-link h2 {
+  font-family: var(--heading-font);
+  font-size: 20px;
+}
+[data-style='genshin'] .tool-list-link > svg {
+  border: 1px solid var(--hero-border);
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  padding: 5px;
+}
+[data-style='genshin'] .ui-panel {
+  border-radius: 5px;
+  border: 1px solid var(--hero-border);
+  box-shadow: inset 0 0 0 5px color-mix(in srgb, var(--accent) 6%, transparent);
+  padding: 28px;
+}
+[data-style='genshin'] .ui-panel-heading {
+  justify-content: center;
+  border-bottom: 1px solid var(--hero-border);
+  padding-bottom: 20px;
+  margin-bottom: 20px;
+}
+[data-style='genshin'] .ui-panel-heading h2 {
+  font-family: var(--heading-font);
+  font-size: 25px;
+}
+[data-style='genshin'] .ui-panel-description {
+  text-align: center;
+  max-width: 740px;
+  margin-inline: auto;
+}
+[data-style='genshin'] .workspace-output {
+  background: var(--soft-green);
+  border-radius: 3px;
+}
+[data-style='genshin'] :is(.button, .ui-button) {
+  border-radius: 24px;
+  min-height: 44px;
+  padding-inline: 23px;
+  border: 1px solid var(--hero-border);
+  box-shadow: inset 0 0 0 3px #ffffff15;
+}
+[data-style='genshin'] :is(.button, .ui-button):not(.secondary) {
+  background: #4c586b;
+  color: #f6edda;
+  border-color: #f6edda;
+}
+[data-style='genshin'] :is(.button, .ui-button):not(.secondary)::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  margin-right: 3px;
+  background: #d8c394;
+  transform: rotate(45deg);
+  flex-shrink: 0;
+}
+[data-style='genshin'] .ui-file-picker {
+  border: 1px solid var(--hero-border);
+  border-radius: 5px;
+  background: var(--soft-green);
+}
+[data-style='genshin'] .tool-tag {
+  border-radius: 20px;
+  border-color: var(--hero-border);
+}
+
+/* Channel board: typography, halftone, tickets and hard neon controls. */
+[data-style='zenless'] {
+  --app-sidebar-width: 260px;
+  --control-radius: 2px;
+}
+.city-halftone {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(var(--line) 0.8px, transparent 0.8px);
+  background-size: 6px 6px;
+  opacity: 0.42;
+}
+.city-sticker {
+  position: absolute;
+  right: -50px;
+  top: 8%;
+  font-size: clamp(160px, 25vw, 400px);
+  line-height: 1;
+  font-weight: 1000;
+  font-style: italic;
+  transform: rotate(-8deg);
+  color: color-mix(in srgb, var(--text) 4%, transparent);
+}
+.city-record {
+  position: absolute;
+  width: 550px;
+  height: 550px;
+  right: -180px;
+  bottom: -260px;
+  border-radius: 50%;
+  background: repeating-radial-gradient(
+    circle,
+    transparent 0 13px,
+    color-mix(in srgb, var(--text) 12%, transparent) 14px 15px
+  );
+  animation: record-turn 80s linear infinite;
+}
+.city-record::after {
+  content: '';
+  position: absolute;
+  inset: 44%;
+  background: #d9f534;
+  border-radius: 50%;
+  border: 12px solid var(--bg);
+}
+.city-scan {
+  position: absolute;
+  width: 100%;
+  height: 100px;
+  top: -100px;
+  background: linear-gradient(transparent, #d9f5340c, transparent);
+  animation: city-sweep 22s linear infinite;
+}
+[data-style='zenless'] .sidebar {
+  padding-top: 27px;
+  border-right: 4px solid #111;
+}
+[data-style='zenless'] .brand {
+  padding-bottom: 22px;
+  border-bottom: 3px solid #d9f534;
+  margin-bottom: 24px;
+}
+[data-style='zenless'] .nav-item {
+  height: 48px;
+  border-radius: 2px;
+  font-weight: 700;
+}
+[data-style='zenless'] .topbar {
+  border-bottom: 2px solid var(--text);
+}
+[data-style='zenless'] .main-content {
+  max-width: 1500px;
+  margin-inline: auto;
+}
+[data-style='zenless'] .game-dashboard {
+  grid-template-columns: minmax(0, 1fr) 275px;
+  grid-template-areas: 'welcome tags' 'shortcuts shortcuts' 'settings settings';
+  gap: 25px;
+}
+[data-style='zenless'] .game-welcome {
+  background: #151515;
+  color: #f5f5ea;
+  border: 3px solid #151515;
+  padding: 40px 35px;
+  min-height: 415px;
+  box-shadow: 6px 6px 0 #d9f534;
+}
+[data-style='zenless'] .game-welcome-copy {
+  position: relative;
+}
+[data-style='zenless'] .game-welcome h1 {
+  font-weight: 950;
+  font-style: italic;
+  font-size: clamp(38px, 4vw, 58px);
+  max-width: 430px;
+}
+[data-style='zenless'] .game-welcome p {
+  color: #c8c9bf;
+}
+[data-style='zenless'] .game-kicker {
+  color: #d9f534;
+  font-weight: 800;
+  letter-spacing: 3px;
+}
+[data-style='zenless'] .game-emblem {
+  position: absolute;
+  right: 25px;
+  bottom: 30px;
+  width: 130px;
+  opacity: 0.16;
+  transform: rotate(15deg);
+}
+[data-style='zenless'] .game-availability {
+  align-self: flex-start;
+  color: #d9f534;
+}
+[data-style='zenless'] .game-availability strong {
+  font-style: italic;
+  font-weight: 900;
+}
+[data-style='zenless'] .game-enter {
+  background: #d9f534;
+  color: #141414;
+  border-color: #d9f534;
+}
+[data-style='zenless'] .game-tag-menu {
+  gap: 9px;
+}
+[data-style='zenless'] .game-tag-link {
+  background: var(--surface);
+  border: 2px solid var(--text);
+  min-height: 54px;
+  padding: 6px 12px;
+  box-shadow: 3px 3px 0 var(--line);
+}
+[data-style='zenless'] .game-tag-link:hover {
+  background: var(--soft-green);
+}
+[data-style='zenless'] .game-tag-icon {
+  width: 30px;
+  flex-basis: 30px;
+}
+[data-style='zenless'] .game-tag-name {
+  font-weight: 800;
+}
+[data-style='zenless'] .game-tag-name small {
+  display: none;
+}
+[data-style='zenless'] .game-tag-number {
+  font-size: 14px;
+  font-style: italic;
+}
+[data-style='zenless'] .game-section-heading h2 {
+  font-size: 20px;
+  font-weight: 850;
+}
+[data-style='zenless'] .game-shortcut-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 19px;
+}
+[data-style='zenless'] .game-tool-link {
+  border: 2px solid var(--text);
+  border-radius: 2px;
+  box-shadow: 4px 4px 0 var(--text);
+}
+[data-style='zenless'] .game-tool-link:hover {
+  background: var(--soft-green);
+  box-shadow: 5px 5px 0 var(--text);
+}
+[data-style='zenless'] .game-tool-top {
+  margin-bottom: 12px;
+}
+[data-style='zenless'] .game-tool-icon {
+  background: var(--text);
+  color: var(--surface);
+  border-radius: 50%;
+}
+[data-style='zenless'] .game-tool-number {
+  font-size: 35px;
+  font-style: italic;
+  font-weight: 900;
+  color: var(--line);
+}
+[data-style='zenless'] .game-tool-link h3 {
+  font-weight: 900;
+}
+[data-style='zenless'] .game-tool-bottom {
+  border-top: 2px dashed var(--line);
+}
+[data-style='zenless'] .all-tools-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+[data-style='zenless'] .tool-list-card {
+  border: 2px solid var(--text);
+  border-radius: 2px;
+  box-shadow: 4px 4px 0 var(--line);
+}
+[data-style='zenless'] .tool-list-link {
+  padding: 20px;
+}
+[data-style='zenless'] .tool-list-link h2 {
+  font-size: 18px;
+  font-weight: 900;
+  padding-right: 20px;
+}
+[data-style='zenless'] .tool-list-footer {
+  border-top: 2px dashed var(--line);
+  padding-top: 13px;
+}
+[data-style='zenless'] .tool-tag {
+  border: 2px solid var(--text);
+  border-radius: 2px;
+  box-shadow: 2px 2px 0 var(--line);
+  font-weight: 700;
+}
+[data-style='zenless'] .tool-tag[aria-pressed='true'] {
+  background: #d9f534;
+  color: #161713;
+  border-color: #151515;
+}
+[data-style='zenless'] .all-tools-search {
+  border: 2px solid var(--text);
+  border-radius: 2px;
+}
+[data-style='zenless'] .ui-panel {
+  border: 2px solid var(--text);
+  border-radius: 2px;
+  box-shadow: 5px 5px 0 var(--line);
+  padding: 26px;
+}
+[data-style='zenless'] .ui-panel-heading {
+  border-bottom: 3px solid var(--text);
+  padding-bottom: 18px;
+}
+[data-style='zenless'] .ui-panel-heading h2 {
+  font-size: 28px;
+  font-weight: 900;
+  font-style: italic;
+}
+[data-style='zenless'] .workspace-output {
+  border-top: 3px dashed var(--line);
+  border-radius: 0;
+  background: var(--soft-green);
+}
+[data-style='zenless'] :is(.button, .ui-button) {
+  border: 2px solid var(--text);
+  border-radius: 2px;
+  font-weight: 800;
+  box-shadow: 3px 3px 0 var(--text);
+  min-height: 44px;
+}
+[data-style='zenless'] :is(.button, .ui-button):not(.secondary) {
+  background: #d9f534;
+  color: #151515;
+  border-color: #151515;
+}
+[data-style='zenless'] :is(.button, .ui-button):active:not(:disabled) {
+  translate: 2px 2px;
+  box-shadow: 1px 1px 0 var(--text);
+}
+[data-style='zenless'] .ui-file-picker {
+  border: 2px dashed var(--text);
+  border-radius: 2px;
+  background: var(--surface);
+}
+
+/* Survey terminal: changing terrain contours and a split operational layout. */
+[data-style='endfield'] {
+  --app-sidebar-width: 270px;
+  --control-radius: 0px;
+}
+[data-style='endfield'] body {
+  background-image: none;
+}
+.terrain-contours {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+}
+.terrain-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 100px 100px;
+  opacity: 0.18;
+}
+.terrain-cross {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border: 1px solid color-mix(in srgb, var(--secondary) 30%, transparent);
+}
+.terrain-cross::before,
+.terrain-cross::after {
+  content: '';
+  position: absolute;
+  background: var(--secondary);
+}
+.terrain-cross::before {
+  width: 1px;
+  height: 32px;
+  top: -5px;
+  left: 11px;
+}
+.terrain-cross::after {
+  height: 1px;
+  width: 32px;
+  left: -5px;
+  top: 11px;
+}
+.cross-one {
+  right: 8%;
+  top: 19%;
+}
+.cross-two {
+  right: 25%;
+  bottom: 9%;
+}
+[data-style='endfield'] .sidebar {
+  background: color-mix(in srgb, var(--sidebar) 94%, transparent);
+  border-right: 1px solid var(--text);
+  padding: 26px 19px 16px;
+  backdrop-filter: blur(10px);
+}
+[data-style='endfield'] .brand {
+  border-bottom: 1px solid var(--secondary);
+  padding-bottom: 24px;
+  margin-bottom: 24px;
+}
+[data-style='endfield'] .nav-item {
+  border-radius: 0;
+  height: 46px;
+}
+[data-style='endfield'] .nav-item.active {
+  border-left: 4px solid #242424;
+  background: #fffa00;
+  color: #242424;
+}
+[data-style='endfield'] .nav-section-label {
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+[data-style='endfield'] .topbar {
+  border-bottom: 1px solid var(--text);
+  height: 64px;
+}
+[data-style='endfield'] .main-content {
+  max-width: 1560px;
+  margin-inline: auto;
+  padding-top: 28px;
+}
+[data-style='endfield'] .game-dashboard {
+  grid-template-columns: minmax(0, 1fr) 230px;
+  grid-template-areas: 'welcome tags' 'shortcuts tags' 'settings settings';
+  gap: 22px;
+}
+[data-style='endfield'] .game-welcome {
+  padding: 32px;
+  align-items: flex-start;
+  min-height: 260px;
+  border: 1px solid var(--text);
+  border-top: 7px solid #fffa00;
+  background: color-mix(in srgb, var(--surface) 91%, transparent);
+}
+[data-style='endfield'] .game-kicker {
+  letter-spacing: 3px;
+  color: var(--secondary);
+}
+[data-style='endfield'] .game-emblem {
+  position: absolute;
+  width: 145px;
+  right: 36px;
+  bottom: 15px;
+  opacity: 0.09;
+  transform: rotate(-18deg);
+}
+[data-style='endfield'] .game-emblem i {
+  border-radius: 0;
+}
+[data-style='endfield'] .game-welcome h1 {
+  font-weight: 800;
+  font-size: clamp(30px, 3vw, 43px);
+  letter-spacing: -1px;
+}
+[data-style='endfield'] .game-availability {
+  border-left: 1px solid var(--line);
+  padding-left: 18px;
+}
+[data-style='endfield'] .game-availability strong {
+  font: 38px var(--interface-font);
+}
+[data-style='endfield'] .game-tag-section {
+  border: 1px solid var(--secondary);
+  padding: 18px;
+  background: color-mix(in srgb, var(--surface) 91%, transparent);
+}
+[data-style='endfield'] .game-section-heading {
+  border-bottom: 1px solid var(--secondary);
+  padding-bottom: 12px;
+}
+[data-style='endfield'] .game-section-heading > span {
+  font-family: var(--interface-font);
+}
+[data-style='endfield'] .game-tag-link {
+  min-height: 66px;
+  padding: 9px 0;
+  gap: 11px;
+  border-bottom: 1px solid var(--line);
+}
+[data-style='endfield'] .game-tag-link:hover {
+  background: var(--soft-green);
+}
+[data-style='endfield'] .game-tag-icon {
+  flex-basis: 30px;
+  height: 30px;
+}
+[data-style='endfield'] .game-tag-number {
+  display: none;
+}
+[data-style='endfield'] .game-shortcut-grid {
+  gap: 12px;
+}
+[data-style='endfield'] .game-tool-link {
+  border: 1px solid var(--secondary);
+  border-radius: 0;
+  padding: 20px;
+  position: relative;
+}
+[data-style='endfield'] .game-tool-link::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  border-style: solid;
+  border-width: 0 0 9px 9px;
+  border-color: transparent transparent #fffa00 transparent;
+}
+[data-style='endfield'] .game-tool-link:hover {
+  border-color: var(--text);
+  background: var(--hover);
+}
+[data-style='endfield'] .game-tool-icon {
+  background: var(--soft-green);
+  border: 1px solid var(--line);
+}
+[data-style='endfield'] .game-tool-number {
+  font-family: var(--interface-font);
+}
+[data-style='endfield'] .tool-catalog {
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr);
+  column-gap: 26px;
+  grid-template-areas: 'header header' 'filters count' 'filters results';
+  align-items: start;
+}
+[data-style='endfield'] .catalog-header {
+  grid-area: header;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.9fr);
+  gap: 28px;
+  align-items: center;
+}
+[data-style='endfield'] .catalog-header .page-heading {
+  margin-bottom: 28px;
+}
+[data-style='endfield'] .catalog-header .all-tools-search {
+  margin-bottom: 28px;
+}
+[data-style='endfield'] .tool-tag-filters {
+  grid-area: filters;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 9px;
+  padding: 18px 13px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+[data-style='endfield'] .tool-tag {
+  justify-content: flex-start;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  min-height: 44px;
+  padding: 10px;
+}
+[data-style='endfield'] .tool-tag > span {
+  margin-left: auto;
+}
+[data-style='endfield'] .tool-tag[aria-pressed='true'] {
+  background: #fffa00;
+  color: #242424;
+}
+[data-style='endfield'] .tool-result-count {
+  grid-area: count;
+}
+[data-style='endfield'] .all-tools-grid {
+  grid-area: results;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+[data-style='endfield'] .tool-catalog > .empty-state {
+  grid-area: results;
+}
+[data-style='endfield'] .tool-list-card {
+  border: 1px solid var(--secondary);
+  border-radius: 0;
+}
+[data-style='endfield'] .tool-list-link {
+  padding: 21px;
+}
+[data-style='endfield'] .catalog-tool-index {
+  font-family: var(--interface-font);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 9px;
+}
+[data-style='endfield'] .tool-list-link h2 {
+  font-size: 17px;
+  font-weight: 700;
+}
+[data-style='endfield'] .tool-list-footer {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+[data-style='endfield'] .all-tools-search {
+  border-radius: 0;
+  border: 1px solid var(--secondary);
+  background: var(--surface);
+}
+[data-style='endfield'] .ui-panel {
+  border: 1px solid var(--secondary);
+  border-top: 5px solid #fffa00;
+  border-radius: 0;
+  padding: 26px;
+}
+[data-style='endfield'] .ui-panel-heading {
+  border-bottom: 1px solid var(--secondary);
+  margin-bottom: 18px;
+  padding-bottom: 16px;
+}
+[data-style='endfield'] .ui-panel-heading h2 {
+  font-size: 24px;
+}
+[data-style='endfield'] .workspace-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: 26px;
+  align-items: stretch;
+  margin-top: 25px;
+}
+[data-style='endfield'] .workspace-input {
+  padding-right: 26px;
+  border-right: 1px solid var(--line);
+}
+[data-style='endfield'] .workspace-output {
+  min-width: 0;
+  margin: 0;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg) 94%, transparent);
+  padding: 24px;
+  border-radius: 0;
+}
+[data-style='endfield'] .workspace-output-empty {
+  min-height: 320px;
+  margin-top: 0;
+}
+[data-style='endfield'] .ui-field-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+[data-style='endfield'] :is(.button, .ui-button) {
+  border-radius: 0;
+  border: 1px solid var(--text);
+  min-height: 44px;
+  font-weight: 650;
+  position: relative;
+}
+[data-style='endfield'] :is(.button, .ui-button):not(.secondary) {
+  background: #fffa00;
+  color: #242424;
+  border-color: #242424;
+}
+[data-style='endfield'] :is(.button, .ui-button)::after {
+  content: '';
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  right: 5px;
+  bottom: 5px;
+  opacity: 0.5;
+}
+[data-style='endfield'] .ui-file-picker {
+  border-radius: 0;
+  border: 1px dashed var(--secondary);
+  background: var(--bg);
+}
+
+/* Block world: landscape, inventory slots and bevelled crafting controls. */
+[data-style='minecraft'] {
+  --app-sidebar-width: 232px;
+  --control-radius: 0px;
+  --scene-sky: #91c6df;
+  --scene-hill-back: #78a365;
+  --scene-hill-front: #578449;
+}
+[data-style='minecraft'][data-theme='dark'] {
+  --scene-sky: #182d43;
+  --scene-hill-back: #253f32;
+  --scene-hill-front: #1b3025;
+}
+[data-style='minecraft'] body {
+  background-image: linear-gradient(var(--scene-sky), var(--bg) 70%);
+  background-attachment: fixed;
+}
+.pixel-landscape {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: 48%;
+  shape-rendering: crispEdges;
+  opacity: 0.45;
+}
+.pixel-ridge-back {
+  fill: var(--scene-hill-back);
+}
+.pixel-ridge-front {
+  fill: var(--scene-hill-front);
+}
+.pixel-sun {
+  position: absolute;
+  width: 70px;
+  height: 70px;
+  right: 10%;
+  top: 16%;
+  background: #ffedb8;
+  box-shadow: 0 0 0 14px #fff4c320;
+}
+.pixel-cloud {
+  position: absolute;
+  width: 190px;
+  height: 35px;
+  background: #ffffff40;
+  box-shadow:
+    45px -20px 0 #ffffff40,
+    -38px 8px 0 #ffffff40;
+  animation: cloud-drift 50s ease-in-out infinite alternate;
+}
+.pixel-cloud.cloud-one {
+  left: 30%;
+  top: 10%;
+}
+.pixel-cloud.cloud-two {
+  right: 3%;
+  top: 43%;
+  animation-delay: -25s;
+}
+[data-style='minecraft'][data-theme='dark'] .pixel-sun {
+  background: #dce9e8;
+  box-shadow: 0 0 0 14px #dce9e810;
+}
+[data-style='minecraft'] .sidebar {
+  background: var(--sidebar);
+  border-right: 5px ridge color-mix(in srgb, var(--secondary) 75%, #000);
+}
+[data-style='minecraft'] .brand {
+  padding-bottom: 24px;
+  border-bottom: 3px ridge var(--line);
+  margin-bottom: 24px;
+}
+[data-style='minecraft'] .nav-item {
+  border-radius: 0;
+  min-height: 46px;
+  border: 2px solid transparent;
+}
+[data-style='minecraft'] .nav-item.active {
+  border: 2px solid var(--line);
+  box-shadow:
+    inset 2px 2px 0 #ffffff35,
+    inset -2px -2px 0 #0004;
+}
+[data-style='minecraft'] .topbar {
+  border-bottom: 3px ridge var(--line);
+}
+[data-style='minecraft'] .main-content {
+  max-width: 1250px;
+  margin-inline: auto;
+}
+[data-style='minecraft'] .game-dashboard {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: 'welcome' 'tags' 'shortcuts' 'settings';
+  gap: 25px;
+}
+[data-style='minecraft'] .game-welcome {
+  text-align: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: 30px;
+  min-height: 300px;
+  background: color-mix(in srgb, var(--surface) 86%, transparent);
+  border: 4px ridge var(--line);
+  box-shadow: 5px 5px 0 #0002;
+  gap: 0;
+}
+[data-style='minecraft'] .game-emblem {
+  display: none;
+}
+[data-style='minecraft'] .game-welcome-copy {
+  flex: 0 1 auto;
+}
+[data-style='minecraft'] .game-welcome h1 {
+  font-size: clamp(32px, 4vw, 48px);
+  text-shadow: 2px 2px 0 color-mix(in srgb, var(--text) 20%, transparent);
+}
+[data-style='minecraft'] .game-kicker {
+  font: 21px var(--interface-font);
+  letter-spacing: 2px;
+  color: var(--secondary);
+  margin-bottom: 14px;
+}
+[data-style='minecraft'] .game-welcome p {
+  max-width: none;
+}
+[data-style='minecraft'] .game-availability {
+  position: absolute;
+  right: 16px;
+  top: 18px;
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+}
+[data-style='minecraft'] .game-availability strong {
+  font: 24px var(--interface-font);
+}
+[data-style='minecraft'] .game-availability span {
+  font-size: 9px;
+}
+[data-style='minecraft'] .game-tag-section {
+  background: var(--surface);
+  border: 4px ridge var(--line);
+  padding: 18px;
+}
+[data-style='minecraft'] .game-tag-menu {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+}
+[data-style='minecraft'] .game-tag-link {
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 5px;
+  border: 3px inset var(--line);
+  background: var(--bg);
+  text-align: center;
+}
+[data-style='minecraft'] .game-tag-link:hover {
+  background: var(--soft-green);
+  border-color: var(--accent);
+}
+[data-style='minecraft'] .game-tag-icon {
+  flex-basis: auto;
+  color: var(--green);
+}
+[data-style='minecraft'] .game-tag-name {
+  font-size: 12px;
+}
+[data-style='minecraft'] .game-tag-name small {
+  font-size: 10px;
+}
+[data-style='minecraft'] .game-tag-number {
+  display: none;
+}
+[data-style='minecraft'] .game-section-heading > span {
+  font: 20px var(--interface-font);
+}
+[data-style='minecraft'] .game-shortcut-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+[data-style='minecraft'] .game-tool-link {
+  border: 4px ridge var(--line);
+  box-shadow: 4px 4px 0 #0002;
+  padding: 20px;
+}
+[data-style='minecraft'] .game-tool-link:hover {
+  border-color: var(--accent);
+}
+[data-style='minecraft'] .game-tool-icon {
+  border: 3px inset var(--line);
+  background: var(--bg);
+  color: var(--green);
+}
+[data-style='minecraft'] .game-tool-number {
+  font: 26px var(--interface-font);
+}
+[data-style='minecraft'] .all-tools-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+[data-style='minecraft'] .tool-list-card {
+  border: 4px ridge var(--line);
+  border-radius: 0;
+  box-shadow: 3px 3px 0 #0002;
+}
+[data-style='minecraft'] .tool-list-link {
+  padding: 18px;
+}
+[data-style='minecraft'] .catalog-tool-index {
+  font: 22px var(--interface-font);
+}
+[data-style='minecraft'] .tool-tag {
+  border: 3px outset var(--line);
+  border-radius: 0;
+}
+[data-style='minecraft'] .tool-tag[aria-pressed='true'] {
+  border-style: inset;
+  background: var(--soft-green);
+}
+[data-style='minecraft'] .all-tools-search {
+  border: 3px inset var(--line);
+  border-radius: 0;
+}
+[data-style='minecraft'] .ui-panel {
+  border: 4px ridge var(--line);
+  border-radius: 0;
+  box-shadow: 4px 4px 0 #0002;
+  padding: 25px;
+}
+[data-style='minecraft'] .ui-panel-heading {
+  padding-bottom: 16px;
+  border-bottom: 3px ridge var(--line);
+}
+[data-style='minecraft'] .workspace-output {
+  border: 3px inset var(--line);
+  background: var(--bg);
+  border-radius: 0;
+}
+[data-style='minecraft'] :is(.button, .ui-button) {
+  border: 3px outset var(--line);
+  border-radius: 0;
+  min-height: 44px;
+  box-shadow: 2px 2px 0 #0004;
+  font-weight: 600;
+  text-shadow: 1px 1px 0 #0002;
+}
+[data-style='minecraft'] :is(.button, .ui-button):active:not(:disabled) {
+  border-style: inset;
+  translate: 1px 1px;
+}
+[data-style='minecraft'] .ui-file-picker {
+  border: 3px inset var(--line);
+  border-radius: 0;
+  background: var(--bg);
+}
+
+/* Picker previews reflect the actual layout, not just palette changes. */
+.preview-genshin .preview-rail {
+  width: 17%;
+  border-right: 1px solid #b9a57b;
+}
+.preview-genshin .preview-title {
+  left: 29%;
+  width: 53%;
+  border-radius: 20px;
+}
+.preview-genshin .preview-content {
+  left: 33%;
+  top: 53%;
+  grid-template-columns: 1fr;
+  gap: 4px;
+}
+.preview-genshin .preview-content i {
+  height: 8px;
+  border: 1px solid #c2ac7a;
+  background: #f8f0de;
+}
+.preview-zenless .preview-title {
+  height: 30%;
+  left: 23%;
+  top: 16%;
+  width: 47%;
+  background: #151515;
+  border-radius: 0;
+}
+.preview-zenless .preview-content {
+  top: 61%;
+  left: 23%;
+  grid-template-columns: repeat(3, 1fr);
+}
+.preview-zenless .preview-content i {
+  border: 1px solid #151515;
+  border-radius: 0;
+  background: #d9f534;
+}
+.preview-endfield {
+  background-image: repeating-radial-gradient(
+    ellipse at 70% 35%,
+    transparent 0 9px,
+    #99998e50 10px 11px
+  ) !important;
+}
+.preview-endfield .preview-title {
+  width: 43%;
+}
+.preview-endfield .preview-content {
+  right: 25%;
+  grid-template-columns: 1fr 1fr;
+}
+.preview-endfield .preview-content i:last-child {
+  position: absolute;
+  right: -30%;
+  top: -30%;
+  width: 25%;
+  height: 80%;
+  background: #fffa00;
+  border-radius: 0;
+}
+.preview-minecraft .preview-title {
+  left: 32%;
+  width: 47%;
+  height: 14%;
+  border: 2px ridge #ddd;
+  border-radius: 0;
+}
+.preview-minecraft .preview-content {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  left: 26%;
+  top: 52%;
+}
+.preview-minecraft .preview-content i {
+  border: 2px inset #ded4bb;
+  border-radius: 0;
+  background: #8eaa76;
+}
+@keyframes cloud-drift {
+  to {
+    transform: translateX(60px);
+  }
+}
+@keyframes record-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes city-sweep {
+  to {
+    transform: translateY(120vh);
+  }
+}
+[data-scene-motion='off'] .theme-scenery *,
+.theme-scenery[data-moving='false'] * {
+  animation: none !important;
+}
+@media (min-width: 801px) and (max-width: 1150px) {
+  [data-style='zenless'] .game-dashboard,
+  [data-style='endfield'] .game-dashboard {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'welcome' 'tags' 'shortcuts' 'settings';
+  }
+  [data-style='zenless'] .game-tag-menu,
+  [data-style='endfield'] .game-tag-menu {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  [data-style='endfield'] .catalog-header {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  [data-style='endfield'] .workspace-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  [data-style='endfield'] .workspace-input {
+    padding-right: 0;
+    border: 0;
+  }
+  :is([data-style='zenless'], [data-style='minecraft']) :is(.all-tools-grid, .game-shortcut-grid) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  [data-style='genshin'] .game-emblem {
+    flex-basis: 85px;
+    height: 85px;
+  }
+}
+@media (max-width: 800px) {
+  :is(
+      [data-style='genshin'],
+      [data-style='zenless'],
+      [data-style='endfield'],
+      [data-style='minecraft']
+    )
+    .main-shell {
+    margin-left: 0;
+  }
+  :is(
+      [data-style='genshin'],
+      [data-style='zenless'],
+      [data-style='endfield'],
+      [data-style='minecraft']
+    )
+    .sidebar {
+    width: 256px;
+    max-width: calc(100vw - 46px);
+  }
+  .game-dashboard {
+    gap: 22px !important;
+  }
+  :is([data-style='genshin'], [data-style='zenless'], [data-style='endfield']) .game-dashboard {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'welcome' 'tags' 'shortcuts' 'settings';
+  }
+  .game-welcome {
+    padding: 28px 23px !important;
+    gap: 20px;
+    min-height: 280px;
+  }
+  .game-welcome h1 {
+    font-size: 32px !important;
+  }
+  .game-welcome p {
+    font-size: 12px;
+  }
+  .game-emblem {
+    display: none;
+  }
+  .game-availability strong {
+    font-size: 27px;
+  }
+  .game-availability span {
+    font-size: 8px;
+  }
+  .game-kicker {
+    letter-spacing: 1.5px;
+    font-size: 8px;
+  }
+  .game-shortcut-grid,
+  :is([data-style='zenless'], [data-style='minecraft']) .game-shortcut-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  [data-style='genshin'] .game-tag-section {
+    border-right: 0;
+    padding-right: 0;
+  }
+  :is([data-style='genshin'], [data-style='zenless'], [data-style='endfield']) .game-tag-menu {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  [data-style='genshin'] .game-tag-link {
+    padding: 8px 6px;
+  }
+  [data-style='endfield'] .tool-catalog {
+    display: block;
+  }
+  [data-style='endfield'] .catalog-header {
+    display: block;
+  }
+  [data-style='endfield'] .tool-tag-filters {
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: 12px;
+  }
+  [data-style='endfield'] .tool-tag {
+    border: 1px solid var(--line);
+  }
+  [data-style='endfield'] .workspace-body {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+  [data-style='endfield'] .workspace-input {
+    border-right: 0;
+    padding-right: 0;
+  }
+  [data-style='endfield'] .workspace-output-empty {
+    min-height: 220px;
+  }
+  :is(
+      [data-style='genshin'],
+      [data-style='zenless'],
+      [data-style='endfield'],
+      [data-style='minecraft']
+    )
+    .all-tools-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  [data-style='minecraft'] .game-tag-menu {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  [data-style='genshin'] .main-content {
+    padding-top: 26px;
+  }
+  [data-style='genshin'] .game-welcome {
+    padding: 4px 0 24px !important;
+    min-height: 0;
+  }
+  [data-style='genshin'] .game-welcome h1 {
+    font-size: 28px !important;
+  }
+}
+@media (max-width: 520px) {
+  .game-shortcut-grid,
+  :is([data-style='zenless'], [data-style='minecraft']) .game-shortcut-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  :is(
+      [data-style='genshin'],
+      [data-style='zenless'],
+      [data-style='endfield'],
+      [data-style='minecraft']
+    )
+    .all-tools-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .game-welcome {
+    display: block;
+    min-height: 280px;
+  }
+  .game-availability {
+    position: static;
+    display: flex;
+    text-align: left;
+    align-items: baseline;
+    gap: 8px;
+    margin-top: 25px;
+  }
+  .game-availability strong {
+    font-size: 23px;
+  }
+  .game-availability span {
+    margin-top: 0;
+    font-size: 10px;
+  }
+  [data-style='endfield'] .game-availability {
+    padding-left: 0;
+    border-left: 0;
+  }
+  [data-style='minecraft'] .game-availability {
+    position: static;
+    justify-content: center;
+  }
+  [data-style='minecraft'] .game-tag-menu {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .game-settings-link {
+    flex-wrap: wrap;
+    line-height: 1.7;
+  }
+  :is(
+      [data-style='genshin'],
+      [data-style='zenless'],
+      [data-style='endfield'],
+      [data-style='minecraft']
+    )
+    .ui-panel {
+    padding: 20px 16px;
+  }
+  [data-style='zenless'] .game-welcome {
+    min-height: 350px;
+  }
+  [data-style='genshin'] .game-welcome {
+    min-height: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .theme-scenery * {
+    animation: none !important;
+  }
+}

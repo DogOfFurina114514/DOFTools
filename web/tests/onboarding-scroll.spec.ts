@@ -44,11 +44,11 @@ test('page navigation animates lightly and respects reduced motion', async ({ pa
   await page.goto('/')
   await page.locator('.sidebar-nav a[href="/tools"]').click()
   await expect(page).toHaveURL(/\/tools$/)
-  expect(
-    await page
-      .locator('.route-page')
-      .evaluate((element) => getComputedStyle(element).animationName),
-  ).toBe('page-enter')
+  await expect
+    .poll(() =>
+      page.locator('.route-page').evaluate((element) => getComputedStyle(element).animationName),
+    )
+    .toBe('page-enter')
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.locator('.sidebar-nav a[href="/settings"]').click()
   await expect(page.getByRole('heading', { name: '设置与外观' })).toBeVisible()
@@ -132,9 +132,9 @@ test('dismissed local chat notice stays hidden across routes, reload and languag
   await expect(page.locator('.ai-storage-notice')).toHaveCount(0)
 })
 
-test('audio follows video in tags, with four matching tools', async ({ page }) => {
+test('audio follows video in seven tags, with five matching tools', async ({ page }) => {
   await page.goto('/')
-  await expect(page.locator('.category-card')).toHaveCount(6)
+  await expect(page.locator('.category-card')).toHaveCount(7)
   const labels = await page.locator('.category-card h3').allTextContents()
   expect(labels.join(' ')).toMatch(/视频.*音频.*文档.*解析/)
   await page.locator('[data-ai-nav]').click()
@@ -146,7 +146,7 @@ test('audio follows video in tags, with four matching tools', async ({ page }) =
   await expect(page).toHaveURL(/\/tools/)
   await expect(page.getByRole('heading', { name: '所有工具' })).toBeVisible()
   await expect(page.locator('.all-tools-grid')).toHaveCount(1)
-  await expect(page.locator('.tool-list-card')).toHaveCount(4)
+  await expect(page.locator('.tool-list-card')).toHaveCount(5)
   await page.getByRole('button', { name: 'English', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'All tools' })).toBeVisible()
 })

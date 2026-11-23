@@ -53,6 +53,8 @@ export function SettingsPage({
     openings,
     setOpenings,
     reducedMotion,
+    sceneMotion,
+    setSceneMotion,
     accentColors,
     setAccentColor,
     resetAccentColor,
@@ -314,6 +316,22 @@ export function SettingsPage({
             label={t('游戏风格开屏动画', 'Game openings')}
             checked={openings}
             onChange={setOpenings}
+          />
+        </div>
+        <div className="settings-row">
+          <div>
+            <h3>{t('动态主题背景', 'Animated theme scenery')}</h3>
+            <p>
+              {t(
+                '等高线、星云与游戏背景缓慢变化。关闭后保留静态背景；系统减少动态效果时自动暂停。',
+                'Contours, clouds and game scenery move gently. Turn this off for static scenery; system reduced motion pauses it automatically.',
+              )}
+            </p>
+          </div>
+          <PreferenceSwitch
+            label={t('动态主题背景', 'Animated theme scenery')}
+            checked={sceneMotion}
+            onChange={setSceneMotion}
           />
         </div>
         <div className="settings-row">

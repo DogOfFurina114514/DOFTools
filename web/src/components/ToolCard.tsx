@@ -1,6 +1,7 @@
 import { ArrowUpRight, Star } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { categoryOf, type Tool } from '../data/tools'
+import { ToolIcon } from './ToolIcon'
 
 export function ToolCard({
   tool,
@@ -11,12 +12,11 @@ export function ToolCard({
   favorite: boolean
   onFavorite: (id: string) => void
 }) {
-  const Icon = tool.icon
   return (
     <article className="tool-card">
       <div className="tool-card-top">
         <span className={`tool-icon ${categoryOf(tool.category).color}`}>
-          <Icon size={24} strokeWidth={1.65} />
+          <ToolIcon tool={tool} size={24} strokeWidth={1.65} />
         </span>
         <button
           className={`favorite-button ${favorite ? 'is-favorite' : ''}`}

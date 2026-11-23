@@ -299,7 +299,7 @@
   --accent: #547938;
   --radius: 0px;
   --on-primary: #fff;
-  --heading-font: 'VT323', 'Microsoft YaHei', monospace;
+  --heading-font: var(--interface-font);
 }
 [data-style='minecraft'][data-theme='dark'] {
   --bg: #182314;
@@ -380,7 +380,7 @@
 }
 [data-style='minecraft'] .section-note,
 [data-style='minecraft'] .eyebrow {
-  font-family: 'VT323', monospace;
+  font-family: var(--interface-font);
   font-size: 17px;
   letter-spacing: 1px;
 }
@@ -418,7 +418,7 @@
   place-items: center;
   background: #66aee4;
   color: #fff;
-  font-family: 'VT323', 'Microsoft YaHei', monospace;
+  font-family: var(--interface-font);
 }
 .minecraft-panorama {
   position: absolute;

@@ -6,6 +6,7 @@ import { toolRegistry } from '../tools/registry'
 import { filterTools } from '../lib/tool-filter'
 import { PinToolButton } from '../components/PinToolButton'
 import { EmptyPanel } from '../components/UI'
+import { ToolIcon } from '../components/ToolIcon'
 
 export function AllTools({
   pinned,
@@ -22,54 +23,56 @@ export function AllTools({
   const tools = toolRegistry.list()
   const results = filterTools(tools, query, selected)
   return (
-    <>
-      <div className="page-heading">
-        <span className="eyebrow">ALL TOOLS</span>
-        <h1>
-          {t('所有工具', 'All tools')}
-          <span className="heading-dot">.</span>
-        </h1>
-        <p>
-          {t(
-            '搜索处理要求，或选择标签。多选时仅显示同时包含所有选中标签的工具。',
-            'Search for a task or choose tags. Multiple tags show tools that contain every selected tag.',
-          )}
-        </p>
-      </div>
-      <div className="all-tools-search">
-        <Search size={20} />
-        <input
-          type="search"
-          aria-label={t('搜索关键词', 'Search keywords')}
-          placeholder={t(
-            '搜索工具或要求，如 PNG 转 JPG…',
-            'Search tools or tasks, e.g. PNG to JPG…',
-          )}
-          value={query}
-          onChange={(event) => {
-            const next = new URLSearchParams(params)
-            if (event.target.value) next.set('q', event.target.value)
-            else next.delete('q')
-            setParams(next, { replace: true })
-          }}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' && results[0]) navigate(`/tool/${results[0].id}`)
-          }}
-        />
-        {query && (
-          <button
-            className="icon-button"
-            aria-label={t('清空搜索', 'Clear search')}
-            onClick={() => {
+    <section className="tool-catalog">
+      <div className="catalog-header">
+        <div className="page-heading">
+          <span className="eyebrow">ALL TOOLS</span>
+          <h1>
+            {t('所有工具', 'All tools')}
+            <span className="heading-dot">.</span>
+          </h1>
+          <p>
+            {t(
+              '搜索处理要求，或选择标签。多选时仅显示同时包含所有选中标签的工具。',
+              'Search for a task or choose tags. Multiple tags show tools that contain every selected tag.',
+            )}
+          </p>
+        </div>
+        <div className="all-tools-search">
+          <Search size={20} />
+          <input
+            type="search"
+            aria-label={t('搜索关键词', 'Search keywords')}
+            placeholder={t(
+              '搜索工具或要求，如 PNG 转 JPG…',
+              'Search tools or tasks, e.g. PNG to JPG…',
+            )}
+            value={query}
+            onChange={(event) => {
               const next = new URLSearchParams(params)
-              next.delete('q')
+              if (event.target.value) next.set('q', event.target.value)
+              else next.delete('q')
               setParams(next, { replace: true })
             }}
-          >
-            <X size={17} />
-          </button>
-        )}
-        <kbd>Ctrl / ⌘ K</kbd>
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && results[0]) navigate(`/tool/${results[0].id}`)
+            }}
+          />
+          {query && (
+            <button
+              className="icon-button"
+              aria-label={t('清空搜索', 'Clear search')}
+              onClick={() => {
+                const next = new URLSearchParams(params)
+                next.delete('q')
+                setParams(next, { replace: true })
+              }}
+            >
+              <X size={17} />
+            </button>
+          )}
+          <kbd>Ctrl / ⌘ K</kbd>
+        </div>
       </div>
       <div className="tool-tag-filters" role="group" aria-label={t('标签筛选', 'Filter by tags')}>
         {toolTags.map((tag) => (
@@ -114,10 +117,18 @@ export function AllTools({
       </p>
       {results.length ? (
         <div className="all-tools-grid">
-          {results.map((tool) => (
+          {results.map((tool, index) => (
             <article key={tool.id} className="tool-list-card">
               <Link to={`/tool/${tool.id}`} className="tool-list-link">
-                <h2>{resolve(tool.title)}</h2>
+                <span className="catalog-tool-index" aria-hidden="true">
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+                <div className="catalog-tool-heading">
+                  <span className="catalog-tool-icon">
+                    <ToolIcon tool={tool} size={24} />
+                  </span>
+                  <h2>{resolve(tool.title)}</h2>
+                </div>
                 <p>{resolve(tool.description)}</p>
                 <ArrowUpRight size={18} />
               </Link>
@@ -146,6 +157,6 @@ export function AllTools({
           )}
         />
       )}
-    </>
+    </section>
   )
 }

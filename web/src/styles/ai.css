@@ -252,6 +252,15 @@
 }
 .ai-tool-card > div {
   flex: 1;
+  min-width: 0;
+}
+.ai-tool-card > .ai-tool-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  background: var(--soft-green);
+  border-radius: var(--button-radius, 8px);
 }
 .ai-tool-card strong {
   font-size: 15px;

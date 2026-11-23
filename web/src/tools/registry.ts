@@ -1,5 +1,6 @@
 import Ajv, { type ValidateFunction } from 'ajv'
 import type { ReactNode } from 'react'
+import type { LucideIcon } from 'lucide-react'
 import type { AIToolCall, AIToolDefinition } from '../lib/ai'
 import { LOCALES, localize, LocalizedError, type Locale, type LocalizedText } from '../lib/locale'
 import { reportToolSuccess } from '../lib/tool-events'
@@ -39,6 +40,8 @@ export interface ToolRunContext {
 }
 export interface ToolDefinition {
   id: string
+  /** A tool-specific icon, independent of its tags. */
+  icon?: LucideIcon
   title: LocalizedText
   description: LocalizedText
   tags: readonly ToolTagId[]

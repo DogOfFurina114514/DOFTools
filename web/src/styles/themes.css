@@ -61,9 +61,7 @@
   position: absolute;
   right: 12px;
   bottom: 8px;
-  font:
-    19px Georgia,
-    serif;
+  font: 19px var(--interface-font);
   color: var(--accent);
   opacity: 0.35;
 }

@@ -39,6 +39,7 @@ import {
 import { isToolTag, tagOf } from './data/tags'
 import { AllTools } from './pages/AllTools'
 import { PinToolButton } from './components/PinToolButton'
+import { ToolIcon } from './components/ToolIcon'
 import { isStringArray, useStoredState, readStorage, writeStorage } from './lib/storage'
 import { detectAICapability } from './lib/ai'
 import { AppearanceProvider, presetFor, useAppearance, type StyleId } from './lib/appearance'
@@ -59,6 +60,7 @@ import { startResourceUpdates } from './lib/offline'
 import { SponsorDialog } from './components/SponsorDialog'
 import { TOOL_SUCCEEDED } from './lib/tool-events'
 import { ResourceUpdateToast } from './components/ResourceUpdateToast'
+import { ThemeScenery } from './components/ThemeScenery'
 
 const Dashboard = lazy(() =>
   workspacePages.dashboard().then((module) => ({ default: module.Dashboard })),
@@ -480,6 +482,7 @@ function Application() {
         inert={!!splash || guide === 'setup'}
         aria-hidden={splash || guide === 'setup' ? true : undefined}
       >
+        <ThemeScenery suspended={!!splash || guide === 'setup'} />
         {mobileOpen && (
           <button
             className="sidebar-backdrop"
@@ -512,11 +515,10 @@ function Application() {
                 .filter((id) => toolRegistry.get(id))
                 .map((id) => {
                   const tool = toolRegistry.get(id)!
-                  const Icon = tagOf(tool.tags[0]).icon
                   return (
                     <div className="pinned-tool-row" key={id}>
                       <NavLink to={`/tool/${id}`} className="nav-item">
-                        <Icon size={18} />
+                        <ToolIcon tool={tool} size={18} />
                         <span>{resolve(tool.title)}</span>
                       </NavLink>
                       <PinToolButton
@@ -631,7 +633,7 @@ function Application() {
               >
                 <div className="route-page">
                   <Routes>
-                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/" element={<Dashboard pinned={pinned} />} />
                     <Route
                       path="/tools"
                       element={<AllTools pinned={pinned} onTogglePin={context.togglePin} />}
