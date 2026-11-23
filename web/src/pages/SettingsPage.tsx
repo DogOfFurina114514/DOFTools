@@ -55,6 +55,8 @@ export function SettingsPage({
     reducedMotion,
     sceneMotion,
     setSceneMotion,
+    pageMotion,
+    setPageMotion,
     accentColors,
     setAccentColor,
     resetAccentColor,
@@ -332,6 +334,22 @@ export function SettingsPage({
             label={t('动态主题背景', 'Animated theme scenery')}
             checked={sceneMotion}
             onChange={setSceneMotion}
+          />
+        </div>
+        <div className="settings-row">
+          <div>
+            <h3>{t('切页动画', 'Page transitions')}</h3>
+            <p>
+              {t(
+                '原神手册翻页、绝区零频道切换、终末地终端扫描、Minecraft 方块拼装，普通主题使用轻量过渡。切换页面时播放，搜索和标签筛选保持即时；系统减少动态效果时关闭。',
+                'Handbook pages turn in Genshin, channels switch in Zenless, terminals scan in Endfield, and blocks assemble in Minecraft. Standard themes use subtle transitions. Search and tag filters stay instant. System reduced motion disables it.',
+              )}
+            </p>
+          </div>
+          <PreferenceSwitch
+            label={t('切页动画', 'Page transitions')}
+            checked={pageMotion}
+            onChange={setPageMotion}
           />
         </div>
         <div className="settings-row">

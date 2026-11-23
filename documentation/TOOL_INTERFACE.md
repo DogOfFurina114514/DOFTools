@@ -121,3 +121,5 @@ Fluent 主题保留稳定的 FluentProvider 和调色板，共享自绘控件与
 内置适配器使用 `GET https://openapi.dwo.cc/api/svparse`，仅发送经 URLSearchParams 编码的完整 `url` 参数，保留签名和分享查询参数。不得省略 url：服务会将空请求当作演示视频。请求使用 credentials: omit、referrerPolicy: no-referrer、cache: no-store，30 秒超时与 context.signal 合并；流式读取最多 2 MiB JSON，不缓存媒体直链。成功要求 code 为 200 或 "200"，再校验 data；HTTP 错误、服务错误、超时、网络 / 跨域失败均返回双语错误。
 
 `normalizeSocialResponse` 将 data.url、urls、video_backup、audio_backup、images、live_photo、music.url 转为统一媒体列表，按 kind / url 去重，重复默认 URL 可补全画质元数据。仅接受不含凭据的 HTTP(S) 媒体链接，限制媒体数量为 100、标题 2000 字符，并校验可选元数据。`validateSocialResolution` 同时校验未来适配器的输出；不执行服务返回的 HTML，不主动下载媒体，不将独立视频和音轨自动合并。批量请求之间暂停 1.5 秒，可在等待时取消，不自动重试；部分失败逐卡展示，全部失败抛出错误，取消停止后续请求。
+
+26.2.5 的 RouteTransition.tsx 在共享工作台之外管理已显示路由，按目标 pathname 预载 Dashboard / Settings / AI 的模块，再更新 Routes 的 location。过渡仅覆盖 route-page，路径不变时直接更新查询参数，工具字段与筛选状态保持原有生命周期；快速连续导航取消过期回调。切页动画偏好键为 fufu:page-motion，不影响 fufu:scene-motion；减少动态效果时立即导航。样式位于 page-transitions.css。

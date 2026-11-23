@@ -16,6 +16,7 @@ import './styles/tools.css'
 import './styles/appearance.css'
 import './styles/sponsor.css'
 import './styles/game-worlds.css'
+import './styles/page-transitions.css'
 import '@fontsource/roboto/latin-400.css'
 import '@fontsource/roboto/latin-500.css'
 

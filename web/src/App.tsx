@@ -40,6 +40,7 @@ import { isToolTag, tagOf } from './data/tags'
 import { AllTools } from './pages/AllTools'
 import { PinToolButton } from './components/PinToolButton'
 import { ToolIcon } from './components/ToolIcon'
+import { RouteTransition } from './components/RouteTransition'
 import { isStringArray, useStoredState, readStorage, writeStorage } from './lib/storage'
 import { detectAICapability } from './lib/ai'
 import { AppearanceProvider, presetFor, useAppearance, type StyleId } from './lib/appearance'
@@ -360,11 +361,6 @@ function Application() {
   }
   useEffect(() => {
     setMobileOpen(false)
-    window.scrollTo({ top: 0 })
-    if (searchRequested.current && location.pathname === '/tools') {
-      searchRequested.current = false
-      document.querySelector<HTMLInputElement>('.all-tools-search input')?.focus()
-    }
   }, [location.pathname])
   useEffect(() => {
     const success = () => {
@@ -622,42 +618,52 @@ function Application() {
             </div>
           </header>
           <main className="main-content">
-            <PageBoundary key={location.pathname}>
-              <Suspense
-                fallback={
-                  <div className="page-loading" role="status">
-                    <span />
-                    {t('正在准备页面…', 'Preparing the page…')}
-                  </div>
+            <RouteTransition
+              onReady={(pathname) => {
+                window.scrollTo({ top: 0 })
+                if (searchRequested.current && pathname === '/tools') {
+                  searchRequested.current = false
+                  document.querySelector<HTMLInputElement>('.all-tools-search input')?.focus()
                 }
-              >
-                <div className="route-page">
-                  <Routes>
-                    <Route path="/" element={<Dashboard pinned={pinned} />} />
-                    <Route
-                      path="/tools"
-                      element={<AllTools pinned={pinned} onTogglePin={context.togglePin} />}
-                    />
-                    <Route path="/category/:id" element={<LegacyCategoryPage />} />
-                    <Route path="/tool/:id" element={<RegisteredToolPage />} />
-                    <Route path="/ai" element={<AIPage />} />
-                    <Route
-                      path="/settings"
-                      element={
-                        <SettingsPage
-                          onGuide={openGuide}
-                          onStyle={chooseStyle}
-                          onReplay={() => {
-                            if (presetFor(style).game) play(style)
-                          }}
-                        />
-                      }
-                    />
-                    <Route path="*" element={<UnavailablePage />} />
-                  </Routes>
-                </div>
-              </Suspense>
-            </PageBoundary>
+              }}
+            >
+              {(displayedLocation) => (
+                <PageBoundary key={displayedLocation.pathname}>
+                  <Suspense
+                    fallback={
+                      <div className="page-loading" role="status">
+                        <span />
+                        {t('正在准备页面…', 'Preparing the page…')}
+                      </div>
+                    }
+                  >
+                    <Routes location={displayedLocation}>
+                      <Route path="/" element={<Dashboard pinned={pinned} />} />
+                      <Route
+                        path="/tools"
+                        element={<AllTools pinned={pinned} onTogglePin={context.togglePin} />}
+                      />
+                      <Route path="/category/:id" element={<LegacyCategoryPage />} />
+                      <Route path="/tool/:id" element={<RegisteredToolPage />} />
+                      <Route path="/ai" element={<AIPage />} />
+                      <Route
+                        path="/settings"
+                        element={
+                          <SettingsPage
+                            onGuide={openGuide}
+                            onStyle={chooseStyle}
+                            onReplay={() => {
+                              if (presetFor(style).game) play(style)
+                            }}
+                          />
+                        }
+                      />
+                      <Route path="*" element={<UnavailablePage />} />
+                    </Routes>
+                  </Suspense>
+                </PageBoundary>
+              )}
+            </RouteTransition>
             <footer className="main-footer">
               <span>
                 © {new Date().getFullYear()} {brand}

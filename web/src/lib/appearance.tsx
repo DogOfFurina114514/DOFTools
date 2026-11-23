@@ -137,6 +137,8 @@ interface Appearance {
   reducedMotion: boolean
   sceneMotion: boolean
   setSceneMotion: (enabled: boolean) => void
+  pageMotion: boolean
+  setPageMotion: (enabled: boolean) => void
   accentColors: ThemeAccents
   setAccentColor: (color: string) => void
   resetAccentColor: () => void
@@ -188,6 +190,11 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
   )
   const [sceneMotion, setSceneMotion] = useStoredState(
     'scene-motion',
+    true,
+    (value): value is boolean => typeof value === 'boolean',
+  )
+  const [pageMotion, setPageMotion] = useStoredState(
+    'page-motion',
     true,
     (value): value is boolean => typeof value === 'boolean',
   )
@@ -284,6 +291,8 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
         reducedMotion,
         sceneMotion,
         setSceneMotion,
+        pageMotion,
+        setPageMotion,
         accentColors,
         setAccentColor,
         resetAccentColor,
