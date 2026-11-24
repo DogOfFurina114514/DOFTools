@@ -57,7 +57,7 @@ export const STYLE_PRESETS = [
     id: 'genshin',
     name: '原神',
     english: 'A JOURNEY AMONG STARS',
-    description: '星云背景、双页冒险手册与章节目录。',
+    description: '星云背景、贯穿所有页面的冒险手册与书签导航。',
     game: true,
     opening: '星门开启',
   },
@@ -100,7 +100,7 @@ const englishStyles = {
   glass: ['Liquid Glass', 'Flowing colors, translucent surfaces and soft highlights.', ''],
   genshin: [
     'Genshin Impact',
-    'Celestial scenery, a two-page handbook and chapter contents.',
+    'Celestial scenery, a bound handbook on every page and ribbon bookmarks.',
     'Celestial gate',
   ],
   zenless: [

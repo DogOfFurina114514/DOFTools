@@ -66,7 +66,6 @@ export function GameDashboard({ pinned }: { pinned: string[] }) {
           : Grid2X2
   return (
     <div className={`game-dashboard game-dashboard-${style}`}>
-      {style === 'genshin' && <div className="handbook-binding" aria-hidden="true" />}
       <section className="game-welcome">
         <div className="game-emblem" aria-hidden="true">
           <Emblem strokeWidth={1} />

@@ -125,3 +125,5 @@ Fluent 主题保留稳定的 FluentProvider 和调色板，共享自绘控件与
 26.2.5 的 RouteTransition.tsx 在共享工作台之外管理已显示路由，按目标 pathname 预载 Dashboard / Settings / AI 的模块，再更新 Routes 的 location。过渡仅覆盖 route-page，路径不变时直接更新查询参数，工具字段与筛选状态保持原有生命周期；快速连续导航取消过期回调。切页动画偏好键为 fufu:page-motion，不影响 fufu:scene-motion；减少动态效果时立即导航。样式位于 page-transitions.css。
 
 26.2.6 新增 AIThinkingLevel（off / low / medium / high），由 AISessionProvider 持久保存并经 BrowserLocalAI 传给 Worker；每轮调用固定同一次发送时的设置。ai-thinking.ts 定义思考预算，ai.worker.ts 的 ThinkingBudget logits processor 控制思考结束与重新开启。思考正文从流式显示及最终工具调用解析中移除，工具完成检测只接受思考结束后的调用。BookTurnMaterial.tsx 将折痕和投影作为独立局部快照层，由 RouteTransition 在过渡期间挂载和释放。
+
+26.2.7 新增 RouteBook.tsx / handbook.css，所有路由使用稳定的公共书壳，主题改变不重挂载工作台；原神只翻内页，侧栏以书签装饰层呈现。TerminalScanMaterial.tsx 为终末地增加独立扫描网格与光带，RouteTransition 统一限制可见材质范围，避开顶栏并清理取消与结束的效果；不支持快照时使用入场，减少动态时跳过。
