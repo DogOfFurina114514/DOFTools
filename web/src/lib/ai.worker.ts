@@ -6,6 +6,8 @@ import {
   TextStreamer,
   InterruptableStoppingCriteria,
   StoppingCriteria,
+  LogitsProcessor,
+  LogitsProcessorList,
   Tensor,
 } from '@huggingface/transformers'
 import {
@@ -16,6 +18,7 @@ import {
   type AILoadStage,
 } from './ai'
 import { parseToolCalls, visibleAIText } from './ai-output'
+import { AI_THINKING_BUDGETS, isAIThinkingLevel } from './ai-thinking'
 import { bilingual, errorMessage, LocalizedError } from './locale'
 import {
   createDownloadPool,
@@ -37,6 +40,36 @@ class CompleteToolCall extends StoppingCriteria {
   }
   _call(inputIds: number[][]) {
     return inputIds.map(this.complete)
+  }
+}
+
+class ThinkingBudget extends LogitsProcessor {
+  constructor(
+    private promptLength: number,
+    private budget: number,
+    private openToken: number,
+    private closeToken: number,
+    private eosTokens: number[],
+  ) {
+    super()
+  }
+  _call(inputIds: bigint[][], logits: Tensor) {
+    const width = logits.dims[logits.dims.length - 1]
+    const scores = logits.data as Float32Array
+    inputIds.forEach((ids, row) => {
+      const generated = ids.slice(this.promptLength)
+      const closed = this.budget === 0 || generated.some((id) => Number(id) === this.closeToken)
+      const offset = row * width
+      if (!closed && generated.length >= this.budget) {
+        scores.fill(-Infinity, offset, offset + width)
+        scores[offset + this.closeToken] = 0
+      } else {
+        // The template already opens reasoning. Never allow nested or restarted thinking.
+        scores[offset + this.openToken] = -Infinity
+        if (!closed) for (const eos of this.eosTokens) scores[offset + eos] = -Infinity
+      }
+    })
+    return logits
   }
 }
 
@@ -266,10 +299,13 @@ self.onmessage = async ({ data }: MessageEvent<AIWorkerRequest>) => {
       const tokenizer = processor.tokenizer
       if (!tokenizer)
         throw new LocalizedError('模型 tokenizer 未加载。', 'The model tokenizer is not loaded.')
+      const level = isAIThinkingLevel(data.thinkingLevel) ? data.thinkingLevel : 'off'
+      const thinkingBudget = AI_THINKING_BUDGETS[level]
+      const thinking = thinkingBudget > 0
       const templateOptions = {
         tokenize: false,
         add_generation_prompt: true,
-        enable_thinking: false,
+        enable_thinking: thinking,
         tools: data.tools.length ? data.tools : undefined,
       }
       const text = processor.apply_chat_template(chat, templateOptions) as string
@@ -300,28 +336,50 @@ self.onmessage = async ({ data }: MessageEvent<AIWorkerRequest>) => {
         callback_function: (text) => send({ id, type: 'token', text }),
       })
       const promptLength = inputs.input_ids.dims[1]
-      const toolComplete = new CompleteToolCall(
-        (ids) =>
-          data.tools.length > 0 &&
-          ids.length > promptLength &&
-          tokenizer
-            .decode(ids.slice(Math.max(promptLength, ids.length - 64)), {
-              skip_special_tokens: false,
-            })
-            .includes('</tool_call>'),
+      const openIds = tokenizer.encode('<think>', { add_special_tokens: false })
+      const closeIds = tokenizer.encode('</think>', { add_special_tokens: false })
+      if (openIds.length !== 1 || closeIds.length !== 1)
+        throw new LocalizedError(
+          '当前模型不支持思考强度控制。',
+          'The current model does not support thinking controls.',
+        )
+      const eos = model._prepare_generation_config(null, {}).eos_token_id
+      const eosTokens = (Array.isArray(eos) ? eos : [eos]).filter(
+        (id): id is number => typeof id === 'number',
       )
+      const logits = new LogitsProcessorList()
+      logits.push(
+        new ThinkingBudget(promptLength, thinkingBudget, openIds[0], closeIds[0], eosTokens),
+      )
+      const toolComplete = new CompleteToolCall((ids) => {
+        if (!data.tools.length || ids.length <= promptLength) return false
+        let answerStart = promptLength
+        if (thinking) {
+          const end = ids.slice(promptLength).findIndex((token) => Number(token) === closeIds[0])
+          if (end < 0) return false
+          answerStart += end + 1
+        }
+        return tokenizer
+          .decode(ids.slice(Math.max(answerStart, ids.length - 64)), {
+            skip_special_tokens: false,
+          })
+          .includes('</tool_call>')
+      })
       const output = (await model.generate({
         ...inputs,
-        max_new_tokens: Math.min(data.maxTokens ?? 384, 512),
+        max_new_tokens: Math.min(data.maxTokens ?? 384, 512) + thinkingBudget + (thinking ? 1 : 0),
         do_sample: false,
         repetition_penalty: 1.08,
         streamer,
+        logits_processor: logits,
         stopping_criteria: [stopping, toolComplete],
       })) as Tensor
       tensors.add(output)
       const generated = output.slice(null, [inputs.input_ids.dims[1], null])
       tensors.add(generated)
-      const raw = tokenizer.batch_decode(generated, { skip_special_tokens: false })[0]
+      const raw =
+        (thinking ? '<think>\n' : '') +
+        tokenizer.batch_decode(generated, { skip_special_tokens: false })[0]
       send({
         id,
         type: 'result',

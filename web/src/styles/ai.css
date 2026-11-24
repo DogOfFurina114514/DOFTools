@@ -328,6 +328,38 @@
   min-height: 75px;
   font-size: 14px;
 }
+.ai-thinking-control {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+.ai-thinking-control > .ui-field {
+  width: 190px;
+  flex-shrink: 0;
+}
+.ai-thinking-control .ui-field > label {
+  position: static;
+  width: auto;
+  height: auto;
+  clip-path: none;
+}
+.ai-thinking-control p {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--secondary);
+}
+@media (max-width: 700px) {
+  .ai-thinking-control {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .ai-thinking-control > .ui-field {
+    width: 100%;
+  }
+}
 .ai-chat-empty .prompt-suggestions > .button {
   font-size: 12px;
   padding: 11px 13px;

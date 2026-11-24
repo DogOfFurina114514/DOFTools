@@ -1,4 +1,5 @@
 import type { DisplayText } from './locale'
+import type { AIThinkingLevel } from './ai-thinking'
 export const LOCAL_MODEL = {
   name: 'Qwen3.5-0.8B',
   id: 'Qwen/Qwen3.5-0.8B',
@@ -61,6 +62,7 @@ export interface LocalAIAdapter {
     onToolCall: (call: AIToolCall) => void
     signal?: AbortSignal
     maxTokens?: number
+    thinkingLevel?: AIThinkingLevel
   }): Promise<AIResponse>
   interrupt(): void
   dispose(): Promise<void>
@@ -93,6 +95,7 @@ export type AIWorkerRequest =
       messages: AIMessage[]
       tools: AIToolDefinition[]
       maxTokens?: number
+      thinkingLevel?: AIThinkingLevel
     }
   | { type: 'interrupt' }
 

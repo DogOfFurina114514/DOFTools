@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { BrowserLocalAI } from './ai-client'
 import { visibleAIText } from './ai-output'
+import { isAIThinkingLevel, type AIThinkingLevel } from './ai-thinking'
+import { useStoredState } from './storage'
 import {
   detectAICapability,
   type AIContentPart,
@@ -37,6 +39,7 @@ export interface ChatItem {
   outputs?: { name: string; blob: Blob }[]
   progress?: number
   pending?: boolean
+  thinking?: boolean
   interrupted?: boolean
   tokens?: number
   elapsed?: number
@@ -50,6 +53,8 @@ interface AISession {
   chat: ChatItem[]
   load: () => Promise<void>
   send: (text: string, files?: File[]) => Promise<void>
+  thinkingLevel: AIThinkingLevel
+  setThinkingLevel: (level: AIThinkingLevel) => void
   draft: string
   setDraft: (value: string) => void
   attachments: File[]
@@ -81,6 +86,11 @@ export function AISessionProvider({
   createAdapter?: () => LocalAIAdapter
 }) {
   const { locale, t } = useLocale()
+  const [thinkingLevel, setThinkingLevel] = useStoredState<AIThinkingLevel>(
+    'ai-thinking',
+    'off',
+    isAIThinkingLevel,
+  )
   const adapter = useRef<LocalAIAdapter | null>(null)
   const history = useRef<AIMessage[]>([system(locale)])
   const generation = useRef(0)
@@ -238,6 +248,7 @@ export function AISessionProvider({
       return
     active.current = true
     stopped.current = false
+    const requestedThinking = thinkingLevel
     const token = generation.current
     const image = files.find(
       (file) =>
@@ -289,7 +300,13 @@ export function AISessionProvider({
     setChat((items) => [
       ...items,
       userItem,
-      { id: answerId, role: 'assistant', text: '', pending: true },
+      {
+        id: answerId,
+        role: 'assistant',
+        text: '',
+        pending: true,
+        thinking: requestedThinking !== 'off',
+      },
     ])
     setStatus('generating')
     setError('')
@@ -299,14 +316,18 @@ export function AISessionProvider({
       const tools = assistantDefinitions(locale, files)
       const completedCalls = new Map<string, Awaited<ReturnType<typeof executeAssistantCall>>>()
       for (let round = 0; round < 4; round++) {
-        let raw = ''
+        let raw = requestedThinking === 'off' ? '' : '<think>\n'
         const response = await adapter.current.generate({
           messages,
           tools,
+          thinkingLevel: requestedThinking,
           onToken: (text) => {
             raw += text
             if (token === generation.current && !stopped.current)
-              patch(answerId, { text: visibleAIText(raw) })
+              patch(answerId, {
+                text: visibleAIText(raw),
+                thinking: requestedThinking !== 'off' && !raw.includes('</think>'),
+              })
           },
           onToolCall: () => {},
         })
@@ -316,6 +337,7 @@ export function AISessionProvider({
             response.text ||
             (response.toolCalls.length ? bilingual('正在连接工具…', 'Connecting tools…') : ''),
           pending: false,
+          thinking: false,
           interrupted: response.interrupted || stopped.current,
           tokens: response.tokens,
           elapsed: response.elapsed,
@@ -393,12 +415,21 @@ export function AISessionProvider({
           break
         }
         answerId = crypto.randomUUID()
-        setChat((items) => [...items, { id: answerId, role: 'assistant', text: '', pending: true }])
+        setChat((items) => [
+          ...items,
+          {
+            id: answerId,
+            role: 'assistant',
+            text: '',
+            pending: true,
+            thinking: requestedThinking !== 'off',
+          },
+        ])
       }
       history.current = settleAIHistory(messages)
     } catch (error) {
       if (token === generation.current) {
-        patch(answerId, { pending: false, interrupted: stopped.current })
+        patch(answerId, { pending: false, thinking: false, interrupted: stopped.current })
         if (!stopped.current) setError(errorMessage(error))
         // Keep only complete model turns; a failed user turn can be edited and retried.
         if (messages.at(-1)?.role === 'assistant' && !messages.at(-1)?.content) messages.pop()
@@ -431,6 +462,8 @@ export function AISessionProvider({
         chat,
         load,
         send,
+        thinkingLevel,
+        setThinkingLevel,
         stop,
         unload,
         clear,

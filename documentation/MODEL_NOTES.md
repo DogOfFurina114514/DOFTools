@@ -96,7 +96,9 @@ AI 模型、词表和推理 WASM 统一使用共享 32 路下载池。每个槽�
 
 按实际 ONNX 模型卡的 JS 示例，使用 `embed_tokens: q4`、`decoder_model_merged: q4`、`vision_encoder: fp16`。资源总计 **873,485,707 字节（约 833 MiB）**，包含 tokenizer 与配置，不包含约 26 MiB 的 WASM 运行时。语言模型为 0.8B，视觉编码器仍额外计算。
 
-图像在 Worker 内解码为 RGB，并等比例限制最长边为 512 像素；视觉 processor 生成真实 pixel_values 与图像位置张量。聊天模板使用原生图片 token 与工具 schema，关闭 thinking。每轮最多生成 384 token，输入超过 4096 token 提示清空或缩短内容。
+图像在 Worker 内解码为 RGB，并等比例限制最长边为 512 像素；视觉 processor 生成真实 pixel_values 与图像位置张量。聊天模板使用原生图片 token 与工具 schema。26.2.6 起可在 AI 页面选择关闭、轻量、标准、深入思考，默认关闭；偏好键为 `fufu:ai-thinking`。Worker 按设置传入 `enable_thinking`，三档思考预算分别为 128 / 384 / 1024 token；达到预算时通过 logits processor 强制输出 `</think>`，随后继续生成回答。默认回答额度为 384 token，调用方可设至 512；总生成额度为回答额度加思考预算及结束思考 token。输入超过 4096 token 提示清空或缩短内容。
+
+思考期间不允许提前以 EOS 结束，也不允许嵌套或重新开启思考。界面显示“正在思考”状态，不展示思考正文；生成流与最终结果都补齐模板预填的 `<think>` 前缀再过滤。工具完成检测等待思考结束，解析器移除思考段后才解析调用。每次发送固定本轮思考设置，支持取消；高强度允许更多思考，也可能更慢。本轮按用户要求未运行模型或浏览器验证。
 
 生产环境的 `/models/` 和 `/runtime/` 来自 `https://toolbox.owo.lat/` 的 GitHub Pages CDN，阿里云备用网址使用相同地址；开发环境使用本地资源。Hub 远程模型发现关闭；关闭模型 CacheStorage，并使用 `env.fetch` 对 ONNX 权重发送 `cache: no-store`，避免实测出现的大文件 `ERR_CACHE_WRITE_FAILURE`。模型在当前 Worker 会话中保留，卸载或刷新后需重新读取站内权重；配置与普通界面资源仍使用浏览器 HTTP 缓存。移动设备不加载 Worker；桌面加载时实际检查 WebGPU adapter 与 shader-f16。
 

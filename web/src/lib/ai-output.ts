@@ -11,6 +11,8 @@ export function visibleAIText(raw: string) {
 }
 
 export function parseToolCalls(raw: string): AIToolCall[] {
+  // XML mentioned during reasoning must never be treated as an actual invocation.
+  raw = raw.replace(/<think>[\s\S]*?(?:<\/think>|$)/g, '')
   const remainder = raw.replace(/<tool_call>[\s\S]*?<\/tool_call>/g, '')
   if (/<\/?tool_call>/.test(remainder))
     throw new LocalizedError(

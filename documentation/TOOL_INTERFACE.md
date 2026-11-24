@@ -123,3 +123,5 @@ Fluent 主题保留稳定的 FluentProvider 和调色板，共享自绘控件与
 `normalizeSocialResponse` 将 data.url、urls、video_backup、audio_backup、images、live_photo、music.url 转为统一媒体列表，按 kind / url 去重，重复默认 URL 可补全画质元数据。仅接受不含凭据的 HTTP(S) 媒体链接，限制媒体数量为 100、标题 2000 字符，并校验可选元数据。`validateSocialResolution` 同时校验未来适配器的输出；不执行服务返回的 HTML，不主动下载媒体，不将独立视频和音轨自动合并。批量请求之间暂停 1.5 秒，可在等待时取消，不自动重试；部分失败逐卡展示，全部失败抛出错误，取消停止后续请求。
 
 26.2.5 的 RouteTransition.tsx 在共享工作台之外管理已显示路由，按目标 pathname 预载 Dashboard / Settings / AI 的模块，再更新 Routes 的 location。过渡仅覆盖 route-page，路径不变时直接更新查询参数，工具字段与筛选状态保持原有生命周期；快速连续导航取消过期回调。切页动画偏好键为 fufu:page-motion，不影响 fufu:scene-motion；减少动态效果时立即导航。样式位于 page-transitions.css。
+
+26.2.6 新增 AIThinkingLevel（off / low / medium / high），由 AISessionProvider 持久保存并经 BrowserLocalAI 传给 Worker；每轮调用固定同一次发送时的设置。ai-thinking.ts 定义思考预算，ai.worker.ts 的 ThinkingBudget logits processor 控制思考结束与重新开启。思考正文从流式显示及最终工具调用解析中移除，工具完成检测只接受思考结束后的调用。BookTurnMaterial.tsx 将折痕和投影作为独立局部快照层，由 RouteTransition 在过渡期间挂载和释放。

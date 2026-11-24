@@ -145,6 +145,7 @@ export class BrowserLocalAI implements LocalAIAdapter {
         messages: request.messages,
         tools: request.tools,
         maxTokens: request.maxTokens,
+        thinkingLevel: request.thinkingLevel,
       },
       { onToken: request.onToken },
       request.signal,

@@ -3,6 +3,7 @@ import { flushSync } from 'react-dom'
 import { useLocation, type Location } from 'react-router-dom'
 import { useAppearance } from '../lib/appearance'
 import { workspacePages } from '../lib/workspace-loader'
+import { BookTurnMaterial, type BookTurnBounds } from './BookTurnMaterial'
 
 async function preparePage(pathname: string) {
   if (pathname === '/') await workspacePages.dashboard()
@@ -20,6 +21,7 @@ export function RouteTransition({
   const location = useLocation()
   const { style, pageMotion, reducedMotion } = useAppearance()
   const [displayedLocation, setDisplayedLocation] = useState(location)
+  const [bookBounds, setBookBounds] = useState<BookTurnBounds | null>(null)
   const displayed = useRef(location)
   const page = useRef<HTMLDivElement>(null)
   const generation = useRef(0)
@@ -46,6 +48,7 @@ export function RouteTransition({
       element.style.removeProperty('view-transition-name')
       delete element.dataset.pageEnter
       delete element.dataset.pageDirection
+      setBookBounds(null)
     }
     const commit = () => {
       if (generation.current !== sequence) return
@@ -75,6 +78,13 @@ export function RouteTransition({
         root.dataset.routeTransition = style
         root.dataset.routeDirection = backward ? 'back' : 'forward'
         element.style.viewTransitionName = 'tool-page'
+        if (style === 'genshin') {
+          const rect = element.getBoundingClientRect()
+          const top = Math.max(0, rect.top)
+          const height = Math.max(0, Math.min(innerHeight, rect.bottom) - top)
+          if (height > 0)
+            flushSync(() => setBookBounds({ top, left: rect.left, width: rect.width, height }))
+        }
         try {
           transition = document.startViewTransition(() => {
             if (generation.current === sequence) flushSync(commit)
@@ -91,14 +101,17 @@ export function RouteTransition({
       flushSync(commit)
       element.dataset.pageDirection = backward ? 'back' : 'forward'
       element.dataset.pageEnter = style
-      timer = setTimeout(clear, 800)
+      timer = setTimeout(clear, 1000)
     })()
     return cleanup
   }, [location, style, pageMotion, reducedMotion])
 
   return (
-    <div className="route-page" ref={page}>
-      {children(displayedLocation)}
-    </div>
+    <>
+      <div className="route-page" ref={page}>
+        {children(displayedLocation)}
+      </div>
+      {bookBounds && <BookTurnMaterial bounds={bookBounds} />}
+    </>
   )
 }

@@ -46,7 +46,9 @@ function Message({ item }: { item: ChatItem }) {
           ? t('你', 'You')
           : item.role === 'tool'
             ? t('工具结果', 'Tool result')
-            : t('AI 助手', 'AI assistant')}
+            : item.pending && item.thinking
+              ? t('正在思考', 'Thinking')
+              : t('AI 助手', 'AI assistant')}
         {item.pending && <LoaderCircle size={12} className="spin" />}
       </span>
       {item.image && (
@@ -321,6 +323,29 @@ export function AIPage() {
           </div>
         )}
         <div className="ai-composer">
+          <div className="ai-thinking-control">
+            <ToolUI.Select
+              label={t('思考强度', 'Thinking effort')}
+              value={ai.thinkingLevel}
+              onValueChange={(value) => {
+                if (value === 'off' || value === 'low' || value === 'medium' || value === 'high')
+                  ai.setThinkingLevel(value)
+              }}
+              disabled={busy}
+              options={[
+                { value: 'off', label: t('关闭思考', 'Off') },
+                { value: 'low', label: t('轻量', 'Low') },
+                { value: 'medium', label: t('标准', 'Medium') },
+                { value: 'high', label: t('深入', 'High') },
+              ]}
+            />
+            <p>
+              {t(
+                '越高会给模型更多思考时间，生成也会更慢。关闭后直接回答。',
+                'Higher effort gives the model more time to think and takes longer. Off answers directly.',
+              )}
+            </p>
+          </div>
           {files.map((file, index) => (
             <div className="image-attachment" key={`${file.name}-${index}`}>
               {canPreview(file) && (
