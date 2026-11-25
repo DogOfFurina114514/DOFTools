@@ -1,4 +1,4 @@
-# 26.2.10 工具说明
+# 26.2.11 工具说明
 
 工具成功完成后会显示支持开发的赞助弹窗，支付宝与微信并排展示，可长按图片保存，并提供收款码原图及仓库 Star 入口。「不再提示」按钮永久保存当前浏览器的偏好，之后成功运行工具不再自动弹出；语言选择左侧的「赞助」入口保留。失败或取消不会触发赞助提示。
 
@@ -15,7 +15,7 @@
 | 视频、图片         | GIF 转视频     | GIF → MP4 / WebM，保留动画节奏，最长边和白色 / 黑色背景设置                                                 |
 | 视频、音频         | 音频提取       | 主音轨 → MP3 / WAV / FLAC / M4A / OGG，可指定起点和时长                                                     |
 | 视频、图片         | 帧提取         | 浏览器可播放视频 → PNG / JPG / WebP，按间隔提取，ZIP 内附时间戳 JSON                                        |
-| 音频               | 酷狗音乐解密   | Android / Windows 的 KGE / KGM / KGMA / VPR / KGG 与伪 FLAC；v2 / v3 / v5，无损导出，v5 需匹配本地密钥 |
+| 音频               | 酷狗音乐解密   | Android / Windows 的 KGE / KGM / KGMA / VPR / KGG 与伪 FLAC；v2 / v3 / v4 / v5，无损导出，v5 需匹配本地密钥 |
 | 音频               | 格式转换       | 可解码音频 → MP3 / WAV / FLAC / M4A / OGG                                                                   |
 | 音频               | 音频转 MIDI    | MP3 / WAV / FLAC / M4A / AAC / ALAC / OGG / Opus / WebM / AIFF / WMA → MIDI，本地复音识别                   |
 | 音频               | MIDI 转音频    | MIDI 格式 0 / 1 → MP3 / WAV / FLAC / M4A / AAC / ALAC / OGG / Opus / WebM / AIFF / WMA，近似合成音色        |
@@ -33,11 +33,13 @@
 
 ## 酷狗音乐解密
 
-入口 `/tool/kugou-decrypt`，音频标签，独立钥匙图标。选择 Android / Windows 下载的 `.kge / .kgm / .kgma / .vpr / .kgg`，也接受加密数据使用 `.flac` 或 `.kgg.flac` 等后缀的文件。识别以文件头与加密版本为准，正常音频原样导出，不误做解密。当前实现 v2（包括旧版 VPR）、v3（概念版 KGE / KGM，密钥槽位 1）与 v5（KGG / KGM）；未知版本与不匹配的解密结果明确报错。
+入口 `/tool/kugou-decrypt`，音频标签，独立钥匙图标。选择 Android / Windows 下载的 `.kge / .kgm / .kgma / .vpr / .kgg`，也接受加密数据使用 `.flac` 或 `.kgg.flac` 等后缀的文件。识别以文件头与加密版本为准，正常音频原样导出。当前实现旧版 v2 / v4（包括 VPR）、v3（概念版 KGE / KGM 密钥槽位 1及旧版兼容候选）与 v5（KGG / KGM）；仅接受能解出有效音频头的候选，未知版本与不匹配的结果明确报错。
 
-v2 / v3 无需导入密钥；v5 必须提供音频 hash 对应的 ekey：Windows 可上传 `KGMusicV3.db`（明文 SQLite 或支持的 1024 字节页加密库），Android 可上传 `mggkey_multi_process` MMKV 文件，也可上传 / 填写 `{"32位hash":"Base64 ekey"}` JSON。单个 ekey 可直接填写，仅对匹配文件有效。浏览器无法自动读取客户端目录；无法获得对应密钥的 v5 文件不能解密。密钥库中的 hash 会规范为小写，批量为每个文件匹配密钥。
+v2 / v3 / v4 无需导入密钥；v5 必须提供音频 hash 对应的 ekey：Windows 可上传 `KGMusicV3.db`（明文 SQLite 或支持的 1024 字节页加密库），Android 可上传 `mggkey_multi_process` MMKV 文件，也可上传 / 填写 `{"32位hash":"Base64 ekey"}` JSON。单个 ekey 可直接填写，仅对匹配文件有效。浏览器无法自动读取客户端目录；无法获得对应密钥的 v5 文件不能解密。密钥库中的 hash 会规范为小写，批量为每个文件匹配密钥。
 
-音乐文件总大小最多 256 MiB，密钥文件总大小最多 64 MiB。处理在可取消 Worker 内进行，按原始 FLAC / MP3 / OGG / WAV / M4A / AAC 数据导出，不转码或重新编码；再次上传继续追加，局部失败保留其他输出。SQL/WASM 和旧版静态掩码随站点打包，完整保存离线资源后无需外部 API；文件与密钥不上传、不持久保存。算法来源及 MIT 许可见 [第三方说明](third-party/KUGOU-SOURCES.md)。
+音乐文件总大小最多 256 MiB，密钥文件总大小最多 64 MiB。处理在可取消 Worker 内进行，按原始 FLAC / MP3 / OGG / WAV / M4A / AAC 数据导出，不转码或重新编码；再次上传继续追加，局部失败保留其他输出。旧版直接在 Worker 内查表，无需下载大掩码或使用浏览器 gzip 解压；SQL/WASM 随站点打包。完整保存离线资源后无需外部 API，文件与密钥不上传、不持久保存。算法来源及 MIT 许可见 [第三方说明](third-party/KUGOU-SOURCES.md)。
+
+文件名为 `.flac` 不代表其中一定是 FLAC；实际装有 MP3 时输出 `.mp3`。26.2.11 检查 ID3 后的音频头与 MP3 的 Xing / Info / VBRI 字节数；声明长度大于实际数据时，批次结果注明不完整并提示重新完整下载，现有片段仍可导出。解密不能恢复文件中缺失的音频，未出现长度警告也不等于已验证全部音频内容。
 
 ## 图片与视频压缩
 

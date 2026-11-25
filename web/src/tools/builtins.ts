@@ -134,8 +134,8 @@ export const builtinTools: ToolDefinition[] = [
     'kugou-decrypt',
     ['酷狗音乐解密', 'Kugou music decryptor'],
     [
-      '批量解密 Android / Windows 的酷狗加密音乐，包括伪装为 FLAC 的文件和 KGE / KGM / KGMA / VPR / KGG。支持 v2 / v3 / v5，按真实音频格式无损导出；v5 需要对应本地密钥，普通音频原样导出。文件与密钥不上传。',
-      'Batch decrypt Android / Windows Kugou music, including encrypted files named FLAC and KGE / KGM / KGMA / VPR / KGG. Supports v2 / v3 / v5 and exports the original audio without transcoding. v5 needs matching local keys; ordinary audio is exported unchanged. Files and keys stay local.',
+      '批量解密 Android / Windows 的酷狗加密音乐，包括伪装为 FLAC 的文件和 KGE / KGM / KGMA / VPR / KGG。支持 v2 / v3 / v4 / v5，按真实音频格式无损导出；v5 需要对应本地密钥，普通音频原样导出。检测到截断音频时会提示数据缺失，文件与密钥不上传。',
+      'Batch decrypt Android / Windows Kugou music, including encrypted files named FLAC and KGE / KGM / KGMA / VPR / KGG. Supports v2 / v3 / v4 / v5 and exports the original audio without transcoding. v5 needs matching local keys; ordinary audio is exported unchanged. Truncated audio is flagged. Files and keys stay local.',
     ],
     ['audio'],
     [
@@ -149,7 +149,7 @@ export const builtinTools: ToolDefinition[] = [
         type: 'textarea', name: 'ekey',
         label: b('ekey 或密钥 JSON（可选）', 'ekey or key JSON (optional)'),
         placeholder: b('单个文件的 Base64 ekey，或 {"32位hash":"ekey"}', 'Base64 ekey for one file, or {"32-character-hash":"ekey"}'),
-        help: b('v2 / v3 不需要密钥。v5 无对应密钥无法解密；单个 ekey 仅用于其对应文件，批量请使用密钥库或 JSON。音乐总大小不超过 256 MiB。', 'v2 / v3 need no key. v5 cannot be decrypted without its matching key. A single ekey works only for its matching file; use a key file or JSON for batches. Music files must total at most 256 MiB.'),
+        help: b('v2 / v3 / v4 不需要密钥。v5 无对应密钥无法解密；单个 ekey 仅用于其对应文件，批量请使用密钥库或 JSON。音乐总大小不超过 256 MiB。扩展名为 FLAC 的文件可能实际装的是 MP3，输出按真实格式命名；截断文件只能保留现有片段。', 'v2 / v3 / v4 need no key. v5 cannot be decrypted without its matching key. A single ekey works only for its matching file; use a key file or JSON for batches. Music files must total at most 256 MiB. Files named FLAC may contain MP3; output follows the real format. Truncated files can only yield the available fragment.'),
       },
     ],
     { files: [], keyFiles: [], ekey: '' },

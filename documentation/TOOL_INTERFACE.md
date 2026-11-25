@@ -130,9 +130,11 @@ Fluent 主题保留稳定的 FluentProvider 和调色板，共享自绘控件与
 
 批量独立文件工具在 builtins.define 通过 processors/batch.runBatch 逐份调用原处理器，每次注入单文件 values.files，并映射整批进度与当前文件状态。局部失败写入结果 details，同名输出自动重命名；全部失败抛错，取消停止后续文件。图片转 PDF 保持合并输入；视频音频替换仍使用两个独立单文件字段。共享 FilePicker 的 multiple 模式累积添加、按名称 / 大小 / 修改时间去重、取消选择不清空。
 
-新增 kugou-decrypt，音频标签和 KeyRound 独立图标。kugou.ts 校验文件并启动 Worker；kugou.worker.ts 依据内容魔数与版本分派 v2 / v3 / v5。kugou-v2.ts 加载随站点打包的 gzip 掩码；kugou-crypto.ts 提供 KGM v3、MD5、Tencent TEA 与 QMC Map / RC4；kugou-keys.ts 本地读取 Windows 加密 / 明文 SQLite、Android MMKV 与 JSON。音乐值 files 为多文件数组，可选 keyFiles 接受空数组，可选 ekey 为单密钥或 JSON；不读取系统目录、不上传或保存密钥。输出按实际音频头识别，未知版本和错误密钥报错。
+26.2.8 新增 kugou-decrypt，音频标签和 KeyRound 独立图标。kugou.ts 校验文件并启动 Worker；kugou.worker.ts 当时依据内容魔数与版本分派 v2 / v3 / v5，kugou-v2.ts 当时加载 gzip 掩码；26.2.11 已改为本地查表。kugou-crypto.ts 提供 KGM v3、MD5、Tencent TEA 与 QMC Map / RC4；kugou-keys.ts 本地读取 Windows 加密 / 明文 SQLite、Android MMKV 与 JSON。音乐值 files 为多文件数组，可选 keyFiles 接受空数组，可选 ekey 为单密钥或 JSON；不读取系统目录、不上传或保存密钥。输出按实际音频头识别，未知版本和错误密钥报错。
 
 26.2.8 未运行测试、浏览器或截图验证，生产构建用于发布。
+
+26.2.11 的 kugou-v2.ts 从 MIT MyKgmWasm 移植 833 字节查表数据，按 16 字节块缓存公开掩码，不依赖资源请求 / DecompressionStream；删除原静态 gzip。Worker 为旧版 v4 增加分派，为 v3 增加按有效音频头选取的旧版候选。kugou.ts 允许省略 keyFiles，规范为空数组；v5 仍必须有匹配 ekey。kugou-audio.ts 跳过合法 ID3 标签识别实际格式，并从首个 MPEG Layer III 帧读取 Xing / Info / VBRI 声明长度；长度大于实际输出时在 details 和 summary 提示片段不完整，不影响其余输出。第三方许可随构建发布；真实样本、参考检验和批次报告仅保存在忽略的 .site-build/kugou-26211-reference/。
 
 26.2.9：BookSpread 的两份 book-leaf 标记 data-scroll-area，在原神主题下设置双语 region 名称和 tabIndex，ThemeScrollbars 分别发现并控制两页。书壳使用 flex / grid 的剩余高度，父级和纸页 min-height:0，根滚动锁定；当时移动端也保留两份独立滚动页。BookSpread 暴露 rightRef / onRightScroll，AIPage 的原神滚动跟随操作右页，其他主题保持 transcript 滚动。handbook.css 增加书边纸张遮盖、织带与缝线、书签选中抽出，并将固定书签和图钉作为整体移动。26.2.9 未运行测试或浏览器验证。
 
