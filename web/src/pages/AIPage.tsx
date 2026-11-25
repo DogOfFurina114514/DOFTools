@@ -25,6 +25,7 @@ import { ToolIcon } from '../components/ToolIcon'
 import { useLocale } from '../lib/i18n'
 import { bilingual, type DisplayText } from '../lib/locale'
 import { useStoredState } from '../lib/storage'
+import { useAppearance } from '../lib/appearance'
 
 function LocalImage({ blob, alt }: { blob: Blob; alt: string }) {
   const [url, setUrl] = useState('')
@@ -138,20 +139,34 @@ export function AIPage() {
   const input = useRef<HTMLInputElement>(null)
   const end = useRef<HTMLDivElement>(null)
   const transcript = useRef<HTMLDivElement>(null)
+  const rightPage = useRef<HTMLDivElement>(null)
+  const { style } = useAppearance()
   const follow = useRef(true)
   useEffect(() => {
-    if (follow.current) end.current?.scrollIntoView({ block: 'nearest' })
-  }, [ai.chat])
+    if (!follow.current) return
+    if (style === 'genshin' && rightPage.current)
+      rightPage.current.scrollTop = rightPage.current.scrollHeight
+    else end.current?.scrollIntoView({ block: 'nearest' })
+  }, [ai.chat, style])
   if (!capability.desktop)
     return (
-      <BookSpread left={<EmptyPanel
-        icon={<Laptop size={30} />}
-        title={t('AI 助手仅在电脑端提供', 'AI is available on desktop')}
-        description={t(
-          '请在电脑浏览器中打开。手机和平板可以使用所有工具、筛选标签与切换风格。',
-          'Open this page on a desktop browser. Phones and tablets can use All tools, filter tags and switch styles.',
-        )}
-      />} right={<Link to="/tools" className="button">{t('所有工具', 'All tools')}</Link>} />
+      <BookSpread
+        left={
+          <EmptyPanel
+            icon={<Laptop size={30} />}
+            title={t('AI 助手仅在电脑端提供', 'AI is available on desktop')}
+            description={t(
+              '请在电脑浏览器中打开。手机和平板可以使用所有工具、筛选标签与切换风格。',
+              'Open this page on a desktop browser. Phones and tablets can use All tools, filter tags and switch styles.',
+            )}
+          />
+        }
+        right={
+          <Link to="/tools" className="button">
+            {t('所有工具', 'All tools')}
+          </Link>
+        }
+      />
     )
   const busy = ai.status === 'generating'
   const loading = ai.status === 'loading'
@@ -185,304 +200,330 @@ export function AIPage() {
   }
   return (
     <>
-      <div className="ai-workspace"><BookSpread left={<>
-      <PageHeading
-        eyebrow="YOUR PERSONAL ASSISTANT"
-        title={t('AI 助手', 'AI assistant')}
-        description={t(
-          '告诉我想做什么，或附上文件让我来处理。',
-          'Tell me what you want to do, or attach files for me to process.',
-        )}
-      />
-        <div className="ai-workspace-bar">
-          <span>
-            <Sparkles size={18} />
-            {t('AI 助手', 'AI assistant')}
-          </span>
-          <span className="model-status">
-            <span className={`status-dot ${ready ? '' : 'pending'}`} />
-            {statusText}
-          </span>
-          <IconButton
-            onClick={() => {
-              ai.unload()
-              navigate('/')
-            }}
-            aria-label={t('关闭 AI 助手', 'Close AI assistant')}
-          >
-            <X size={20} />
-          </IconButton>
-        </div>
-        {!ready && (
-          <div className="ai-model-loader">
-            <div>
-              <Sparkles size={23} />
-              <div>
-                <h2>{loading ? loadLabel : t('准备好就开始吧', 'Ready when you are')}</h2>
-                <p>
-                  {t(
-                    '对话和文件都留在这台电脑上。',
-                    'Your conversations and files stay on this computer.',
-                  )}
-                </p>
+      <div className="ai-workspace">
+        <BookSpread
+          rightRef={rightPage}
+          onRightScroll={(event) => {
+            if (style !== 'genshin') return
+            const page = event.currentTarget
+            follow.current = page.scrollHeight - page.scrollTop - page.clientHeight < 90
+          }}
+          left={
+            <>
+              <PageHeading
+                eyebrow="YOUR PERSONAL ASSISTANT"
+                title={t('AI 助手', 'AI assistant')}
+                description={t(
+                  '告诉我想做什么，或附上文件让我来处理。',
+                  'Tell me what you want to do, or attach files for me to process.',
+                )}
+              />
+              <div className="ai-workspace-bar">
+                <span>
+                  <Sparkles size={18} />
+                  {t('AI 助手', 'AI assistant')}
+                </span>
+                <span className="model-status">
+                  <span className={`status-dot ${ready ? '' : 'pending'}`} />
+                  {statusText}
+                </span>
+                <IconButton
+                  onClick={() => {
+                    ai.unload()
+                    navigate('/')
+                  }}
+                  aria-label={t('关闭 AI 助手', 'Close AI assistant')}
+                >
+                  <X size={20} />
+                </IconButton>
               </div>
-            </div>
-            {loading ? (
-              <>
-                <ToolUI.Progress
-                  label={downloading ? t('资源加载进度', 'Resource loading progress') : loadLabel}
-                  value={downloading ? ai.progress : undefined}
-                  decimals={2}
-                />
-                <ToolUI.Button variant="secondary" onClick={ai.unload}>
-                  {t('取消准备', 'Cancel')}
-                </ToolUI.Button>
-              </>
-            ) : (
-              <ToolUI.Button
-                onClick={() => void ai.load()}
-                disabled={!capability.secure || !capability.webgpu || !ai.storageReady}
-              >
-                {t('开启助手', 'Start assistant')}
-                <ArrowUpRight size={15} />
-              </ToolUI.Button>
-            )}
-            {!capability.secure && (
-              <p role="alert">
-                {t(
-                  '请通过 HTTPS 或 localhost 打开，以启用本地 AI。',
-                  'Open over HTTPS or localhost to enable local AI.',
+              {!ready && (
+                <div className="ai-model-loader">
+                  <div>
+                    <Sparkles size={23} />
+                    <div>
+                      <h2>{loading ? loadLabel : t('准备好就开始吧', 'Ready when you are')}</h2>
+                      <p>
+                        {t(
+                          '对话和文件都留在这台电脑上。',
+                          'Your conversations and files stay on this computer.',
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                  {loading ? (
+                    <>
+                      <ToolUI.Progress
+                        label={
+                          downloading ? t('资源加载进度', 'Resource loading progress') : loadLabel
+                        }
+                        value={downloading ? ai.progress : undefined}
+                        decimals={2}
+                      />
+                      <ToolUI.Button variant="secondary" onClick={ai.unload}>
+                        {t('取消准备', 'Cancel')}
+                      </ToolUI.Button>
+                    </>
+                  ) : (
+                    <ToolUI.Button
+                      onClick={() => void ai.load()}
+                      disabled={!capability.secure || !capability.webgpu || !ai.storageReady}
+                    >
+                      {t('开启助手', 'Start assistant')}
+                      <ArrowUpRight size={15} />
+                    </ToolUI.Button>
+                  )}
+                  {!capability.secure && (
+                    <p role="alert">
+                      {t(
+                        '请通过 HTTPS 或 localhost 打开，以启用本地 AI。',
+                        'Open over HTTPS or localhost to enable local AI.',
+                      )}
+                    </p>
+                  )}
+                  {!capability.webgpu && (
+                    <p role="alert">
+                      {t(
+                        '当前浏览器无法开启助手，请使用开启硬件加速的新版 Chrome 或 Edge。',
+                        'Use a recent Chrome or Edge with hardware acceleration enabled to start the assistant.',
+                      )}
+                    </p>
+                  )}
+                </div>
+              )}
+              {!noticeDismissed && (
+                <div className="notice-box ai-storage-notice">
+                  <ShieldCheck size={19} />
+                  <p>
+                    {t(
+                      '聊天记录保存在本地，可以随时清空。切换页面后助手会继续工作，关闭助手后释放资源。',
+                      'Conversations are saved locally and can be cleared anytime. The assistant keeps working as you browse; closing it releases resources.',
+                    )}
+                  </p>
+                  <IconButton
+                    aria-label={t('关闭本地聊天提示', 'Dismiss local chat notice')}
+                    onClick={() => setNoticeDismissed(true)}
+                  >
+                    <X size={18} />
+                  </IconButton>
+                </div>
+              )}
+            </>
+          }
+          right={
+            <>
+              {ai.chat.length ? (
+                <div
+                  ref={transcript}
+                  className="ai-transcript"
+                  role="log"
+                  aria-label={t('AI 对话记录', 'AI conversation')}
+                  aria-live="polite"
+                  onScroll={() => {
+                    const el = transcript.current
+                    if (el) follow.current = el.scrollHeight - el.scrollTop - el.clientHeight < 90
+                  }}
+                >
+                  {ai.chat.map((item) => (
+                    <Message key={item.id} item={item} />
+                  ))}
+                  <div ref={end} />
+                </div>
+              ) : (
+                <div className="ai-chat-empty">
+                  <span className="big-sparkle">
+                    <Sparkles size={40} strokeWidth={1.3} />
+                  </span>
+                  <h2>{t('今天，一起看看什么？', 'What would you like to explore?')}</h2>
+                  <p>
+                    {t(
+                      '说出要求，我会推荐工具；附上文件，我会直接处理。',
+                      'Describe a task to find tools, or attach files to process them.',
+                    )}
+                    <br />
+                    {t('开启助手后，就可以开始。', 'Start when the assistant is ready.')}
+                  </p>
+                  <div className="ai-capability-chips">
+                    <span>
+                      <Eye size={13} />
+                      {t('图片理解', 'Image understanding')}
+                    </span>
+                    <span>
+                      <Unplug size={13} />
+                      {t('工具调用', 'Tool calling')}
+                    </span>
+                    <span>
+                      <ShieldCheck size={13} />
+                      {t('本地运行', 'Local processing')}
+                    </span>
+                  </div>
+                  <div className="prompt-suggestions">
+                    {[
+                      t('帮我描述这张图片', 'Describe this image'),
+                      t('识别截图里的文字', 'Read the text in this screenshot'),
+                      t('帮我整理这段内容', 'Help me organize this content'),
+                      t('帮我选择合适的工具', 'Help me choose a tool'),
+                    ].map((text) => (
+                      <ToolUI.Button
+                        key={text}
+                        variant="secondary"
+                        onClick={() => ai.setDraft(text)}
+                      >
+                        {text}
+                        <ArrowUpRight size={14} />
+                      </ToolUI.Button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="ai-composer">
+                <div className="ai-thinking-control">
+                  <ToolUI.Select
+                    label={t('思考强度', 'Thinking effort')}
+                    value={ai.thinkingLevel}
+                    onValueChange={(value) => {
+                      if (
+                        value === 'off' ||
+                        value === 'low' ||
+                        value === 'medium' ||
+                        value === 'high'
+                      )
+                        ai.setThinkingLevel(value)
+                    }}
+                    disabled={busy}
+                    options={[
+                      { value: 'off', label: t('关闭思考', 'Off') },
+                      { value: 'low', label: t('轻量', 'Low') },
+                      { value: 'medium', label: t('标准', 'Medium') },
+                      { value: 'high', label: t('深入', 'High') },
+                    ]}
+                  />
+                  <p>
+                    {t(
+                      '越高会给模型更多思考时间，生成也会更慢。关闭后直接回答。',
+                      'Higher effort gives the model more time to think and takes longer. Off answers directly.',
+                    )}
+                  </p>
+                </div>
+                {files.map((file, index) => (
+                  <div className="image-attachment" key={`${file.name}-${index}`}>
+                    {canPreview(file) && (
+                      <LocalImage
+                        blob={file}
+                        alt={t('待识别图片的本地预览', 'Local preview of the image to analyze')}
+                      />
+                    )}
+                    <span>
+                      {file.name}
+                      <small>{t('文件仅在本地读取', 'File read locally only')}</small>
+                    </span>
+                    <IconButton
+                      aria-label={t('移除 {name}', 'Remove {name}', { name: file.name })}
+                      onClick={() => ai.setAttachments(files.filter((_, i) => i !== index))}
+                    >
+                      <X size={15} />
+                    </IconButton>
+                  </div>
+                ))}
+                <div
+                  onKeyDown={(event) => {
+                    if (
+                      event.key === 'Enter' &&
+                      !event.shiftKey &&
+                      !event.nativeEvent.isComposing &&
+                      event.nativeEvent.keyCode !== 229
+                    ) {
+                      event.preventDefault()
+                      send()
+                    }
+                  }}
+                >
+                  <ToolUI.TextArea
+                    label={t('AI 对话内容', 'AI message')}
+                    value={prompt}
+                    onValueChange={ai.setDraft}
+                    placeholder={t('输入要求，或附上文件…', 'Describe a task or attach files…')}
+                    disabled={busy}
+                  />
+                </div>
+                <div className="composer-actions">
+                  <ToolUI.Button
+                    variant="secondary"
+                    disabled={busy}
+                    onClick={() => input.current?.click()}
+                    aria-label={t('添加文件', 'Add files')}
+                  >
+                    <Paperclip size={17} />
+                    {t('添加文件', 'Add files')}
+                  </ToolUI.Button>
+                  <input
+                    ref={input}
+                    type="file"
+                    multiple
+                    aria-label={t('选择待处理文件', 'Choose files to process')}
+                    hidden
+                    onChange={(event) => {
+                      const selected = [...(event.target.files ?? [])]
+                      event.target.value = ''
+                      setFileError('')
+                      if (!selected.length) return
+                      if (
+                        [...files, ...selected].length > 20 ||
+                        selected.some((file) => file.size > 200 * 1024 * 1024)
+                      ) {
+                        setFileError(
+                          bilingual(
+                            '最多添加 20 个文件，单个文件需小于 200 MB。',
+                            'Attach up to 20 files, each smaller than 200 MB.',
+                          ),
+                        )
+                        return
+                      }
+                      ai.setAttachments([...files, ...selected])
+                    }}
+                  />
+                  <span>
+                    <ShieldCheck size={13} />
+                    {t('内容留在本地', 'Content stays local')}
+                  </span>
+                  {busy ? (
+                    <ToolUI.Button variant="secondary" onClick={ai.stop}>
+                      <Square size={14} />
+                      {t('停止生成', 'Stop generating')}
+                    </ToolUI.Button>
+                  ) : (
+                    <ToolUI.Button
+                      disabled={!ready || !ai.storageReady || (!prompt.trim() && !files.length)}
+                      onClick={send}
+                    >
+                      {t('发送', 'Send')}
+                      <ArrowUpRight size={15} />
+                    </ToolUI.Button>
+                  )}
+                </div>
+                {(fileError || ai.error || ai.storageError) && (
+                  <div role="alert" className="error-message">
+                    {resolve(fileError || ai.error || ai.storageError)}
+                  </div>
                 )}
-              </p>
-            )}
-            {!capability.webgpu && (
-              <p role="alert">
-                {t(
-                  '当前浏览器无法开启助手，请使用开启硬件加速的新版 Chrome 或 Edge。',
-                  'Use a recent Chrome or Edge with hardware acceleration enabled to start the assistant.',
-                )}
-              </p>
-            )}
-          </div>
-        )}
-      {!noticeDismissed && (
-        <div className="notice-box ai-storage-notice">
-          <ShieldCheck size={19} />
-          <p>
-            {t(
-              '聊天记录保存在本地，可以随时清空。切换页面后助手会继续工作，关闭助手后释放资源。',
-              'Conversations are saved locally and can be cleared anytime. The assistant keeps working as you browse; closing it releases resources.',
-            )}
-          </p>
-          <IconButton
-            aria-label={t('关闭本地聊天提示', 'Dismiss local chat notice')}
-            onClick={() => setNoticeDismissed(true)}
-          >
-            <X size={18} />
-          </IconButton>
-        </div>
-      )}
-      </>} right={<>
-        {ai.chat.length ? (
-          <div
-            ref={transcript}
-            className="ai-transcript"
-            role="log"
-            aria-label={t('AI 对话记录', 'AI conversation')}
-            aria-live="polite"
-            onScroll={() => {
-              const el = transcript.current
-              if (el) follow.current = el.scrollHeight - el.scrollTop - el.clientHeight < 90
-            }}
-          >
-            {ai.chat.map((item) => (
-              <Message key={item.id} item={item} />
-            ))}
-            <div ref={end} />
-          </div>
-        ) : (
-          <div className="ai-chat-empty">
-            <span className="big-sparkle">
-              <Sparkles size={40} strokeWidth={1.3} />
-            </span>
-            <h2>{t('今天，一起看看什么？', 'What would you like to explore?')}</h2>
-            <p>
-              {t(
-                '说出要求，我会推荐工具；附上文件，我会直接处理。',
-                'Describe a task to find tools, or attach files to process them.',
-              )}
-              <br />
-              {t('开启助手后，就可以开始。', 'Start when the assistant is ready.')}
-            </p>
-            <div className="ai-capability-chips">
-              <span>
-                <Eye size={13} />
-                {t('图片理解', 'Image understanding')}
-              </span>
-              <span>
-                <Unplug size={13} />
-                {t('工具调用', 'Tool calling')}
-              </span>
-              <span>
-                <ShieldCheck size={13} />
-                {t('本地运行', 'Local processing')}
-              </span>
-            </div>
-            <div className="prompt-suggestions">
-              {[
-                t('帮我描述这张图片', 'Describe this image'),
-                t('识别截图里的文字', 'Read the text in this screenshot'),
-                t('帮我整理这段内容', 'Help me organize this content'),
-                t('帮我选择合适的工具', 'Help me choose a tool'),
-              ].map((text) => (
-                <ToolUI.Button key={text} variant="secondary" onClick={() => ai.setDraft(text)}>
-                  {text}
-                  <ArrowUpRight size={14} />
+              </div>
+              <div className="ai-session-actions">
+                <span>
+                  {t('Enter 发送 · Shift+Enter 换行', 'Enter to send · Shift+Enter for a new line')}
+                </span>
+                <ToolUI.Button
+                  variant="secondary"
+                  disabled={busy || loading || !ai.storageReady || !ai.chat.length}
+                  onClick={ai.clear}
+                >
+                  <Trash2 size={13} />
+                  {t('清空对话', 'Clear chat')}
                 </ToolUI.Button>
-              ))}
-            </div>
-          </div>
-        )}
-        <div className="ai-composer">
-          <div className="ai-thinking-control">
-            <ToolUI.Select
-              label={t('思考强度', 'Thinking effort')}
-              value={ai.thinkingLevel}
-              onValueChange={(value) => {
-                if (value === 'off' || value === 'low' || value === 'medium' || value === 'high')
-                  ai.setThinkingLevel(value)
-              }}
-              disabled={busy}
-              options={[
-                { value: 'off', label: t('关闭思考', 'Off') },
-                { value: 'low', label: t('轻量', 'Low') },
-                { value: 'medium', label: t('标准', 'Medium') },
-                { value: 'high', label: t('深入', 'High') },
-              ]}
-            />
-            <p>
-              {t(
-                '越高会给模型更多思考时间，生成也会更慢。关闭后直接回答。',
-                'Higher effort gives the model more time to think and takes longer. Off answers directly.',
-              )}
-            </p>
-          </div>
-          {files.map((file, index) => (
-            <div className="image-attachment" key={`${file.name}-${index}`}>
-              {canPreview(file) && (
-                <LocalImage
-                  blob={file}
-                  alt={t('待识别图片的本地预览', 'Local preview of the image to analyze')}
-                />
-              )}
-              <span>
-                {file.name}
-                <small>{t('文件仅在本地读取', 'File read locally only')}</small>
-              </span>
-              <IconButton
-                aria-label={t('移除 {name}', 'Remove {name}', { name: file.name })}
-                onClick={() => ai.setAttachments(files.filter((_, i) => i !== index))}
-              >
-                <X size={15} />
-              </IconButton>
-            </div>
-          ))}
-          <div
-            onKeyDown={(event) => {
-              if (
-                event.key === 'Enter' &&
-                !event.shiftKey &&
-                !event.nativeEvent.isComposing &&
-                event.nativeEvent.keyCode !== 229
-              ) {
-                event.preventDefault()
-                send()
-              }
-            }}
-          >
-            <ToolUI.TextArea
-              label={t('AI 对话内容', 'AI message')}
-              value={prompt}
-              onValueChange={ai.setDraft}
-              placeholder={t('输入要求，或附上文件…', 'Describe a task or attach files…')}
-              disabled={busy}
-            />
-          </div>
-          <div className="composer-actions">
-            <ToolUI.Button
-              variant="secondary"
-              disabled={busy}
-              onClick={() => input.current?.click()}
-              aria-label={t('添加文件', 'Add files')}
-            >
-              <Paperclip size={17} />
-              {t('添加文件', 'Add files')}
-            </ToolUI.Button>
-            <input
-              ref={input}
-              type="file"
-              multiple
-              aria-label={t('选择待处理文件', 'Choose files to process')}
-              hidden
-              onChange={(event) => {
-                const selected = [...(event.target.files ?? [])]
-                event.target.value = ''
-                setFileError('')
-                if (!selected.length) return
-                if (
-                  [...files, ...selected].length > 20 ||
-                  selected.some((file) => file.size > 200 * 1024 * 1024)
-                ) {
-                  setFileError(
-                    bilingual(
-                      '最多添加 20 个文件，单个文件需小于 200 MB。',
-                      'Attach up to 20 files, each smaller than 200 MB.',
-                    ),
-                  )
-                  return
-                }
-                ai.setAttachments([...files, ...selected])
-              }}
-            />
-            <span>
-              <ShieldCheck size={13} />
-              {t('内容留在本地', 'Content stays local')}
-            </span>
-            {busy ? (
-              <ToolUI.Button variant="secondary" onClick={ai.stop}>
-                <Square size={14} />
-                {t('停止生成', 'Stop generating')}
-              </ToolUI.Button>
-            ) : (
-              <ToolUI.Button
-                disabled={!ready || !ai.storageReady || (!prompt.trim() && !files.length)}
-                onClick={send}
-              >
-                {t('发送', 'Send')}
-                <ArrowUpRight size={15} />
-              </ToolUI.Button>
-            )}
-          </div>
-          {(fileError || ai.error || ai.storageError) && (
-            <div role="alert" className="error-message">
-              {resolve(fileError || ai.error || ai.storageError)}
-            </div>
-          )}
-        </div>
-        <div className="ai-session-actions">
-          <span>
-            {t('Enter 发送 · Shift+Enter 换行', 'Enter to send · Shift+Enter for a new line')}
-          </span>
-          <ToolUI.Button
-            variant="secondary"
-            disabled={busy || loading || !ai.storageReady || !ai.chat.length}
-            onClick={ai.clear}
-          >
-            <Trash2 size={13} />
-            {t('清空对话', 'Clear chat')}
-          </ToolUI.Button>
-        </div>
-      </>} /></div>
+              </div>
+            </>
+          }
+        />
+      </div>
     </>
   )
 }

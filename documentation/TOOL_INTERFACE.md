@@ -133,3 +133,5 @@ Fluent 主题保留稳定的 FluentProvider 和调色板，共享自绘控件与
 新增 kugou-decrypt，音频标签和 KeyRound 独立图标。kugou.ts 校验文件并启动 Worker；kugou.worker.ts 依据内容魔数与版本分派 v2 / v3 / v5。kugou-v2.ts 加载随站点打包的 gzip 掩码；kugou-crypto.ts 提供 KGM v3、MD5、Tencent TEA 与 QMC Map / RC4；kugou-keys.ts 本地读取 Windows 加密 / 明文 SQLite、Android MMKV 与 JSON。音乐值 files 为多文件数组，可选 keyFiles 接受空数组，可选 ekey 为单密钥或 JSON；不读取系统目录、不上传或保存密钥。输出按实际音频头识别，未知版本和错误密钥报错。
 
 26.2.8 未运行测试、浏览器或截图验证，生产构建用于发布。
+
+26.2.9：BookSpread 的两份 book-leaf 标记 data-scroll-area，在原神主题下设置双语 region 名称和 tabIndex，ThemeScrollbars 分别发现并控制两页。书壳使用 flex / grid 的剩余高度，父级和纸页 min-height:0，根滚动锁定；移动端同样保留两份独立滚动页。BookSpread 暴露 rightRef / onRightScroll，AIPage 的原神滚动跟随操作右页，其他主题保持 transcript 滚动。handbook.css 增加书边纸张遮盖、织带与缝线、书签选中抽出，并将固定书签和图钉作为整体移动。26.2.9 未运行测试或浏览器验证。
