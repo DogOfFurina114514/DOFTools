@@ -41,6 +41,7 @@ import { AllTools } from './pages/AllTools'
 import { PinToolButton } from './components/PinToolButton'
 import { ToolIcon } from './components/ToolIcon'
 import { RouteTransition } from './components/RouteTransition'
+import { BookSpread } from './components/BookSpread'
 import { isStringArray, useStoredState, readStorage, writeStorage } from './lib/storage'
 import { detectAICapability } from './lib/ai'
 import { AppearanceProvider, presetFor, useAppearance, type StyleId } from './lib/appearance'
@@ -141,7 +142,7 @@ function RegisteredToolPage() {
   const { pinned, togglePin } = useToolbox()
   const { t, resolve } = useLocale()
   return tool ? (
-    <>
+    <ToolWorkspace key={tool.id} tool={tool} navigation={
       <div className="registered-tool-nav">
         <Link to="/tools" className="text-button">
           {t('所有工具', 'All tools')}
@@ -157,8 +158,7 @@ function RegisteredToolPage() {
           onToggle={() => togglePin(tool.id)}
         />
       </div>
-      <ToolWorkspace key={tool.id} tool={tool} />
-    </>
+    } />
   ) : (
     <UnavailablePage />
   )
@@ -167,14 +167,14 @@ function RegisteredToolPage() {
 function UnavailablePage() {
   const { t } = useLocale()
   return (
-    <EmptyPanel
+    <BookSpread left={<EmptyPanel
       icon={<Search size={30} />}
       title={t('这个角落，暂时留白。', 'Nothing here just yet.')}
       description={t(
         '找不到这个工具或页面，请通过所有工具中的标签或搜索重新选择。',
         'This tool or page could not be found. Choose another using tags or search in All tools.',
       )}
-    />
+    />} right={<Link to="/tools" className="button">{t('所有工具', 'All tools')}</Link>} />
   )
 }
 
@@ -471,21 +471,7 @@ function Application() {
     recordUsage: (id) =>
       setRecent((previous) => [id, ...previous.filter((item) => item !== id)].slice(0, 20)),
   }
-  return (
-    <Toolbox.Provider value={context}>
-      <div
-        className={`app-shell ${splash && !splashRevealing ? 'has-opening' : ''}`}
-        inert={!!splash || guide === 'setup'}
-        aria-hidden={splash || guide === 'setup' ? true : undefined}
-      >
-        <ThemeScenery suspended={!!splash || guide === 'setup'} />
-        {mobileOpen && (
-          <button
-            className="sidebar-backdrop"
-            onClick={() => setMobileOpen(false)}
-            aria-label={t('关闭导航', 'Close navigation')}
-          />
-        )}
+  const navigation = (
         <aside className={`sidebar ${mobileOpen ? 'mobile-open' : ''}`}>
           <Link to="/" className="brand">
             <ToolboxMark className="brand-mark" />
@@ -573,6 +559,23 @@ function Application() {
             </div>
           </div>
         </aside>
+  )
+  return (
+    <Toolbox.Provider value={context}>
+      <div
+        className={`app-shell ${splash && !splashRevealing ? 'has-opening' : ''}`}
+        inert={!!splash || guide === 'setup'}
+        aria-hidden={splash || guide === 'setup' ? true : undefined}
+      >
+        <ThemeScenery suspended={!!splash || guide === 'setup'} />
+        {mobileOpen && (
+          <button
+            className="sidebar-backdrop"
+            onClick={() => setMobileOpen(false)}
+            aria-label={t('关闭导航', 'Close navigation')}
+          />
+        )}
+        {style !== 'genshin' && navigation}
         <div className="main-shell">
           <header className="topbar">
             <div className="breadcrumb">
@@ -622,6 +625,7 @@ function Application() {
           </header>
           <main className="main-content">
             <RouteTransition
+              navigation={style === 'genshin' ? navigation : undefined}
               onReady={(pathname) => {
                 window.scrollTo({ top: 0 })
                 if (searchRequested.current && pathname === '/tools') {
@@ -634,10 +638,10 @@ function Application() {
                 <PageBoundary key={displayedLocation.pathname}>
                   <Suspense
                     fallback={
-                      <div className="page-loading" role="status">
+                      <BookSpread left={<div className="page-loading" role="status">
                         <span />
                         {t('正在准备页面…', 'Preparing the page…')}
-                      </div>
+                      </div>} right={null} />
                     }
                   >
                     <Routes location={displayedLocation}>

@@ -1,3 +1,4 @@
+import { BookSpread } from '../components/BookSpread'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
@@ -63,7 +64,9 @@ function Message({ item }: { item: ChatItem }) {
         ) : (
           resolve(item.text) ||
           (item.pending
-            ? t('正在思考…', 'Thinking…')
+            ? item.thinking
+              ? t('正在思考…', 'Thinking…')
+              : t('正在生成回答…', 'Generating an answer…')
             : item.interrupted
               ? t('已停止', 'Stopped')
               : t('未生成文字', 'No text generated'))
@@ -141,14 +144,14 @@ export function AIPage() {
   }, [ai.chat])
   if (!capability.desktop)
     return (
-      <EmptyPanel
+      <BookSpread left={<EmptyPanel
         icon={<Laptop size={30} />}
         title={t('AI 助手仅在电脑端提供', 'AI is available on desktop')}
         description={t(
           '请在电脑浏览器中打开。手机和平板可以使用所有工具、筛选标签与切换风格。',
           'Open this page on a desktop browser. Phones and tablets can use All tools, filter tags and switch styles.',
         )}
-      />
+      />} right={<Link to="/tools" className="button">{t('所有工具', 'All tools')}</Link>} />
     )
   const busy = ai.status === 'generating'
   const loading = ai.status === 'loading'
@@ -182,6 +185,7 @@ export function AIPage() {
   }
   return (
     <>
+      <div className="ai-workspace"><BookSpread left={<>
       <PageHeading
         eyebrow="YOUR PERSONAL ASSISTANT"
         title={t('AI 助手', 'AI assistant')}
@@ -190,7 +194,6 @@ export function AIPage() {
           'Tell me what you want to do, or attach files for me to process.',
         )}
       />
-      <div className="ai-workspace">
         <div className="ai-workspace-bar">
           <span>
             <Sparkles size={18} />
@@ -262,6 +265,24 @@ export function AIPage() {
             )}
           </div>
         )}
+      {!noticeDismissed && (
+        <div className="notice-box ai-storage-notice">
+          <ShieldCheck size={19} />
+          <p>
+            {t(
+              '聊天记录保存在本地，可以随时清空。切换页面后助手会继续工作，关闭助手后释放资源。',
+              'Conversations are saved locally and can be cleared anytime. The assistant keeps working as you browse; closing it releases resources.',
+            )}
+          </p>
+          <IconButton
+            aria-label={t('关闭本地聊天提示', 'Dismiss local chat notice')}
+            onClick={() => setNoticeDismissed(true)}
+          >
+            <X size={18} />
+          </IconButton>
+        </div>
+      )}
+      </>} right={<>
         {ai.chat.length ? (
           <div
             ref={transcript}
@@ -461,24 +482,7 @@ export function AIPage() {
             {t('清空对话', 'Clear chat')}
           </ToolUI.Button>
         </div>
-      </div>
-      {!noticeDismissed && (
-        <div className="notice-box ai-storage-notice">
-          <ShieldCheck size={19} />
-          <p>
-            {t(
-              '聊天记录保存在本地，可以随时清空。切换页面后助手会继续工作，关闭助手后释放资源。',
-              'Conversations are saved locally and can be cleared anytime. The assistant keeps working as you browse; closing it releases resources.',
-            )}
-          </p>
-          <IconButton
-            aria-label={t('关闭本地聊天提示', 'Dismiss local chat notice')}
-            onClick={() => setNoticeDismissed(true)}
-          >
-            <X size={18} />
-          </IconButton>
-        </div>
-      )}
+      </>} /></div>
     </>
   )
 }

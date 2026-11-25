@@ -1,3 +1,4 @@
+import { BookSpread } from '../components/BookSpread'
 import { ArrowRight, ArrowUpRight, Compass, Grid2X2, Radio, Layers } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAppearance } from '../lib/appearance'
@@ -66,6 +67,7 @@ export function GameDashboard({ pinned }: { pinned: string[] }) {
           : Grid2X2
   return (
     <div className={`game-dashboard game-dashboard-${style}`}>
+      <BookSpread left={<>
       <section className="game-welcome">
         <div className="game-emblem" aria-hidden="true">
           <Emblem strokeWidth={1} />
@@ -115,6 +117,7 @@ export function GameDashboard({ pinned }: { pinned: string[] }) {
           ))}
         </div>
       </section>
+      </>} right={<>
       <section className="game-shortcuts">
         <div className="game-section-heading">
           <span aria-hidden="true">02</span>
@@ -164,6 +167,7 @@ export function GameDashboard({ pinned }: { pinned: string[] }) {
           <ArrowUpRight size={15} />
         </Link>
       </div>
+      </>} />
     </div>
   )
 }

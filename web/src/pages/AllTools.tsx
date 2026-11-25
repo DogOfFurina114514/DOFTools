@@ -1,3 +1,4 @@
+import { BookSpread } from '../components/BookSpread'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import { ArrowUpRight, Search, X } from 'lucide-react'
 import { toolTags, isToolTag } from '../data/tags'
@@ -24,6 +25,7 @@ export function AllTools({
   const results = filterTools(tools, query, selected)
   return (
     <section className="tool-catalog">
+      <BookSpread left={<>
       <div className="catalog-header">
         <div className="page-heading">
           <span className="eyebrow">ALL TOOLS</span>
@@ -115,6 +117,7 @@ export function AllTools({
           total: tools.length,
         })}
       </p>
+      </>} right={<>
       {results.length ? (
         <div className="all-tools-grid">
           {results.map((tool, index) => (
@@ -157,6 +160,7 @@ export function AllTools({
           )}
         />
       )}
+      </>} />
     </section>
   )
 }

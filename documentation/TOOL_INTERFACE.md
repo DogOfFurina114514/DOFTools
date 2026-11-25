@@ -102,7 +102,7 @@ const definition: ToolDefinition = {
 - `ToolResult.summary` 用于聊天说明，`files` 中的 Blob 用于预览和下载；只将摘要、文件名、类型和大小送回模型，不序列化 Blob 或预览 ReactNode。需要视觉处理的工具可读取文件字段中的真实图片。
 - 成功调用后直接展示实际卡片或文件结果，立即完成当前消息，避免第二轮生成复述输出。错误参数可由模型重试，每条消息最多四轮生成；同一成功调用及参数在单次消息内复用结果，避免重复执行。长任务使用 `signal` 和 `onProgress`，页内导航期间继续执行；关闭助手取消任务并释放模型。
 
-`ToolDefinition.ai` 与 `toolRegistry.invoke()` 保留给显式调用方，但助手推荐和上传处理使用上面的统一 UI 执行路径，无需为新工具重复实现 AI 版本。正式注册表有 17 个工具入口；测试工具仍只在测试页面按需注册。音频与 MIDI 工具可绑定上传文件直接执行；视频替换音频使用 videoFiles / audioFiles 两个文件字段，AI 调用需显式绑定对应附件；网盘和社交链接解析没有文件字段，助手只推荐前往工具页面使用。
+`ToolDefinition.ai` 与 `toolRegistry.invoke()` 保留给显式调用方，但助手推荐和上传处理使用上面的统一 UI 执行路径，无需为新工具重复实现 AI 版本。正式注册表有 18 个工具入口；测试工具仍只在测试页面按需注册。音频与 MIDI 工具可绑定上传文件直接执行；视频替换音频使用 videoFiles / audioFiles 两个文件字段，AI 调用需显式绑定对应附件；网盘和社交链接解析没有文件字段，助手只推荐前往工具页面使用。
 
 聊天、上传的附件和结果文件通过 IndexedDB 结构化保存；刷新后可继续查看和下载，模型会回到未开启状态。清空对话清除持久记录，关闭助手保留历史。界面语言切换即时翻译工具卡片和结果摘要，文件名及生成的聊天原文不被改写。
 
@@ -126,4 +126,10 @@ Fluent 主题保留稳定的 FluentProvider 和调色板，共享自绘控件与
 
 26.2.6 新增 AIThinkingLevel（off / low / medium / high），由 AISessionProvider 持久保存并经 BrowserLocalAI 传给 Worker；每轮调用固定同一次发送时的设置。ai-thinking.ts 定义思考预算，ai.worker.ts 的 ThinkingBudget logits processor 控制思考结束与重新开启。思考正文从流式显示及最终工具调用解析中移除，工具完成检测只接受思考结束后的调用。BookTurnMaterial.tsx 将折痕和投影作为独立局部快照层，由 RouteTransition 在过渡期间挂载和释放。
 
-26.2.7 新增 RouteBook.tsx / handbook.css，所有路由使用稳定的公共书壳，主题改变不重挂载工作台；原神只翻内页，侧栏以书签装饰层呈现。TerminalScanMaterial.tsx 为终末地增加独立扫描网格与光带，RouteTransition 统一限制可见材质范围，避开顶栏并清理取消与结束的效果；不支持快照时使用入场，减少动态时跳过。
+26.2.8 使用 BookSpread 在所有原神页面创建两份真实纸页 DOM。RouteTransition 分别命名 book-left / book-right 进行中央书脊铰链、正反面 180° 翻页，BookTurnMaterial 只保留接触投影；RouteBook 内挂载书边导航。非原神主题通过 display: contents 保持现有布局，终末地工作台继续左右分栏。手机纵向阅读，缺少快照 API 时入场，减少动态时跳过。TerminalScanMaterial 的扫描光晕仅保留在光条左侧。AI 空 assistant 消息根据 item.thinking 区分“正在思考”与“正在生成回答”，off 模式继续传入 enable_thinking=false。
+
+批量独立文件工具在 builtins.define 通过 processors/batch.runBatch 逐份调用原处理器，每次注入单文件 values.files，并映射整批进度与当前文件状态。局部失败写入结果 details，同名输出自动重命名；全部失败抛错，取消停止后续文件。图片转 PDF 保持合并输入；视频音频替换仍使用两个独立单文件字段。共享 FilePicker 的 multiple 模式累积添加、按名称 / 大小 / 修改时间去重、取消选择不清空。
+
+新增 kugou-decrypt，音频标签和 KeyRound 独立图标。kugou.ts 校验文件并启动 Worker；kugou.worker.ts 依据内容魔数与版本分派 v2 / v3 / v5。kugou-v2.ts 加载随站点打包的 gzip 掩码；kugou-crypto.ts 提供 KGM v3、MD5、Tencent TEA 与 QMC Map / RC4；kugou-keys.ts 本地读取 Windows 加密 / 明文 SQLite、Android MMKV 与 JSON。音乐值 files 为多文件数组，可选 keyFiles 接受空数组，可选 ekey 为单密钥或 JSON；不读取系统目录、不上传或保存密钥。输出按实际音频头识别，未知版本和错误密钥报错。
+
+26.2.8 未运行测试、浏览器或截图验证，生产构建用于发布。

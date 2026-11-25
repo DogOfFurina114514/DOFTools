@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { FileOutput } from 'lucide-react'
 import { ToolIcon } from '../components/ToolIcon'
 import { presetFor, useAppearance } from '../lib/appearance'
@@ -128,7 +128,7 @@ export function ToolFields({
   )
 }
 
-export function ToolWorkspace({ tool }: { tool: ToolDefinition }) {
+export function ToolWorkspace({ tool, navigation }: { tool: ToolDefinition; navigation?: ReactNode }) {
   const { t, resolve, locale } = useLocale()
   const { style } = useAppearance()
   const [values, setValues] = useState<ToolValues>(tool.initialValues)
@@ -175,57 +175,7 @@ export function ToolWorkspace({ tool }: { tool: ToolDefinition }) {
       }
     }
   }
-  return (
-    <ToolUI.Panel
-      title={
-        <span className="workspace-tool-heading">
-          <ToolIcon tool={tool} size={25} />
-          <span>{resolve(tool.title)}</span>
-        </span>
-      }
-    >
-      <p className="ui-panel-description">{resolve(tool.description)}</p>
-      <div className="workspace-body">
-        <div className="workspace-input">
-          <ToolFields
-            fields={tool.fields}
-            values={values}
-            onValueChange={setValues}
-            disabled={busy}
-          />
-          {busy && (
-            <ToolUI.Progress
-              label={status ? resolve(status) : t('正在处理', 'Processing')}
-              value={progress}
-            />
-          )}
-          {error && (
-            <p className="error-message" role="alert">
-              {resolve(error)}
-            </p>
-          )}
-          <div className="ui-actions">
-            <ToolUI.Button type="button" disabled={busy} onClick={run}>
-              {t('开始处理', 'Run tool')}
-            </ToolUI.Button>
-            {busy ? (
-              <ToolUI.Button variant="secondary" onClick={() => controller.current?.abort()}>
-                {t('取消', 'Cancel')}
-              </ToolUI.Button>
-            ) : (
-              <ToolUI.Button
-                variant="secondary"
-                onClick={() => {
-                  setValues(tool.initialValues)
-                  setResult(null)
-                  setError('')
-                }}
-              >
-                {t('重置', 'Reset')}
-              </ToolUI.Button>
-            )}
-          </div>
-        </div>
+  const output = (<>
         {result && (
           <div className="ui-result workspace-output" role="status">
             <p>{resolve(result.summary)}</p>
@@ -267,7 +217,59 @@ export function ToolWorkspace({ tool }: { tool: ToolDefinition }) {
             </p>
           </div>
         )}
-      </div>
+  </>)
+  return (
+    <ToolUI.Panel
+      right={output}
+      title={
+        <span className="workspace-tool-heading">
+          <ToolIcon tool={tool} size={25} />
+          <span>{resolve(tool.title)}</span>
+        </span>
+      }
+    >
+      {navigation}
+      <p className="ui-panel-description">{resolve(tool.description)}</p>
+        <div className="workspace-input">
+          <ToolFields
+            fields={tool.fields}
+            values={values}
+            onValueChange={setValues}
+            disabled={busy}
+          />
+          {busy && (
+            <ToolUI.Progress
+              label={status ? resolve(status) : t('正在处理', 'Processing')}
+              value={progress}
+            />
+          )}
+          {error && (
+            <p className="error-message" role="alert">
+              {resolve(error)}
+            </p>
+          )}
+          <div className="ui-actions">
+            <ToolUI.Button type="button" disabled={busy} onClick={run}>
+              {t('开始处理', 'Run tool')}
+            </ToolUI.Button>
+            {busy ? (
+              <ToolUI.Button variant="secondary" onClick={() => controller.current?.abort()}>
+                {t('取消', 'Cancel')}
+              </ToolUI.Button>
+            ) : (
+              <ToolUI.Button
+                variant="secondary"
+                onClick={() => {
+                  setValues(tool.initialValues)
+                  setResult(null)
+                  setError('')
+                }}
+              >
+                {t('重置', 'Reset')}
+              </ToolUI.Button>
+            )}
+          </div>
+        </div>
     </ToolUI.Panel>
   )
 }

@@ -13,6 +13,7 @@ import {
   ImagePlay,
   Images,
   Music2,
+  KeyRound,
   Piano,
   Share2,
   Video,
@@ -21,6 +22,7 @@ import {
 
 // Built-in IDs are checked against this map when their definitions are created.
 export const builtinToolIcons = {
+  'kugou-decrypt': KeyRound,
   'image-compress': ImageDown,
   'video-compress': FileVideo2,
   'image-convert': Images,

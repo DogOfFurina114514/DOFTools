@@ -12,3 +12,4 @@ docs/offline/** -text
 *.wasm binary
 *.png binary
 *.woff2 binary
+web/src/tools/processors/kgm-v2-mask.bin.gz binary

@@ -1,3 +1,4 @@
+import { BookSpread } from '../components/BookSpread'
 import { useEffect, useState } from 'react'
 import {
   CircleHelp,
@@ -172,6 +173,7 @@ export function SettingsPage({
   }
   return (
     <>
+      <BookSpread left={<>
       <PageHeading
         eyebrow="MAKE THIS LITTLE SPACE YOUR OWN"
         title={t('设置与外观', 'Settings & appearance')}
@@ -374,6 +376,7 @@ export function SettingsPage({
           </ThemedButton>
         </div>
       </section>
+      </>} right={<>
       <section className="settings-panel resource-settings">
         <h2>
           <Database size={20} />
@@ -686,6 +689,7 @@ export function SettingsPage({
           </a>
         </div>
       </Disclosure>
+      </>} />
     </>
   )
 }

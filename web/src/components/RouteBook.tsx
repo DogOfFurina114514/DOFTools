@@ -3,7 +3,7 @@ import { useLocale } from '../lib/i18n'
 import { toolRegistry } from '../tools'
 
 // Keep the binding mounted when routes or themes change. Only the inner leaf turns.
-export function RouteBook({ pathname, children }: { pathname: string; children: ReactNode }) {
+export function RouteBook({ pathname, children, navigation }: { pathname: string; children: ReactNode; navigation?: ReactNode }) {
   const { t, resolve } = useLocale()
   const tools = toolRegistry.list()
   const tool = pathname.startsWith('/tool/') ? toolRegistry.get(pathname.slice(6)) : undefined
@@ -32,16 +32,12 @@ export function RouteBook({ pathname, children }: { pathname: string; children: 
 
   return (
     <div className="route-book">
-      <div className="book-verso" aria-hidden="true">
-        <span className="book-seal">✦</span>
-        <span className="book-spine-title">{t('冒险手册', 'ADVENTURER’S HANDBOOK')}</span>
-        <span className="book-seal">✧</span>
-      </div>
+      {navigation}
       <div className="book-binding" aria-hidden="true" />
       {children}
       <div className="book-chapter-reference" aria-hidden="true">
-        <span>{chapter}</span>
-        <span>{String(folio).padStart(2, '0')}</span>
+        <span>{String(folio * 2 - 1).padStart(2, '0')} · {t('冒险手册', 'Adventurer’s Handbook')}</span>
+        <span>{chapter} · {String(folio * 2).padStart(2, '0')}</span>
       </div>
     </div>
   )

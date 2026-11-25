@@ -61,6 +61,10 @@ for (const file of [
   )
 }
 await mkdir(new URL('public/licenses/', root), { recursive: true })
+for (const file of ['KGG-Decryptor-MIT.txt', 'KugouDecryption-MIT.txt', 'KUGOU-SOURCES.md']) {
+  await copyText(new URL(`../documentation/third-party/${file}`, root), new URL(`public/licenses/${file}`, root))
+}
+await copyText(new URL('node_modules/sql.js/LICENSE', root), new URL('public/licenses/sql.js-LICENSE.txt', root))
 await copyText(
   new URL('../documentation/third-party/FFmpeg-SOURCES.md', root),
   new URL('public/licenses/FFmpeg-SOURCES.md', root),

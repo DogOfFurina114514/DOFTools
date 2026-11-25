@@ -3,6 +3,7 @@ import type { ToolDefinition, ToolField, ToolValues } from './registry'
 import { midiAudioAccept, midiAudioFormats } from './processors/midi-formats'
 import { prepareToolResources } from '../lib/offline'
 import { builtinToolIcons } from './icons'
+import { runBatch } from './processors/batch'
 
 const files = (accept: string, multiple = false): ToolField => ({
   type: 'files',
@@ -68,7 +69,7 @@ const targetFields: ToolField[] = [
 ]
 function fieldSchema(field: ToolField): Record<string, unknown> {
   if (field.type === 'files')
-    return { type: 'array', minItems: 1, ...(!field.multiple && { maxItems: 1 }) }
+    return { type: 'array', minItems: field.required ? 1 : 0, ...(!field.multiple && { maxItems: 1 }) }
   if (field.type === 'select')
     return { type: 'string', enum: field.options.map((option) => option.value) }
   if (field.type === 'number' || field.type === 'slider')
@@ -101,6 +102,9 @@ function define(
     execute: async (values, context) => {
       context.onStatus?.(b('正在准备工具资源…', 'Preparing tool resources…'))
       await prepareToolResources(context.signal)
+      if (id !== 'images-pdf' && id !== 'kugou-decrypt' && fields.some((field) => field.type === 'files' && field.name === 'files' && field.multiple)) {
+        return runBatch(values, context, execute, id === 'document-convert' ? 64 : id.startsWith('image-') ? 100 : 256)
+      }
       return execute(values, context)
     },
     inputSchema: {
@@ -126,6 +130,31 @@ function define(
 }
 
 export const builtinTools: ToolDefinition[] = [
+  define(
+    'kugou-decrypt',
+    ['酷狗音乐解密', 'Kugou music decryptor'],
+    [
+      '批量解密 Android / Windows 的酷狗加密音乐，包括伪装为 FLAC 的文件和 KGE / KGM / KGMA / VPR / KGG。支持 v2 / v3 / v5，按真实音频格式无损导出；v5 需要对应本地密钥，普通音频原样导出。文件与密钥不上传。',
+      'Batch decrypt Android / Windows Kugou music, including encrypted files named FLAC and KGE / KGM / KGMA / VPR / KGG. Supports v2 / v3 / v5 and exports the original audio without transcoding. v5 needs matching local keys; ordinary audio is exported unchanged. Files and keys stay local.',
+    ],
+    ['audio'],
+    [
+      files('.flac,.kgm,.kgma,.kge,.kgg,.vpr,.mp3,.ogg,.m4a,.wav,.aac,audio/*', true),
+      {
+        type: 'files', name: 'keyFiles', multiple: true,
+        label: b('密钥文件（v5 需要，可多选）', 'Key files (required for v5; multiple allowed)'),
+        help: b('Windows：KGMusicV3.db；Android：mggkey_multi_process；也可导入 hash → ekey JSON。选择同一次下载所用客户端的密钥文件，总大小不超过 64 MiB。浏览器不能自动读取客户端目录。', 'Windows: KGMusicV3.db; Android: mggkey_multi_process; hash → ekey JSON is also supported. Choose keys from the client that downloaded the music, up to 64 MiB total. Browsers cannot read client folders automatically.'),
+      },
+      {
+        type: 'textarea', name: 'ekey',
+        label: b('ekey 或密钥 JSON（可选）', 'ekey or key JSON (optional)'),
+        placeholder: b('单个文件的 Base64 ekey，或 {"32位hash":"ekey"}', 'Base64 ekey for one file, or {"32-character-hash":"ekey"}'),
+        help: b('v2 / v3 不需要密钥。v5 无对应密钥无法解密；单个 ekey 仅用于其对应文件，批量请使用密钥库或 JSON。音乐总大小不超过 256 MiB。', 'v2 / v3 need no key. v5 cannot be decrypted without its matching key. A single ekey works only for its matching file; use a key file or JSON for batches. Music files must total at most 256 MiB.'),
+      },
+    ],
+    { files: [], keyFiles: [], ekey: '' },
+    async (values, context) => (await import('./processors/kugou')).decryptKugou(values, context),
+  ),
   define(
     'image-compress',
     ['图片压缩', 'Image compressor'],
@@ -186,7 +215,7 @@ export const builtinTools: ToolDefinition[] = [
     ],
     ['video'],
     [
-      files(mediaAccept),
+      files(mediaAccept, true),
       format(['mp4', 'webm']),
       compressionMode,
       {
@@ -289,7 +318,7 @@ export const builtinTools: ToolDefinition[] = [
     ],
     ['video'],
     [
-      files(mediaAccept),
+      files(mediaAccept, true),
       format(['mp4', 'webm']),
       {
         type: 'select',
@@ -348,7 +377,7 @@ export const builtinTools: ToolDefinition[] = [
     ],
     ['video', 'image'],
     [
-      files(mediaAccept),
+      files(mediaAccept, true),
       {
         type: 'number',
         name: 'start',
@@ -390,7 +419,7 @@ export const builtinTools: ToolDefinition[] = [
     ],
     ['video', 'image'],
     [
-      files('image/gif,.gif'),
+      files('image/gif,.gif', true),
       format(['mp4', 'webm']),
       gifMaxEdge,
       {
@@ -416,7 +445,7 @@ export const builtinTools: ToolDefinition[] = [
     ],
     ['audio'],
     [
-      files(audioAccept),
+      files(audioAccept, true),
       format(['mp3', 'wav', 'flac', 'm4a', 'ogg']),
       {
         type: 'select',
@@ -441,7 +470,7 @@ export const builtinTools: ToolDefinition[] = [
     ],
     ['audio'],
     [
-      files(midiAudioAccept),
+      files(midiAudioAccept, true),
       {
         type: 'slider',
         name: 'sensitivity',
@@ -475,7 +504,7 @@ export const builtinTools: ToolDefinition[] = [
     ],
     ['audio'],
     [
-      files('.mid,.midi,audio/midi,audio/x-midi'),
+      files('.mid,.midi,audio/midi,audio/x-midi', true),
       {
         type: 'select',
         name: 'format',
@@ -541,7 +570,7 @@ export const builtinTools: ToolDefinition[] = [
     ],
     ['document'],
     [
-      files('.pdf,.docx,.pptx,.xlsx,.xls,.csv,.txt'),
+      files('.pdf,.docx,.pptx,.xlsx,.xls,.csv,.txt', true),
       format(['pdf', 'docx', 'pptx', 'xlsx', 'csv', 'txt', 'html']),
       {
         type: 'select',
@@ -600,7 +629,7 @@ export const builtinTools: ToolDefinition[] = [
     ],
     ['video', 'audio'],
     [
-      files(mediaAccept),
+      files(mediaAccept, true),
       format(['mp3', 'wav', 'flac', 'm4a', 'ogg']),
       {
         type: 'number',
@@ -632,7 +661,7 @@ export const builtinTools: ToolDefinition[] = [
     ],
     ['video', 'image'],
     [
-      files(mediaAccept),
+      files(mediaAccept, true),
       format(['png', 'jpg', 'webp']),
       {
         type: 'number',
@@ -736,7 +765,7 @@ export const builtinTools: ToolDefinition[] = [
     ],
     ['other'],
     [
-      files('.zip,application/zip'),
+      files('.zip,application/zip', true),
       {
         type: 'select',
         name: 'mode',

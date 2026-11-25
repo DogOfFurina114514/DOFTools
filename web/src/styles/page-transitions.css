@@ -85,202 +85,48 @@
   backface-visibility: hidden;
 }
 
-/* A curved leaf, moving paper fold and layered shadow follow the same turn. */
-[data-route-transition='genshin']::view-transition-group(tool-page) {
-  perspective: 2200px;
-  animation-duration: 840ms;
-  overflow: clip;
-}
-[data-route-transition='genshin']::view-transition-old(tool-page) {
-  z-index: 2;
-  transform-origin: left center;
-  background: var(--surface);
-  box-shadow: 12px 4px 36px #0004;
-  animation: handbook-page-out 840ms cubic-bezier(0.32, 0.02, 0.22, 1) both;
-}
-[data-route-transition='genshin']::view-transition-new(tool-page) {
-  z-index: 1;
-  animation: handbook-page-settle 840ms ease-out both;
-}
-[data-route-transition='genshin'][data-route-direction='back']::view-transition-old(tool-page) {
-  transform-origin: right center;
-  animation-name: handbook-page-back;
-}
-@keyframes handbook-page-out {
-  0% {
-    transform: rotateY(0) translateZ(0);
-    clip-path: polygon(0 0, 100% 0, 100% 25%, 100% 50%, 100% 75%, 100% 100%, 0 100%);
-    filter: brightness(1);
-    opacity: 1;
-  }
-  30% {
-    transform: rotateY(-28deg) rotateZ(-0.4deg) translateZ(32px);
-    clip-path: polygon(0 0, 98% 2%, 94% 25%, 91% 50%, 94% 75%, 98% 98%, 0 100%);
-    filter: brightness(0.97);
-  }
-  72% {
-    transform: rotateY(-76deg) rotateZ(-1.2deg) translateZ(64px);
-    clip-path: polygon(0 0, 95% 6%, 82% 25%, 74% 50%, 82% 75%, 95% 94%, 0 100%);
-    filter: brightness(0.8);
-    opacity: 1;
-  }
-  100% {
-    transform: rotateY(-108deg) rotateZ(-1.5deg) translateZ(26px);
-    clip-path: polygon(0 0, 92% 8%, 80% 25%, 70% 50%, 80% 75%, 92% 92%, 0 100%);
-    filter: brightness(0.65);
-    opacity: 0;
-  }
-}
-@keyframes handbook-page-back {
-  0% {
-    transform: rotateY(0) translateZ(0);
-    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 0 75%, 0 50%, 0 25%);
-    filter: brightness(1);
-    opacity: 1;
-  }
-  30% {
-    transform: rotateY(28deg) rotateZ(0.4deg) translateZ(32px);
-    clip-path: polygon(2% 2%, 100% 0, 100% 100%, 2% 98%, 6% 75%, 9% 50%, 6% 25%);
-    filter: brightness(0.97);
-  }
-  72% {
-    transform: rotateY(76deg) rotateZ(1.2deg) translateZ(64px);
-    clip-path: polygon(5% 6%, 100% 0, 100% 100%, 5% 94%, 18% 75%, 26% 50%, 18% 25%);
-    filter: brightness(0.8);
-    opacity: 1;
-  }
-  100% {
-    transform: rotateY(108deg) rotateZ(1.5deg) translateZ(26px);
-    clip-path: polygon(8% 8%, 100% 0, 100% 100%, 8% 92%, 20% 75%, 30% 50%, 20% 25%);
-    filter: brightness(0.65);
-    opacity: 0;
-  }
-}
-@keyframes handbook-page-settle {
-  0% {
-    transform: scale(0.992);
-    filter: brightness(0.83);
-  }
-  55% {
-    filter: brightness(0.94);
-  }
-  100% {
-    transform: none;
-    filter: brightness(1);
-  }
-}
-.book-turn-material {
-  position: fixed;
-  pointer-events: none;
-  z-index: 40;
-  overflow: hidden;
-}
-.book-turn-shadow,
-.book-turn-fold {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
-.book-turn-shadow {
-  view-transition-name: book-shadow;
-  background: linear-gradient(90deg, transparent 55%, #251d1030 76%, #251d1060 91%, transparent);
-}
-.book-turn-fold {
-  view-transition-name: book-fold;
-}
-[data-route-transition='genshin']::view-transition-group(book-shadow),
-[data-route-transition='genshin']::view-transition-group(book-fold) {
-  animation-duration: 840ms;
-  overflow: clip;
-  pointer-events: none;
-}
-[data-route-transition='genshin']::view-transition-group(book-shadow) {
-  z-index: 3;
-}
-[data-route-transition='genshin']::view-transition-group(book-fold) {
-  z-index: 4;
-}
-[data-route-transition='genshin']::view-transition-old(book-shadow),
-[data-route-transition='genshin']::view-transition-old(book-fold) {
-  animation: none;
-  opacity: 0;
-}
-[data-route-transition='genshin']::view-transition-new(book-fold) {
-  mix-blend-mode: normal;
-  animation: handbook-fold 840ms cubic-bezier(0.32, 0.02, 0.22, 1) both;
-}
-[data-route-transition='genshin']::view-transition-new(book-shadow) {
-  mix-blend-mode: normal;
-  animation: handbook-shadow 840ms cubic-bezier(0.32, 0.02, 0.22, 1) both;
-}
-[data-route-transition='genshin'][data-route-direction='back']::view-transition-new(book-fold) {
-  animation-name: handbook-fold-back;
-}
-[data-route-transition='genshin'][data-route-direction='back']::view-transition-new(book-shadow) {
-  animation-name: handbook-shadow-back;
-}
-@keyframes handbook-fold {
-  0% {
-    transform: translateX(5%) scaleX(0.7);
-    opacity: 0;
-  }
-  20% {
-    opacity: 0.8;
-  }
-  60% {
-    transform: translateX(-40%) scaleX(1);
-    opacity: 1;
-  }
-  100% {
-    transform: translateX(-92%) scaleX(0.35);
-    opacity: 0;
-  }
-}
-@keyframes handbook-fold-back {
-  0% {
-    transform: scaleX(-0.7) translateX(5%);
-    opacity: 0;
-  }
-  20% {
-    opacity: 0.8;
-  }
-  60% {
-    transform: scaleX(-1) translateX(-40%);
-    opacity: 1;
-  }
-  100% {
-    transform: scaleX(-0.35) translateX(-92%);
-    opacity: 0;
-  }
-}
-@keyframes handbook-shadow {
-  0% {
-    transform: translateX(0);
-    opacity: 0;
-  }
-  45% {
-    opacity: 0.8;
-  }
-  100% {
-    transform: translateX(-90%);
-    opacity: 0;
-  }
-}
-@keyframes handbook-shadow-back {
-  0% {
-    transform: scaleX(-1);
-    opacity: 0;
-  }
-  45% {
-    opacity: 0.8;
-  }
-  100% {
-    transform: scaleX(-1) translateX(-90%);
-    opacity: 0;
-  }
-}
+/* The front of the old right leaf turns onto the reverse of the new left leaf.
+   Both faces share the central hinge and traverse 180 degrees. */
+[data-route-transition='genshin']::view-transition-old(tool-page) { animation: simple-page-out 160ms ease-out both; }
+[data-route-transition='genshin']::view-transition-new(tool-page) { animation: simple-page-in 220ms ease-out both; }
+[data-route-transition='genshin']::view-transition-group(book-left),
+[data-route-transition='genshin']::view-transition-group(book-right) { animation: none; perspective: 1800px; overflow: visible; }
+[data-route-transition='genshin']::view-transition-group(book-left) { perspective-origin: right center; z-index: 4; }
+[data-route-transition='genshin']::view-transition-group(book-right) { perspective-origin: left center; z-index: 3; }
+[data-route-transition='genshin']::view-transition-image-pair(book-left),
+[data-route-transition='genshin']::view-transition-image-pair(book-right) { isolation: isolate; transform-style: preserve-3d; }
+[data-route-transition='genshin']::view-transition-old(book-left),
+[data-route-transition='genshin']::view-transition-new(book-left),
+[data-route-transition='genshin']::view-transition-old(book-right),
+[data-route-transition='genshin']::view-transition-new(book-right) { animation: none; mix-blend-mode: normal; backface-visibility: hidden; background: var(--book-paper); }
+[data-route-transition='genshin']::view-transition-old(book-right) { transform-origin: left center; animation: leaf-front-forward 920ms cubic-bezier(.42,0,.2,1) both; box-shadow: 6px 2px 14px #0003; }
+[data-route-transition='genshin']::view-transition-new(book-left) { transform-origin: right center; animation: leaf-back-forward 920ms cubic-bezier(.42,0,.2,1) both; box-shadow: -5px 2px 14px #0003; }
+[data-route-transition='genshin']::view-transition-old(book-right),
+[data-route-transition='genshin']::view-transition-new(book-left) { z-index: 2; }
+[data-route-transition='genshin']::view-transition-new(book-right),
+[data-route-transition='genshin']::view-transition-old(book-left) { z-index: 1; }
+[data-route-transition='genshin'][data-route-direction='back']::view-transition-old(book-left),
+[data-route-transition='genshin'][data-route-direction='back']::view-transition-new(book-right) { z-index: 2; }
+[data-route-transition='genshin'][data-route-direction='back']::view-transition-new(book-left),
+[data-route-transition='genshin'][data-route-direction='back']::view-transition-old(book-right) { z-index: 1; }
+[data-route-transition='genshin'][data-route-direction='back']::view-transition-group(book-left) { z-index: 3; }
+[data-route-transition='genshin'][data-route-direction='back']::view-transition-group(book-right) { z-index: 4; }
+[data-route-transition='genshin'][data-route-direction='back']::view-transition-old(book-right),
+[data-route-transition='genshin'][data-route-direction='back']::view-transition-new(book-left) { animation: none; box-shadow: none; }
+[data-route-transition='genshin'][data-route-direction='back']::view-transition-old(book-left) { transform-origin: right center; animation: leaf-front-back 920ms cubic-bezier(.42,0,.2,1) both; box-shadow: -6px 2px 14px #0003; }
+[data-route-transition='genshin'][data-route-direction='back']::view-transition-new(book-right) { transform-origin: left center; animation: leaf-back-back 920ms cubic-bezier(.42,0,.2,1) both; box-shadow: 5px 2px 14px #0003; }
+@keyframes leaf-front-forward { from { transform: rotateY(0deg); filter: brightness(1); } 50% { filter: brightness(.78); } to { transform: rotateY(-180deg); filter: brightness(.94); } }
+@keyframes leaf-back-forward { from { transform: rotateY(180deg); filter: brightness(.78); } 50% { filter: brightness(.85); } to { transform: rotateY(0deg); filter: brightness(1); } }
+@keyframes leaf-front-back { from { transform: rotateY(0deg); filter: brightness(1); } 50% { filter: brightness(.78); } to { transform: rotateY(180deg); filter: brightness(.94); } }
+@keyframes leaf-back-back { from { transform: rotateY(-180deg); filter: brightness(.78); } 50% { filter: brightness(.85); } to { transform: rotateY(0deg); filter: brightness(1); } }
+.book-turn-material { position: fixed; pointer-events: none; z-index: 40; overflow: hidden; }
+.book-turn-shadow { position: absolute; inset: 0; view-transition-name: book-shadow; background: linear-gradient(90deg, transparent 28%, #231b1730 45%, #231b1760 50%, #231b1730 55%, transparent 72%); }
+[data-route-transition='genshin']::view-transition-group(book-shadow) { animation: none; pointer-events: none; z-index: 2; overflow: clip; }
+[data-route-transition='genshin']::view-transition-old(book-shadow) { display: none; animation: none; }
+[data-route-transition='genshin']::view-transition-new(book-shadow) { animation: leaf-contact-shadow 920ms cubic-bezier(.42,0,.2,1) both; mix-blend-mode: normal; }
+@keyframes leaf-contact-shadow { from { opacity: 0; transform: translateX(22%) scaleX(.8); } 45% { opacity: .8; transform: translateX(3%) scaleX(.3); } 65% { opacity: .55; transform: translateX(-10%) scaleX(.7); } to { opacity: 0; transform: translateX(-22%) scaleX(.8); } }
+[data-route-transition='genshin'][data-route-direction='back']::view-transition-new(book-shadow) { animation-direction: reverse; }
+
 /* A brief channel interruption, then the next signal locks into place. */
 [data-route-transition='zenless']::view-transition-old(tool-page) {
   animation: channel-signal-out 240ms steps(3, end) both;
@@ -409,8 +255,8 @@
     #fffa0030 49%,
     #fffdbbdd 49.7%,
     #fffa00c0 50%,
-    #fffa0040 50.3%,
-    transparent 58%
+    transparent 50.2%,
+    transparent 100%
   );
 }
 [data-route-transition='endfield']::view-transition-group(terminal-grid),
@@ -500,58 +346,15 @@
   }
 }
 
-/* Browsers without snapshot transitions still get the matching entry effect. */
-.route-page[data-page-enter='genshin'] {
-  transform-origin: left center;
-  position: relative;
-  animation: handbook-page-in 840ms cubic-bezier(0.32, 0.02, 0.22, 1) both;
+/* Fallback browsers enter a physical leaf, keeping the spread fixed. */
+.route-page[data-page-enter='genshin'] .book-left { animation: leaf-back-forward 920ms cubic-bezier(.42,0,.2,1) both; transform-origin: right center; backface-visibility: hidden; }
+.route-page[data-page-enter='genshin'][data-page-direction='back'] .book-left { animation: none; }
+.route-page[data-page-enter='genshin'][data-page-direction='back'] .book-right { animation: leaf-back-back 920ms cubic-bezier(.42,0,.2,1) both; transform-origin: left center; backface-visibility: hidden; }
+@media (max-width: 800px) {
+  .route-page[data-page-enter='genshin'] .book-left,
+  .route-page[data-page-enter='genshin'][data-page-direction='back'] .book-right { animation: simple-page-in 180ms ease-out both; }
 }
-.route-page[data-page-enter='genshin'][data-page-direction='back'] {
-  transform-origin: right center;
-  animation-name: handbook-page-in-back;
-}
-.route-page[data-page-enter='genshin']::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(
-    90deg,
-    transparent 78%,
-    #57442a22 86%,
-    #efe0c2aa 92%,
-    #fff9eae0 95%,
-    transparent
-  );
-  animation: handbook-fold 840ms ease-out both;
-}
-.route-page[data-page-enter='genshin'][data-page-direction='back']::after {
-  animation-name: handbook-fold-back;
-}
-@keyframes handbook-page-in {
-  from {
-    transform: perspective(1600px) rotateY(65deg);
-    filter: brightness(0.8);
-    opacity: 0.4;
-  }
-  to {
-    transform: perspective(1600px) rotateY(0);
-    filter: none;
-    opacity: 1;
-  }
-}
-@keyframes handbook-page-in-back {
-  from {
-    transform: perspective(1600px) rotateY(-65deg);
-    filter: brightness(0.8);
-    opacity: 0.4;
-  }
-  to {
-    transform: perspective(1600px) rotateY(0);
-    filter: none;
-    opacity: 1;
-  }
-}
+
 .route-page[data-page-enter='zenless'] {
   animation: channel-signal-in 440ms steps(1, end) both;
 }
@@ -571,14 +374,21 @@
   [data-route-transition]::view-transition-new(tool-page),
   .route-page[data-page-enter],
   .route-page[data-page-enter]::after,
-  [data-route-transition]::view-transition-group(book-fold),
+  [data-route-transition]::view-transition-group(book-left),
+  [data-route-transition]::view-transition-group(book-right),
+  [data-route-transition]::view-transition-old(book-left),
+  [data-route-transition]::view-transition-old(book-right),
+  [data-route-transition]::view-transition-new(book-left),
+  [data-route-transition]::view-transition-new(book-right),
+  .route-page[data-page-enter] .book-leaf,
   [data-route-transition]::view-transition-group(book-shadow),
-  [data-route-transition]::view-transition-new(book-fold),
   [data-route-transition]::view-transition-new(book-shadow),
   [data-route-transition]::view-transition-group(terminal-grid),
   [data-route-transition]::view-transition-group(terminal-beam),
   [data-route-transition]::view-transition-new(terminal-grid),
   [data-route-transition]::view-transition-new(terminal-beam) {
     animation: none !important;
+    transform: none !important;
   }
 }
+

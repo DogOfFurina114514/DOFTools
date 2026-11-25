@@ -16,9 +16,11 @@ async function preparePage(pathname: string) {
 export function RouteTransition({
   children,
   onReady,
+  navigation,
 }: {
   children: (location: Location) => ReactNode
   onReady?: (pathname: string) => void
+  navigation?: ReactNode
 }) {
   const location = useLocation()
   const { style, pageMotion, reducedMotion } = useAppearance()
@@ -45,10 +47,21 @@ export function RouteTransition({
     historyIndex.current = nextIndex
     let transition: ViewTransition | undefined
     let timer: ReturnType<typeof setTimeout> | undefined
+    const namedLeaves: HTMLElement[] = []
+    const nameLeaves = () => {
+      for (const side of ['left', 'right']) {
+        const leaf = element.querySelector<HTMLElement>(`.book-${side}`)
+        if (leaf) {
+          leaf.style.viewTransitionName = `book-${side}`
+          namedLeaves.push(leaf)
+        }
+      }
+    }
     const clear = () => {
       delete root.dataset.routeTransition
       delete root.dataset.routeDirection
       element.style.removeProperty('view-transition-name')
+      for (const leaf of namedLeaves) leaf.style.removeProperty('view-transition-name')
       delete element.dataset.pageEnter
       delete element.dataset.pageDirection
       setBookBounds(null)
@@ -90,8 +103,10 @@ export function RouteTransition({
       if (typeof document.startViewTransition === 'function') {
         root.dataset.routeTransition = style
         root.dataset.routeDirection = backward ? 'back' : 'forward'
-        element.style.viewTransitionName = 'tool-page'
-        if (style === 'genshin') {
+        const doublePage = style === 'genshin' && innerWidth > 800 && element.querySelectorAll('.book-leaf').length === 2
+        if (doublePage) nameLeaves()
+        else element.style.viewTransitionName = 'tool-page'
+        if (doublePage) {
           const bounds = visibleBounds()
           if (bounds) flushSync(() => setBookBounds(bounds))
         } else if (style === 'endfield') {
@@ -100,7 +115,10 @@ export function RouteTransition({
         }
         try {
           transition = document.startViewTransition(() => {
-            if (generation.current === sequence) flushSync(commit)
+            if (generation.current === sequence) {
+              flushSync(commit)
+              if (doublePage) nameLeaves()
+            }
           })
           void transition.ready.catch(() => {})
           await transition.finished.catch(() => {})
@@ -118,14 +136,14 @@ export function RouteTransition({
         const bounds = visibleBounds()
         if (bounds) setScan({ bounds, snapshot: false })
       }
-      timer = setTimeout(clear, 1000)
+      timer = setTimeout(clear, 1100)
     })()
     return cleanup
   }, [location, style, pageMotion, reducedMotion])
 
   return (
     <>
-      <RouteBook pathname={displayedLocation.pathname}>
+      <RouteBook pathname={displayedLocation.pathname} navigation={navigation}>
         <div className="route-page" ref={page}>
           {children(displayedLocation)}
         </div>

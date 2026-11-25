@@ -9,6 +9,7 @@ import {
 import { createPortal } from 'react-dom'
 import { Check, ChevronDown, Minus, Plus, Upload, X } from 'lucide-react'
 import { useLocale } from '../lib/i18n'
+import { BookSpread } from './BookSpread'
 import { SelectControl } from './SelectControl'
 import { useDialogLifecycle } from './useDialogLifecycle'
 
@@ -427,7 +428,21 @@ export function FilePicker({
     input = useRef<HTMLInputElement>(null),
     id = useId()
   const choose = (files: FileList | null) => {
-    if (!disabled && files) onValueChange(multiple ? [...files] : [...files].slice(0, 1))
+    if (!disabled && files?.length) {
+      const selected = [...files]
+      if (!multiple) onValueChange(selected.slice(0, 1))
+      else {
+        const identity = (file: File) => JSON.stringify([file.name, file.size, file.lastModified])
+        const seen = new Set(value.map(identity))
+        const additions = selected.filter((file) => {
+          const key = identity(file)
+          if (seen.has(key)) return false
+          seen.add(key)
+          return true
+        })
+        onValueChange([...value, ...additions])
+      }
+    }
   }
   return (
     <ControlFrame {...{ label, id, help, error }}>
@@ -457,7 +472,7 @@ export function FilePicker({
           <Upload size={16} />
           {label}
         </Button>
-        <span>{t('或拖入文件', 'or drop files here')}</span>
+        <span>{multiple ? t('可多选，继续添加不会覆盖', 'Select multiple; add more without replacing') : t('或拖入文件', 'or drop files here')}</span>
         {value.map((file, index) => (
           <div className="ui-file-row" key={`${file.name}-${index}`}>
             <span>{file.name}</span>
@@ -510,18 +525,17 @@ export function Panel({
   title,
   children,
   actions,
+  right,
 }: {
   title: ReactNode
   children: ReactNode
   actions?: ReactNode
+  right?: ReactNode
 }) {
+  const heading = <div className="ui-panel-heading"><h2>{title}</h2>{actions}</div>
   return (
     <section className="ui-panel">
-      <div className="ui-panel-heading">
-        <h2>{title}</h2>
-        {actions}
-      </div>
-      {children}
+      {right === undefined ? <>{heading}{children}</> : <BookSpread className="workspace-body" left={<>{heading}{children}</>} right={right} />}
     </section>
   )
 }
