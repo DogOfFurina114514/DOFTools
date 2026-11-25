@@ -4,7 +4,7 @@ import { useLocation, type Location } from 'react-router-dom'
 import { useAppearance } from '../lib/appearance'
 import { workspacePages } from '../lib/workspace-loader'
 import { BookTurnMaterial, type BookTurnBounds } from './BookTurnMaterial'
-import { RouteBook } from './RouteBook'
+import { RouteBook, type HandbookBookmark } from './RouteBook'
 import { TerminalScanMaterial } from './TerminalScanMaterial'
 
 async function preparePage(pathname: string) {
@@ -17,10 +17,16 @@ export function RouteTransition({
   children,
   onReady,
   navigation,
+  bookmarks,
+  bookmarksOpen,
+  onCloseBookmarks,
 }: {
   children: (location: Location) => ReactNode
   onReady?: (pathname: string) => void
   navigation?: ReactNode
+  bookmarks?: HandbookBookmark[]
+  bookmarksOpen?: boolean
+  onCloseBookmarks?: () => void
 }) {
   const location = useLocation()
   const { style, pageMotion, reducedMotion } = useAppearance()
@@ -103,7 +109,10 @@ export function RouteTransition({
       if (typeof document.startViewTransition === 'function') {
         root.dataset.routeTransition = style
         root.dataset.routeDirection = backward ? 'back' : 'forward'
-        const doublePage = style === 'genshin' && innerWidth > 800 && element.querySelectorAll('.book-leaf').length === 2
+        const doublePage =
+          style === 'genshin' &&
+          innerWidth > 800 &&
+          element.querySelectorAll('.book-leaf').length === 2
         if (doublePage) nameLeaves()
         else element.style.viewTransitionName = 'tool-page'
         if (doublePage) {
@@ -143,8 +152,14 @@ export function RouteTransition({
 
   return (
     <>
-      <RouteBook pathname={displayedLocation.pathname} navigation={navigation}>
-        <div className="route-page" ref={page}>
+      <RouteBook
+        pathname={displayedLocation.pathname}
+        navigation={navigation}
+        bookmarks={bookmarks}
+        bookmarksOpen={bookmarksOpen}
+        onCloseBookmarks={onCloseBookmarks}
+      >
+        <div className="route-page" ref={page} inert={bookmarksOpen}>
           {children(displayedLocation)}
         </div>
       </RouteBook>

@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight, Check, Monitor, Moon, Sparkles, Sun, X } from 'l
 import { useLocale } from '../lib/i18n'
 import { useAppearance, type StyleId } from '../lib/appearance'
 import { detectAICapability } from '../lib/ai'
+import { useNarrowViewport } from '../lib/use-narrow-viewport'
 import { ToolboxMark } from './Brand'
 import { StylePicker, ThemedButton } from './UI'
 import { IconButton } from './controls'
@@ -173,6 +174,8 @@ export function SetupWizard({
 
 export function GuidedTour({ onFinish }: { onFinish: () => void }) {
   const { t } = useLocale()
+  const { style } = useAppearance()
+  const narrow = useNarrowViewport()
   const navigate = useNavigate()
   const [step, setStep] = useState(0)
   const [focus, setFocus] = useState<{
@@ -227,10 +230,16 @@ export function GuidedTour({ onFinish }: { onFinish: () => void }) {
       path: '/tools',
       target: '.all-tools-search',
       title: t('搜索要求，固定常用工具', 'Search tasks and pin frequent tools'),
-      text: t(
-        '搜索框在所有工具页面，Ctrl / ⌘ + K 可直接前往。点击工具卡片的图钉，将它固定到侧边栏；再次点击可取消固定。手机上打开导航即可进入固定工具。',
-        'Search lives in All tools; Ctrl / ⌘ + K takes you there. Pin a tool card for sidebar access; click again to unpin. On phones, open navigation to access pinned tools.',
-      ),
+      text:
+        style === 'genshin' && narrow
+          ? t(
+              '搜索框在所有工具页面。点击工具卡片的图钉可添加书签，再次点击可取消固定。左上角菜单会将整本书向左滑开，露出右侧书签；点击书页或再次点击菜单即可收起。当前书签会露在书本顶部，手机内容在同一张纸上连续滚动。',
+              'Search lives in All tools. Pin a tool card to add a bookmark; click again to unpin. The top-left menu slides the book left to reveal its right-side bookmarks. Tap the page or the menu again to close. The current bookmark appears above the book; phone content scrolls on a single page.',
+            )
+          : t(
+              '搜索框在所有工具页面，Ctrl / ⌘ + K 可直接前往。点击工具卡片的图钉，将它固定到侧边栏；再次点击可取消固定。手机上打开导航即可进入固定工具。',
+              'Search lives in All tools; Ctrl / ⌘ + K takes you there. Pin a tool card for sidebar access; click again to unpin. On phones, open navigation to access pinned tools.',
+            ),
     },
   ]
   const current = steps[step]

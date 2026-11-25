@@ -7,6 +7,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type CSSProperties,
   type RefObject,
 } from 'react'
 import {
@@ -42,6 +43,8 @@ import { PinToolButton } from './components/PinToolButton'
 import { ToolIcon } from './components/ToolIcon'
 import { RouteTransition } from './components/RouteTransition'
 import { BookSpread } from './components/BookSpread'
+import { BOOKMARK_TINTS, type HandbookBookmark } from './components/RouteBook'
+import { useNarrowViewport } from './lib/use-narrow-viewport'
 import { isStringArray, useStoredState, readStorage, writeStorage } from './lib/storage'
 import { detectAICapability } from './lib/ai'
 import { AppearanceProvider, presetFor, useAppearance, type StyleId } from './lib/appearance'
@@ -142,23 +145,27 @@ function RegisteredToolPage() {
   const { pinned, togglePin } = useToolbox()
   const { t, resolve } = useLocale()
   return tool ? (
-    <ToolWorkspace key={tool.id} tool={tool} navigation={
-      <div className="registered-tool-nav">
-        <Link to="/tools" className="text-button">
-          {t('所有工具', 'All tools')}
-        </Link>
-        <div className="tool-tag-list">
-          {tool.tags.map((id) => (
-            <span key={id}>{resolve(tagOf(id).label)}</span>
-          ))}
+    <ToolWorkspace
+      key={tool.id}
+      tool={tool}
+      navigation={
+        <div className="registered-tool-nav">
+          <Link to="/tools" className="text-button">
+            {t('所有工具', 'All tools')}
+          </Link>
+          <div className="tool-tag-list">
+            {tool.tags.map((id) => (
+              <span key={id}>{resolve(tagOf(id).label)}</span>
+            ))}
+          </div>
+          <PinToolButton
+            title={resolve(tool.title)}
+            pinned={pinned.includes(tool.id)}
+            onToggle={() => togglePin(tool.id)}
+          />
         </div>
-        <PinToolButton
-          title={resolve(tool.title)}
-          pinned={pinned.includes(tool.id)}
-          onToggle={() => togglePin(tool.id)}
-        />
-      </div>
-    } />
+      }
+    />
   ) : (
     <UnavailablePage />
   )
@@ -167,14 +174,23 @@ function RegisteredToolPage() {
 function UnavailablePage() {
   const { t } = useLocale()
   return (
-    <BookSpread left={<EmptyPanel
-      icon={<Search size={30} />}
-      title={t('这个角落，暂时留白。', 'Nothing here just yet.')}
-      description={t(
-        '找不到这个工具或页面，请通过所有工具中的标签或搜索重新选择。',
-        'This tool or page could not be found. Choose another using tags or search in All tools.',
-      )}
-    />} right={<Link to="/tools" className="button">{t('所有工具', 'All tools')}</Link>} />
+    <BookSpread
+      left={
+        <EmptyPanel
+          icon={<Search size={30} />}
+          title={t('这个角落，暂时留白。', 'Nothing here just yet.')}
+          description={t(
+            '找不到这个工具或页面，请通过所有工具中的标签或搜索重新选择。',
+            'This tool or page could not be found. Choose another using tags or search in All tools.',
+          )}
+        />
+      }
+      right={
+        <Link to="/tools" className="button">
+          {t('所有工具', 'All tools')}
+        </Link>
+      }
+    />
   )
 }
 
@@ -299,6 +315,8 @@ function Application() {
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const location = useLocation()
   const desktop = detectAICapability().desktop
+  const narrow = useNarrowViewport()
+  const navigationRef = useRef<HTMLElement>(null)
   const notify = (message: string) => {
     if (toastTimer.current) clearTimeout(toastTimer.current)
     setToast(message)
@@ -435,6 +453,25 @@ function Application() {
       document.body.style.overflow = original
     }
   }, [mobileOpen])
+  useEffect(() => {
+    if (!mobileOpen || !narrow || style !== 'genshin') return
+    const previous = document.activeElement as HTMLElement | null
+    const frame = requestAnimationFrame(() => {
+      const nav = navigationRef.current
+      const selected = nav?.querySelector<HTMLElement>('.nav-item.active')
+      if (nav && selected) {
+        const item = selected.getBoundingClientRect()
+        nav.scrollTop +=
+          item.top - nav.getBoundingClientRect().top - (nav.clientHeight - item.height) / 2
+      }
+      ;(selected ?? nav?.querySelector<HTMLElement>('a'))?.focus({ preventScroll: true })
+    })
+    return () => {
+      cancelAnimationFrame(frame)
+      if (navigationRef.current?.contains(document.activeElement) && previous?.isConnected)
+        previous.focus({ preventScroll: true })
+    }
+  }, [mobileOpen, narrow, style])
   const sectionName =
     location.pathname === '/tools'
       ? t('所有工具', 'All tools')
@@ -471,94 +508,141 @@ function Application() {
     recordUsage: (id) =>
       setRecent((previous) => [id, ...previous.filter((item) => item !== id)].slice(0, 20)),
   }
+  const pinnedTools = pinned.filter((id) => toolRegistry.get(id))
+  const bookmarks: HandbookBookmark[] = [
+    { path: '/', title: t('工具箱概览', 'Overview'), icon: <Home size={18} />, tint: '#bf9e67' },
+    {
+      path: '/tools',
+      title: t('所有工具', 'All tools'),
+      icon: <Grid2X2 size={18} />,
+      tint: '#779980',
+    },
+    ...pinnedTools.map((id, index) => {
+      const tool = toolRegistry.get(id)!
+      return {
+        path: `/tool/${id}`,
+        title: resolve(tool.title),
+        icon: <ToolIcon tool={tool} size={18} />,
+        tint: BOOKMARK_TINTS[index % BOOKMARK_TINTS.length],
+      }
+    }),
+    ...(desktop
+      ? [
+          {
+            path: '/ai',
+            title: t('AI 助手', 'AI assistant'),
+            icon: <Sparkles size={18} />,
+            tint: '#a083b1',
+          },
+        ]
+      : []),
+    {
+      path: '/settings',
+      title: t('设置与外观', 'Settings & appearance'),
+      icon: <Settings2 size={18} />,
+      tint: '#ad8370',
+    },
+  ]
+  const bookmarksOpen = style === 'genshin' && narrow && mobileOpen
   const navigation = (
-        <aside className={`sidebar ${mobileOpen ? 'mobile-open' : ''}`}>
-          <Link to="/" className="brand">
-            <ToolboxMark className="brand-mark" />
-            <span>
-              <strong>{brand}</strong>
-              {locale === 'zh-CN' && <small>DogOfFurina Toolbox</small>}
-            </span>
-          </Link>
-          <span className="bookmarks-heading" aria-hidden="true">
-            {t('书签', 'BOOKMARKS')}
-          </span>
-          <nav className="sidebar-nav" data-scroll-area aria-label={t('主导航', 'Main navigation')}>
-            <NavLink to="/" end className="nav-item home-nav">
-              <Home size={19} />
-              <span>{t('工具箱概览', 'Overview')}</span>
-              <span className="nav-home-dot" />
-            </NavLink>
-            <NavLink to="/tools" className="nav-item all-tools-nav">
-              <Grid2X2 size={19} />
-              <span>{t('所有工具', 'All tools')}</span>
-              <span className="nav-count">{toolRegistry.list().length}</span>
-            </NavLink>
-            <span className="nav-section-label">{t('固定工具', 'Pinned tools')}</span>
-            <div className="pinned-tools">
-              {pinned
-                .filter((id) => toolRegistry.get(id))
-                .map((id) => {
-                  const tool = toolRegistry.get(id)!
-                  return (
-                    <div className="pinned-tool-row" key={id}>
-                      <NavLink to={`/tool/${id}`} className="nav-item">
-                        <ToolIcon tool={tool} size={18} />
-                        <span>{resolve(tool.title)}</span>
-                      </NavLink>
-                      <PinToolButton
-                        title={resolve(tool.title)}
-                        pinned
-                        onToggle={() => context.togglePin(id)}
-                      />
-                    </div>
-                  )
-                })}
-              {!pinned.some((id) => toolRegistry.get(id)) && (
-                <p className="pinned-tools-empty">
-                  {t(
-                    '在所有工具中点击图钉，添加快捷入口。',
-                    'Use a pin in All tools to add a shortcut.',
-                  )}
-                </p>
-              )}
-            </div>
-            <div className="nav-divider" />
-            <span className="nav-section-label">
-              {t('我的空间', 'Workspace')}
-              {locale === 'zh-CN' && <small>PERSONAL</small>}
-            </span>
-            {desktop && (
-              <NavLink to="/ai" className="nav-item" data-ai-nav>
-                <Sparkles size={19} />
-                <span>{t('AI 助手', 'AI assistant')}</span>
-              </NavLink>
-            )}
-            <NavLink to="/settings" className="nav-item">
-              <Settings2 size={19} />
-              <span>{t('设置与外观', 'Settings & appearance')}</span>
-            </NavLink>
-          </nav>
-          <div className="sidebar-style-note">
-            <span className="status-dot" />
-            <span>{styleName(style, locale)}</span>
-            <span>{mode === 'light' ? 'LIGHT' : 'DARK'}</span>
-          </div>
-          <div className="sidebar-bottom">
-            <div className="sidebar-privacy">
-              <ShieldCheck size={19} />
-              <div>
-                <strong>{t('你的空间，在本地', 'Your workspace, on your device')}</strong>
-                <small>
-                  {t(
-                    '无需账号，偏好保存在浏览器。',
-                    'No account. Preferences stay in your browser.',
-                  )}
-                </small>
+    <aside id="main-navigation" className={`sidebar ${mobileOpen ? 'mobile-open' : ''}`}>
+      <Link to="/" className="brand">
+        <ToolboxMark className="brand-mark" />
+        <span>
+          <strong>{brand}</strong>
+          {locale === 'zh-CN' && <small>DogOfFurina Toolbox</small>}
+        </span>
+      </Link>
+      <span className="bookmarks-heading" aria-hidden="true">
+        {t('书签', 'BOOKMARKS')}
+      </span>
+      <nav
+        className="sidebar-nav"
+        ref={navigationRef}
+        data-scroll-area
+        aria-label={t('主导航', 'Main navigation')}
+        onClick={(event) => {
+          if ((event.target as Element).closest('a')) setMobileOpen(false)
+        }}
+      >
+        <NavLink to="/" end className="nav-item home-nav">
+          <Home size={19} />
+          <span>{t('工具箱概览', 'Overview')}</span>
+          <span className="nav-home-dot" />
+        </NavLink>
+        <NavLink to="/tools" className="nav-item all-tools-nav">
+          <Grid2X2 size={19} />
+          <span>{t('所有工具', 'All tools')}</span>
+          <span className="nav-count">{toolRegistry.list().length}</span>
+        </NavLink>
+        <span className="nav-section-label">{t('固定工具', 'Pinned tools')}</span>
+        <div className="pinned-tools">
+          {pinnedTools.map((id, index) => {
+            const tool = toolRegistry.get(id)!
+            return (
+              <div className="pinned-tool-row" key={id}>
+                <NavLink
+                  to={`/tool/${id}`}
+                  className="nav-item"
+                  style={
+                    {
+                      '--bookmark-tint': BOOKMARK_TINTS[index % BOOKMARK_TINTS.length],
+                    } as CSSProperties
+                  }
+                >
+                  <ToolIcon tool={tool} size={18} />
+                  <span>{resolve(tool.title)}</span>
+                </NavLink>
+                <PinToolButton
+                  title={resolve(tool.title)}
+                  pinned
+                  onToggle={() => context.togglePin(id)}
+                />
               </div>
-            </div>
+            )
+          })}
+          {!pinned.some((id) => toolRegistry.get(id)) && (
+            <p className="pinned-tools-empty">
+              {t(
+                '在所有工具中点击图钉，添加快捷入口。',
+                'Use a pin in All tools to add a shortcut.',
+              )}
+            </p>
+          )}
+        </div>
+        <div className="nav-divider" />
+        <span className="nav-section-label">
+          {t('我的空间', 'Workspace')}
+          {locale === 'zh-CN' && <small>PERSONAL</small>}
+        </span>
+        {desktop && (
+          <NavLink to="/ai" className="nav-item" data-ai-nav>
+            <Sparkles size={19} />
+            <span>{t('AI 助手', 'AI assistant')}</span>
+          </NavLink>
+        )}
+        <NavLink to="/settings" className="nav-item">
+          <Settings2 size={19} />
+          <span>{t('设置与外观', 'Settings & appearance')}</span>
+        </NavLink>
+      </nav>
+      <div className="sidebar-style-note">
+        <span className="status-dot" />
+        <span>{styleName(style, locale)}</span>
+        <span>{mode === 'light' ? 'LIGHT' : 'DARK'}</span>
+      </div>
+      <div className="sidebar-bottom">
+        <div className="sidebar-privacy">
+          <ShieldCheck size={19} />
+          <div>
+            <strong>{t('你的空间，在本地', 'Your workspace, on your device')}</strong>
+            <small>
+              {t('无需账号，偏好保存在浏览器。', 'No account. Preferences stay in your browser.')}
+            </small>
           </div>
-        </aside>
+        </div>
+      </div>
+    </aside>
   )
   return (
     <Toolbox.Provider value={context}>
@@ -581,10 +665,14 @@ function Application() {
             <div className="breadcrumb">
               <IconButton
                 className="mobile-menu"
-                onClick={() => setMobileOpen(true)}
-                aria-label={t('打开导航', 'Open navigation')}
+                onClick={() => setMobileOpen((open) => !open)}
+                aria-expanded={mobileOpen}
+                aria-controls="main-navigation"
+                aria-label={
+                  mobileOpen ? t('关闭导航', 'Close navigation') : t('打开导航', 'Open navigation')
+                }
               >
-                <Menu size={21} />
+                {mobileOpen ? <X size={21} /> : <Menu size={21} />}
               </IconButton>
               <span className="breadcrumb-home">
                 <Home size={15} />
@@ -626,6 +714,9 @@ function Application() {
           <main className="main-content">
             <RouteTransition
               navigation={style === 'genshin' ? navigation : undefined}
+              bookmarks={style === 'genshin' ? bookmarks : undefined}
+              bookmarksOpen={bookmarksOpen}
+              onCloseBookmarks={() => setMobileOpen(false)}
               onReady={(pathname) => {
                 window.scrollTo({ top: 0 })
                 if (searchRequested.current && pathname === '/tools') {
@@ -638,10 +729,15 @@ function Application() {
                 <PageBoundary key={displayedLocation.pathname}>
                   <Suspense
                     fallback={
-                      <BookSpread left={<div className="page-loading" role="status">
-                        <span />
-                        {t('正在准备页面…', 'Preparing the page…')}
-                      </div>} right={null} />
+                      <BookSpread
+                        left={
+                          <div className="page-loading" role="status">
+                            <span />
+                            {t('正在准备页面…', 'Preparing the page…')}
+                          </div>
+                        }
+                        right={null}
+                      />
                     }
                   >
                     <Routes location={displayedLocation}>

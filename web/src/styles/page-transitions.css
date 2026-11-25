@@ -351,8 +351,9 @@
 .route-page[data-page-enter='genshin'][data-page-direction='back'] .book-left { animation: none; }
 .route-page[data-page-enter='genshin'][data-page-direction='back'] .book-right { animation: leaf-back-back 920ms cubic-bezier(.42,0,.2,1) both; transform-origin: left center; backface-visibility: hidden; }
 @media (max-width: 800px) {
-  .route-page[data-page-enter='genshin'] .book-left,
-  .route-page[data-page-enter='genshin'][data-page-direction='back'] .book-right { animation: simple-page-in 180ms ease-out both; }
+  .route-page[data-page-enter='genshin'] { animation: simple-page-in 180ms ease-out both; }
+  .route-page[data-page-enter='genshin'] .book-leaf,
+  .route-page[data-page-enter='genshin'][data-page-direction='back'] .book-leaf { animation: none; }
 }
 
 .route-page[data-page-enter='zenless'] {

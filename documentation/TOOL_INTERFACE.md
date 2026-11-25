@@ -134,4 +134,6 @@ Fluent 主题保留稳定的 FluentProvider 和调色板，共享自绘控件与
 
 26.2.8 未运行测试、浏览器或截图验证，生产构建用于发布。
 
-26.2.9：BookSpread 的两份 book-leaf 标记 data-scroll-area，在原神主题下设置双语 region 名称和 tabIndex，ThemeScrollbars 分别发现并控制两页。书壳使用 flex / grid 的剩余高度，父级和纸页 min-height:0，根滚动锁定；移动端同样保留两份独立滚动页。BookSpread 暴露 rightRef / onRightScroll，AIPage 的原神滚动跟随操作右页，其他主题保持 transcript 滚动。handbook.css 增加书边纸张遮盖、织带与缝线、书签选中抽出，并将固定书签和图钉作为整体移动。26.2.9 未运行测试或浏览器验证。
+26.2.9：BookSpread 的两份 book-leaf 标记 data-scroll-area，在原神主题下设置双语 region 名称和 tabIndex，ThemeScrollbars 分别发现并控制两页。书壳使用 flex / grid 的剩余高度，父级和纸页 min-height:0，根滚动锁定；当时移动端也保留两份独立滚动页。BookSpread 暴露 rightRef / onRightScroll，AIPage 的原神滚动跟随操作右页，其他主题保持 transcript 滚动。handbook.css 增加书边纸张遮盖、织带与缝线、书签选中抽出，并将固定书签和图钉作为整体移动。26.2.9 未运行测试或浏览器验证。
+
+26.2.10：useNarrowViewport 订阅 800px 断点，BookSpread 在原神小屏幕把两个内容区排进同一滚动纸页；book-spread 与两个内容区始终注册为滚动候选，CSS 决定当前可滚动区域，适配横竖屏与宽度切换；手机 region / tabIndex 与 rightRef / onRightScroll 转移到 book-spread。桌面继续两页滚动。App 将书签清单、bookmarksOpen 和关闭回调传给 RouteTransition / RouteBook；手机导航仍附在书本右边，打开时只平移书壳，顶部菜单、纸页按钮、空白遮罩和书签链接均可收起。打开时停用页内输入并聚焦当前书签，关闭时恢复菜单焦点。RouteBook 按已显示页面匹配书签，在书本顶部显示对应图标、标题与同色织带；没有书签的工具不显示标记，图钉取消后同步消失。手机使用单页页码与整页淡入，新手引导同步手机书签操作。26.2.10 未运行测试或浏览器验证。

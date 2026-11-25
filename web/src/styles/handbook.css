@@ -17,7 +17,10 @@
 }
 .book-binding,
 .book-chapter-reference,
-.bookmarks-heading {
+.bookmarks-heading,
+.book-current-bookmark,
+.book-navigation-dismiss,
+.book-folio-single {
   display: none;
 }
 [data-style='genshin'] {
@@ -58,7 +61,7 @@
   flex-shrink: 0;
 }
 [data-style='genshin'] .main-content {
-  padding: 24px 178px 16px 24px;
+  padding: 32px 178px 16px 24px;
   max-width: 1800px;
   width: 100%;
   flex: 1;
@@ -156,8 +159,46 @@
   color: var(--book-ink);
   font-size: 10px;
 }
-[data-style='genshin'] .book-chapter-reference > :last-child {
+[data-style='genshin'] .book-folio-right {
   text-align: right;
+}
+/* The current ribbon folds over the upper edge and stays above the paper. */
+[data-style='genshin'] .book-current-bookmark {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  position: absolute;
+  top: -22px;
+  right: 24px;
+  width: max-content;
+  max-width: min(220px, calc(100% - 48px));
+  height: 44px;
+  padding: 9px 18px 11px;
+  z-index: 10;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  background:
+    linear-gradient(180deg, #fff3, transparent 35%, #0002),
+    repeating-linear-gradient(0deg, #fff1 0 1px, transparent 1px 3px),
+    color-mix(in srgb, var(--bookmark-tint) 65%, var(--book-paper));
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 5px), 0 100%);
+  filter: drop-shadow(0 4px 2px #0003);
+  pointer-events: none;
+}
+[data-style='genshin'] .book-current-bookmark::after {
+  content: '';
+  position: absolute;
+  inset: 5px 6px 9px;
+  border: 1px dashed color-mix(in srgb, var(--bookmark-tint) 60%, var(--book-paper));
+}
+[data-style='genshin'] .book-current-bookmark svg {
+  flex-shrink: 0;
+}
+[data-style='genshin'] .book-current-bookmark > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 [data-style='genshin'] .route-page > :is(.game-dashboard, .tool-catalog, .ui-panel, .ai-workspace) {
   display: contents;
@@ -386,24 +427,6 @@
 [data-style='genshin'] .sidebar [href='/settings'] {
   --bookmark-tint: #ad8370;
 }
-[data-style='genshin'] .pinned-tool-row:nth-child(6n + 1) .nav-item {
-  --bookmark-tint: #b79a69;
-}
-[data-style='genshin'] .pinned-tool-row:nth-child(6n + 2) .nav-item {
-  --bookmark-tint: #779980;
-}
-[data-style='genshin'] .pinned-tool-row:nth-child(6n + 3) .nav-item {
-  --bookmark-tint: #718ba8;
-}
-[data-style='genshin'] .pinned-tool-row:nth-child(6n + 4) .nav-item {
-  --bookmark-tint: #a083b1;
-}
-[data-style='genshin'] .pinned-tool-row:nth-child(6n + 5) .nav-item {
-  --bookmark-tint: #ba8589;
-}
-[data-style='genshin'] .pinned-tool-row:nth-child(6n) .nav-item {
-  --bookmark-tint: #9b9c73;
-}
 [data-style='genshin'] .sidebar .nav-item svg {
   flex-shrink: 0;
 }
@@ -500,7 +523,7 @@
 }
 @media (min-width: 801px) and (max-width: 1100px) {
   [data-style='genshin'] .main-content {
-    padding: 20px 160px 16px 20px;
+    padding: 32px 160px 16px 20px;
   }
   [data-style='genshin'] .book-leaf {
     padding: 24px 22px;
@@ -511,63 +534,126 @@
 }
 @media (max-width: 800px) {
   [data-style='genshin'] .main-content {
-    padding: 16px 14px 12px;
+    padding: 30px 14px 12px;
+  }
+  [data-style='genshin'] .topbar {
+    position: relative;
+    z-index: 22;
+  }
+  [data-style='genshin'] .sidebar-backdrop {
+    top: 64px;
+    z-index: 20;
+    background: none;
+    backdrop-filter: none;
   }
   [data-style='genshin'] .main-footer {
     margin-top: 14px;
     padding-top: 8px;
   }
   [data-style='genshin'] .route-book {
+    --bookmarks-width: min(190px, 60vw);
     border-width: 5px;
     padding: 6px;
+    transition: transform 420ms cubic-bezier(0.22, 0.68, 0, 1);
+  }
+  [data-style='genshin'] .route-book[data-bookmarks-open='true'] {
+    transform: translateX(calc(30px - var(--bookmarks-width)));
+    z-index: 21;
   }
   [data-style='genshin'] .book-spread {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-  }
-  [data-style='genshin'] .book-leaf {
-    padding: 20px;
+    display: block;
+    overflow: auto;
+    overscroll-behavior: contain;
     border: 1px solid var(--book-rule);
     border-radius: 4px;
     background: var(--book-paper);
+    perspective: none;
+  }
+  [data-style='genshin'] .book-spread:focus-visible {
+    outline-offset: -4px;
+  }
+  [data-style='genshin'] .book-leaf {
+    padding: 20px;
+    height: auto;
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    background: none;
     box-shadow: none;
+  }
+  [data-style='genshin'] .book-leaf:empty {
+    display: none;
   }
   [data-style='genshin'] .book-right {
     margin-top: 0;
+    padding-top: 0;
   }
   [data-style='genshin'] .book-binding {
     display: none;
   }
   [data-style='genshin'] .route-book::after {
-    display: none;
+    width: 8px;
+    right: 4px;
+    bottom: 34px;
   }
   [data-style='genshin'] .book-chapter-reference {
-    gap: 16px;
+    display: block;
     padding: 14px 6px 4px;
     font-size: 9px;
+    text-align: center;
+  }
+  [data-style='genshin'] :is(.book-folio-left, .book-folio-right) {
+    display: none;
+  }
+  [data-style='genshin'] .book-folio-single {
+    display: inline;
+  }
+  [data-style='genshin'] .book-current-bookmark {
+    right: 14px;
+    max-width: min(190px, calc(100% - 28px));
+  }
+  [data-style='genshin'] .book-navigation-dismiss {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    border: 0;
+    border-radius: 6px;
+    background: linear-gradient(90deg, #1e253212, #1e25322e);
+    cursor: pointer;
   }
   [data-style='genshin'] .route-book > .sidebar {
-    position: fixed;
-    inset: 0 auto 0 0;
-    width: 256px;
-    height: 100dvh;
-    padding: 24px 14px;
-    background: var(--book-paper);
-    border-right: 5px solid var(--book-cover);
-    overflow: hidden;
-    z-index: 30;
+    position: absolute;
+    inset: 18px auto 18px calc(100% - 30px);
+    width: var(--bookmarks-width);
+    max-width: none;
+    height: auto;
+    padding: 0;
+    background: none;
+    border: 0;
+    overflow: visible;
+    z-index: 7;
+    transform: none;
+    transition: none;
+    visibility: hidden;
+    pointer-events: none;
   }
-  [data-style='genshin'] .sidebar .nav-item {
-    padding-left: 18px;
+  [data-style='genshin'] .route-book[data-bookmarks-open='true'] > .sidebar {
+    visibility: visible;
+    pointer-events: auto;
   }
-  [data-style='genshin'] .sidebar-privacy small {
-    display: block;
+  [data-style='genshin'] .sidebar .nav-item,
+  [data-style='genshin'] .pinned-tool-row {
+    filter: drop-shadow(0 4px 3px #0004);
+  }
+  [data-style='genshin'] .sidebar-bottom {
+    display: none;
   }
 }
 @media (prefers-reduced-motion: reduce) {
   [data-style='genshin'] .sidebar .nav-item,
-  [data-style='genshin'] .pinned-tool-row {
+  [data-style='genshin'] .pinned-tool-row,
+  [data-style='genshin'] .route-book {
     transition: none;
   }
 }
