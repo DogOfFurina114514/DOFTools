@@ -198,8 +198,20 @@ export function AIPage() {
     ai.setAttachments([])
     setFileError('')
   }
+  const heading = (
+    <PageHeading
+      className="ai-page-heading"
+      eyebrow="YOUR PERSONAL ASSISTANT"
+      title={t('AI 助手', 'AI assistant')}
+      description={t(
+        '告诉我想做什么，或附上文件让我来处理。',
+        'Tell me what you want to do, or attach files for me to process.',
+      )}
+    />
+  )
   return (
     <>
+      {style !== 'genshin' && heading}
       <div className="ai-workspace">
         <BookSpread
           rightRef={rightPage}
@@ -210,14 +222,7 @@ export function AIPage() {
           }}
           left={
             <>
-              <PageHeading
-                eyebrow="YOUR PERSONAL ASSISTANT"
-                title={t('AI 助手', 'AI assistant')}
-                description={t(
-                  '告诉我想做什么，或附上文件让我来处理。',
-                  'Tell me what you want to do, or attach files for me to process.',
-                )}
-              />
+              {style === 'genshin' && heading}
               <div className="ai-workspace-bar">
                 <span>
                   <Sparkles size={18} />

@@ -43,7 +43,7 @@ import { PinToolButton } from './components/PinToolButton'
 import { ToolIcon } from './components/ToolIcon'
 import { RouteTransition } from './components/RouteTransition'
 import { BookSpread } from './components/BookSpread'
-import { BOOKMARK_TINTS, type HandbookBookmark } from './components/RouteBook'
+import { BOOKMARK_TINTS } from './components/RouteBook'
 import { useNarrowViewport } from './lib/use-narrow-viewport'
 import { isStringArray, useStoredState, readStorage, writeStorage } from './lib/storage'
 import { detectAICapability } from './lib/ai'
@@ -509,41 +509,14 @@ function Application() {
       setRecent((previous) => [id, ...previous.filter((item) => item !== id)].slice(0, 20)),
   }
   const pinnedTools = pinned.filter((id) => toolRegistry.get(id))
-  const bookmarks: HandbookBookmark[] = [
-    { path: '/', title: t('工具箱概览', 'Overview'), icon: <Home size={18} />, tint: '#bf9e67' },
-    {
-      path: '/tools',
-      title: t('所有工具', 'All tools'),
-      icon: <Grid2X2 size={18} />,
-      tint: '#779980',
-    },
-    ...pinnedTools.map((id, index) => {
-      const tool = toolRegistry.get(id)!
-      return {
-        path: `/tool/${id}`,
-        title: resolve(tool.title),
-        icon: <ToolIcon tool={tool} size={18} />,
-        tint: BOOKMARK_TINTS[index % BOOKMARK_TINTS.length],
-      }
-    }),
-    ...(desktop
-      ? [
-          {
-            path: '/ai',
-            title: t('AI 助手', 'AI assistant'),
-            icon: <Sparkles size={18} />,
-            tint: '#a083b1',
-          },
-        ]
-      : []),
-    {
-      path: '/settings',
-      title: t('设置与外观', 'Settings & appearance'),
-      icon: <Settings2 size={18} />,
-      tint: '#ad8370',
-    },
-  ]
   const bookmarksOpen = style === 'genshin' && narrow && mobileOpen
+  const navigationBackdrop = mobileOpen && (
+    <button
+      className="sidebar-backdrop"
+      onClick={() => setMobileOpen(false)}
+      aria-label={t('关闭导航', 'Close navigation')}
+    />
+  )
   const navigation = (
     <aside id="main-navigation" className={`sidebar ${mobileOpen ? 'mobile-open' : ''}`}>
       <Link to="/" className="brand">
@@ -652,15 +625,10 @@ function Application() {
         aria-hidden={splash || guide === 'setup' ? true : undefined}
       >
         <ThemeScenery suspended={!!splash || guide === 'setup'} />
-        {mobileOpen && (
-          <button
-            className="sidebar-backdrop"
-            onClick={() => setMobileOpen(false)}
-            aria-label={t('关闭导航', 'Close navigation')}
-          />
-        )}
+        {style !== 'genshin' && navigationBackdrop}
         {style !== 'genshin' && navigation}
         <div className="main-shell">
+          {style === 'genshin' && navigationBackdrop}
           <header className="topbar">
             <div className="breadcrumb">
               <IconButton
@@ -714,7 +682,6 @@ function Application() {
           <main className="main-content">
             <RouteTransition
               navigation={style === 'genshin' ? navigation : undefined}
-              bookmarks={style === 'genshin' ? bookmarks : undefined}
               bookmarksOpen={bookmarksOpen}
               onCloseBookmarks={() => setMobileOpen(false)}
               onReady={(pathname) => {

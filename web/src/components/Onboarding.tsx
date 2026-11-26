@@ -233,8 +233,8 @@ export function GuidedTour({ onFinish }: { onFinish: () => void }) {
       text:
         style === 'genshin' && narrow
           ? t(
-              '搜索框在所有工具页面。点击工具卡片的图钉可添加书签，再次点击可取消固定。左上角菜单会将整本书向左滑开，露出右侧书签；点击书页或再次点击菜单即可收起。当前书签会露在书本顶部，手机内容在同一张纸上连续滚动。',
-              'Search lives in All tools. Pin a tool card to add a bookmark; click again to unpin. The top-left menu slides the book left to reveal its right-side bookmarks. Tap the page or the menu again to close. The current bookmark appears above the book; phone content scrolls on a single page.',
+              '搜索框在所有工具页面。点击工具卡片的图钉可添加书签，再次点击可取消固定。左上角菜单会将整本书向左滑开，露出右侧书签；点击书签可切换页面并收起，点击书页或再次点击菜单也可收起。选中书签贴在当前纸页上，其余书签插在纸页下面，手机内容在同一张纸上连续滚动。',
+              'Search lives in All tools. Pin a tool card to add a bookmark; click again to unpin. The top-left menu slides the book left to reveal its right-side bookmarks. Tap a bookmark to navigate and close, or tap the page or menu to close. The selected bookmark rests on the current page; the others tuck underneath. Phone content scrolls on a single page.',
             )
           : t(
               '搜索框在所有工具页面，Ctrl / ⌘ + K 可直接前往。点击工具卡片的图钉，将它固定到侧边栏；再次点击可取消固定。手机上打开导航即可进入固定工具。',

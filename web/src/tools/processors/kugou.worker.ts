@@ -91,8 +91,8 @@ async function decrypt(
     const key = keys.get(hash) ?? directKey
     if (!key)
       throw new LocalizedError(
-        `KGG v5 需要对应密钥。请导入 KGMusicV3.db、mggkey_multi_process 或填写 hash=${hash} 的 ekey。`,
-        `KGG v5 requires a matching key. Import KGMusicV3.db, mggkey_multi_process or the ekey for hash=${hash}.`,
+        `KGG v5 缺少 hash=${hash} 对应的密钥。请导入含该条目的密钥文件，或填写该曲的 ekey。`,
+        `No KGG v5 key matches hash=${hash}. Import a key file containing this entry or paste the track's ekey.`,
       )
     candidates.push(qmcCipher(deriveQmcKey(key)))
   } else

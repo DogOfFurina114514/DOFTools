@@ -65,6 +65,20 @@ export function parseKeyJson(text: string) {
   return keys
 }
 
+function parseKeyText(text: string) {
+  const keys = new Map<string, string>()
+  for (const line of text.split('\n')) {
+    const separator = line.indexOf('$')
+    if (separator > 0) addKey(keys, line.slice(0, separator), line.slice(separator + 1))
+  }
+  if (!keys.size)
+    throw new LocalizedError(
+      '密钥表中没有有效条目。每行应为 hash$ekey。',
+      'The key list has no valid entries. Use one hash$ekey entry per line.',
+    )
+  return keys
+}
+
 function varint(bytes: Uint8Array, at: number): [number, number] | undefined {
   let value = 0
   for (let shift = 0; shift <= 28 && at < bytes.length; shift += 7) {
@@ -100,6 +114,7 @@ export async function loadKeyFile(file: File) {
   if (!file.size || file.size > 64 * 1024 * 1024) throw new LocalizedError('单份密钥文件须非空且不超过 64 MiB。', 'Each key file must be nonempty and at most 64 MiB.')
   const bytes = new Uint8Array(await file.arrayBuffer())
   if (/\.json$/i.test(file.name)) return parseKeyJson(decoder.decode(bytes))
+  if (/\.keys?$/i.test(file.name)) return parseKeyText(decoder.decode(bytes))
   try {
     if (/\.db$/i.test(file.name) || startsSqlite(bytes)) {
       const plain = await decryptDatabase(bytes)
@@ -115,6 +130,6 @@ export async function loadKeyFile(file: File) {
     }
     return parseMmkv(bytes)
   } catch {
-    throw new LocalizedError(`无法从 ${file.name} 读取密钥，请使用 KGMusicV3.db、mggkey_multi_process 或 hash → ekey JSON。`, `Cannot read keys from ${file.name}. Use KGMusicV3.db, mggkey_multi_process or hash → ekey JSON.`)
+    throw new LocalizedError(`无法从 ${file.name} 读取密钥，请使用 KGMusicV3.db、mggkey_multi_process、kgg.key 或 hash → ekey JSON。`, `Cannot read keys from ${file.name}. Use KGMusicV3.db, mggkey_multi_process, kgg.key or hash → ekey JSON.`)
   }
 }

@@ -136,6 +136,10 @@ Fluent 主题保留稳定的 FluentProvider 和调色板，共享自绘控件与
 
 26.2.11 的 kugou-v2.ts 从 MIT MyKgmWasm 移植 833 字节查表数据，按 16 字节块缓存公开掩码，不依赖资源请求 / DecompressionStream；删除原静态 gzip。Worker 为旧版 v4 增加分派，为 v3 增加按有效音频头选取的旧版候选。kugou.ts 允许省略 keyFiles，规范为空数组；v5 仍必须有匹配 ekey。kugou-audio.ts 跳过合法 ID3 标签识别实际格式，并从首个 MPEG Layer III 帧读取 Xing / Info / VBRI 声明长度；长度大于实际输出时在 details 和 summary 提示片段不完整，不影响其余输出。第三方许可随构建发布；真实样本、参考检验和批次报告仅保存在忽略的 .site-build/kugou-26211-reference/。
 
+26.2.12：kugou-keys.ts 可导入 `kgg.key` / `kgg.keys` 文本（UTF-8，每行 `hash$ekey`），沿用 JSON 和数据库的 hash 与 ekey 校验；空的密钥表报错。仅从用户选择的本地文件读取，无联网取密钥流程。
+
 26.2.9：BookSpread 的两份 book-leaf 标记 data-scroll-area，在原神主题下设置双语 region 名称和 tabIndex，ThemeScrollbars 分别发现并控制两页。书壳使用 flex / grid 的剩余高度，父级和纸页 min-height:0，根滚动锁定；当时移动端也保留两份独立滚动页。BookSpread 暴露 rightRef / onRightScroll，AIPage 的原神滚动跟随操作右页，其他主题保持 transcript 滚动。handbook.css 增加书边纸张遮盖、织带与缝线、书签选中抽出，并将固定书签和图钉作为整体移动。26.2.9 未运行测试或浏览器验证。
 
-26.2.10：useNarrowViewport 订阅 800px 断点，BookSpread 在原神小屏幕把两个内容区排进同一滚动纸页；book-spread 与两个内容区始终注册为滚动候选，CSS 决定当前可滚动区域，适配横竖屏与宽度切换；手机 region / tabIndex 与 rightRef / onRightScroll 转移到 book-spread。桌面继续两页滚动。App 将书签清单、bookmarksOpen 和关闭回调传给 RouteTransition / RouteBook；手机导航仍附在书本右边，打开时只平移书壳，顶部菜单、纸页按钮、空白遮罩和书签链接均可收起。打开时停用页内输入并聚焦当前书签，关闭时恢复菜单焦点。RouteBook 按已显示页面匹配书签，在书本顶部显示对应图标、标题与同色织带；没有书签的工具不显示标记，图钉取消后同步消失。手机使用单页页码与整页淡入，新手引导同步手机书签操作。26.2.10 未运行测试或浏览器验证。
+26.2.10：useNarrowViewport 订阅 800px 断点，BookSpread 在原神小屏幕把两个内容区排进同一滚动纸页；book-spread 与两个内容区始终注册为滚动候选，CSS 决定当前可滚动区域，适配横竖屏与宽度切换；手机 region / tabIndex 与 rightRef / onRightScroll 转移到 book-spread。桌面继续两页滚动。App 当时将书签清单、bookmarksOpen 和关闭回调传给 RouteTransition / RouteBook；手机导航仍附在书本右边，打开时只平移书壳。打开时停用页内输入并聚焦当前书签，关闭时恢复菜单焦点。该版本按已显示页面匹配书签并显示顶部标记，26.2.12 已移除。手机使用单页页码与整页淡入，新手引导同步手机书签操作。26.2.10 未运行测试或浏览器验证。
+
+26.2.12：原神的 sidebar-backdrop 挂在 main-shell 内，与书壳和顶栏处于相同父级堆叠上下文，防止外层遮罩覆盖可点击的手机书签。书壳建立局部 isolation，sidebar 不建立整体堆叠上下文；未选中书签为第 7 层、纸页第 8 层、书脊、纸边和页内关闭按钮第 9 层、当前书签 / 固定行第 10 层。当前书签向纸内移动 12px，图钉随整行移动，未选中根部被纸面和纸边遮住。封底伪元素向右托住侧边附页，在手机收起时缩回书边；页内关闭按钮不伸入侧边书签区。侧边附页承载标题、分组、固定提示、主题与本地说明；书签导航仍独立滚动。删除顶部标记及对应清单传参。AIPage 的无背景 PageHeading 在普通主题置于 ai-workspace 卡片外，原神留在左纸页内，保持双页滚动。手机引导同步侧边书签操作。

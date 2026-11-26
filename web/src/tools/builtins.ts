@@ -143,7 +143,10 @@ export const builtinTools: ToolDefinition[] = [
       {
         type: 'files', name: 'keyFiles', multiple: true,
         label: b('密钥文件（v5 需要，可多选）', 'Key files (required for v5; multiple allowed)'),
-        help: b('Windows：KGMusicV3.db；Android：mggkey_multi_process；也可导入 hash → ekey JSON。选择同一次下载所用客户端的密钥文件，总大小不超过 64 MiB。浏览器不能自动读取客户端目录。', 'Windows: KGMusicV3.db; Android: mggkey_multi_process; hash → ekey JSON is also supported. Choose keys from the client that downloaded the music, up to 64 MiB total. Browsers cannot read client folders automatically.'),
+        help: b(
+          'Windows：KGMusicV3.db；Android：mggkey_multi_process；也可导入 kgg.key、kgg.keys 或 hash → ekey JSON。选择含对应歌曲密钥的文件，总大小不超过 64 MiB。',
+          'Windows: KGMusicV3.db; Android: mggkey_multi_process. Also accepts kgg.key, kgg.keys and hash → ekey JSON. Use files containing the matching track keys, up to 64 MiB total.',
+        ),
       },
       {
         type: 'textarea', name: 'ekey',

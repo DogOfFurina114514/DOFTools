@@ -225,6 +225,11 @@
   margin-top: 4px;
   color: var(--secondary);
 }
+.ai-page-heading {
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
 .ai-workspace-bar .model-status {
   margin-left: auto;
 }

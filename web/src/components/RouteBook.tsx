@@ -1,35 +1,25 @@
-import type { CSSProperties, ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { useLocale } from '../lib/i18n'
 import { toolRegistry } from '../tools'
 
 export const BOOKMARK_TINTS = ['#b79a69', '#779980', '#718ba8', '#a083b1', '#ba8589', '#9b9c73']
-
-export type HandbookBookmark = {
-  path: string
-  title: string
-  icon: ReactNode
-  tint: string
-}
 
 // Keep the binding mounted when routes or themes change. Only the inner leaf turns.
 export function RouteBook({
   pathname,
   children,
   navigation,
-  bookmarks,
   bookmarksOpen = false,
   onCloseBookmarks,
 }: {
   pathname: string
   children: ReactNode
   navigation?: ReactNode
-  bookmarks?: HandbookBookmark[]
   bookmarksOpen?: boolean
   onCloseBookmarks?: () => void
 }) {
   const { t, resolve } = useLocale()
   const tools = toolRegistry.list()
-  const currentBookmark = bookmarks?.find((bookmark) => bookmark.path === pathname)
   const tool = pathname.startsWith('/tool/') ? toolRegistry.get(pathname.slice(6)) : undefined
   const chapter = tool
     ? resolve(tool.title)
@@ -57,16 +47,6 @@ export function RouteBook({
   return (
     <div className="route-book" data-bookmarks-open={bookmarksOpen ? 'true' : undefined}>
       {navigation}
-      {currentBookmark && (
-        <div
-          className="book-current-bookmark"
-          style={{ '--bookmark-tint': currentBookmark.tint } as CSSProperties}
-          aria-hidden="true"
-        >
-          {currentBookmark.icon}
-          <span>{currentBookmark.title}</span>
-        </div>
-      )}
       {bookmarksOpen && (
         <button
           type="button"

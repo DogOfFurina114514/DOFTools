@@ -4,7 +4,7 @@ import { useLocation, type Location } from 'react-router-dom'
 import { useAppearance } from '../lib/appearance'
 import { workspacePages } from '../lib/workspace-loader'
 import { BookTurnMaterial, type BookTurnBounds } from './BookTurnMaterial'
-import { RouteBook, type HandbookBookmark } from './RouteBook'
+import { RouteBook } from './RouteBook'
 import { TerminalScanMaterial } from './TerminalScanMaterial'
 
 async function preparePage(pathname: string) {
@@ -17,14 +17,12 @@ export function RouteTransition({
   children,
   onReady,
   navigation,
-  bookmarks,
   bookmarksOpen,
   onCloseBookmarks,
 }: {
   children: (location: Location) => ReactNode
   onReady?: (pathname: string) => void
   navigation?: ReactNode
-  bookmarks?: HandbookBookmark[]
   bookmarksOpen?: boolean
   onCloseBookmarks?: () => void
 }) {
@@ -155,7 +153,6 @@ export function RouteTransition({
       <RouteBook
         pathname={displayedLocation.pathname}
         navigation={navigation}
-        bookmarks={bookmarks}
         bookmarksOpen={bookmarksOpen}
         onCloseBookmarks={onCloseBookmarks}
       >

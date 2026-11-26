@@ -118,13 +118,15 @@ export function PageHeading({
   eyebrow,
   title,
   description,
+  className = '',
 }: {
   eyebrow: string
   title: string
   description: string
+  className?: string
 }) {
   return (
-    <div className="page-heading">
+    <div className={`page-heading ${className}`}>
       <span className="eyebrow">{eyebrow}</span>
       <h1>
         {title}

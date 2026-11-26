@@ -18,7 +18,6 @@
 .book-binding,
 .book-chapter-reference,
 .bookmarks-heading,
-.book-current-bookmark,
 .book-navigation-dismiss,
 .book-folio-single {
   display: none;
@@ -61,7 +60,7 @@
   flex-shrink: 0;
 }
 [data-style='genshin'] .main-content {
-  padding: 32px 178px 16px 24px;
+  padding: 20px 178px 16px 24px;
   max-width: 1800px;
   width: 100%;
   flex: 1;
@@ -75,11 +74,13 @@
   padding: 10px 0 0;
 }
 [data-style='genshin'] .route-book {
+  --bookmarks-width: 190px;
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
   flex: 1;
   min-height: 0;
   position: relative;
+  isolation: isolate;
   padding: 8px;
   border: 8px solid var(--book-cover);
   border-radius: 12px;
@@ -91,11 +92,27 @@
     0 13px 0 var(--book-cover),
     0 24px 50px #111a2a40;
 }
+/* The back cover extends under a small sheet holding the bookmark notes. */
+[data-style='genshin'] .route-book::before {
+  content: '';
+  position: absolute;
+  inset: -8px calc(22px - var(--bookmarks-width)) -8px -8px;
+  z-index: 0;
+  border: 1px solid color-mix(in srgb, var(--book-rule) 55%, var(--book-cover));
+  border-radius: 12px;
+  background: linear-gradient(90deg, #0001, transparent 65%, #fff1), var(--book-cover);
+  box-shadow:
+    0 5px 0 var(--book-rule),
+    0 12px 24px #111a2a30;
+  pointer-events: none;
+}
 [data-style='genshin'] .route-book > .route-page {
   min-width: 0;
   min-height: 0;
   height: 100%;
   position: relative;
+  z-index: 8;
+  background: var(--book-paper);
 }
 [data-style='genshin'] .book-spread {
   display: grid;
@@ -139,7 +156,7 @@
   left: 50%;
   width: 32px;
   transform: translateX(-50%);
-  z-index: 8;
+  z-index: 9;
   pointer-events: none;
   background: linear-gradient(
     90deg,
@@ -152,6 +169,9 @@
   );
 }
 [data-style='genshin'] .book-chapter-reference {
+  position: relative;
+  z-index: 8;
+  background: var(--book-paper);
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 48px;
@@ -161,44 +181,6 @@
 }
 [data-style='genshin'] .book-folio-right {
   text-align: right;
-}
-/* The current ribbon folds over the upper edge and stays above the paper. */
-[data-style='genshin'] .book-current-bookmark {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  position: absolute;
-  top: -22px;
-  right: 24px;
-  width: max-content;
-  max-width: min(220px, calc(100% - 48px));
-  height: 44px;
-  padding: 9px 18px 11px;
-  z-index: 10;
-  color: var(--text);
-  font-size: 12px;
-  font-weight: 700;
-  background:
-    linear-gradient(180deg, #fff3, transparent 35%, #0002),
-    repeating-linear-gradient(0deg, #fff1 0 1px, transparent 1px 3px),
-    color-mix(in srgb, var(--bookmark-tint) 65%, var(--book-paper));
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 5px), 0 100%);
-  filter: drop-shadow(0 4px 2px #0003);
-  pointer-events: none;
-}
-[data-style='genshin'] .book-current-bookmark::after {
-  content: '';
-  position: absolute;
-  inset: 5px 6px 9px;
-  border: 1px dashed color-mix(in srgb, var(--bookmark-tint) 60%, var(--book-paper));
-}
-[data-style='genshin'] .book-current-bookmark svg {
-  flex-shrink: 0;
-}
-[data-style='genshin'] .book-current-bookmark > span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 [data-style='genshin'] .route-page > :is(.game-dashboard, .tool-catalog, .ui-panel, .ai-workspace) {
   display: contents;
@@ -323,8 +305,8 @@
 /* Each ribbon's root enters the fore-edge; the exposed part is navigation. */
 [data-style='genshin'] .route-book > .sidebar {
   position: absolute;
-  inset: 20px auto 20px calc(100% - 30px);
-  width: 190px;
+  inset: 20px auto 20px calc(100% - 42px);
+  width: var(--bookmarks-width);
   height: auto;
   max-height: none;
   padding: 0;
@@ -332,27 +314,47 @@
   overflow: visible;
   background: none;
   backdrop-filter: none;
-  z-index: 7;
+  /* Avoid a parent stacking context: active ribbons must rise above the page. */
+  z-index: auto;
+  transform: none;
+  filter: none;
+}
+[data-style='genshin'] .route-book > .sidebar::before {
+  content: '';
+  position: absolute;
+  inset: -6px 0 -6px 34px;
+  z-index: 1;
+  border: 1px solid var(--book-rule);
+  border-radius: 2px 5px 5px 2px;
+  background: linear-gradient(90deg, #0001, transparent 12px), var(--book-paper);
+  box-shadow:
+    3px 3px 0 color-mix(in srgb, var(--book-paper) 75%, var(--book-rule)),
+    5px 6px 8px #0003;
+  pointer-events: none;
 }
 [data-style='genshin'] .sidebar .brand {
   display: none;
 }
 [data-style='genshin'] .bookmarks-heading {
   display: block;
-  margin: 0 42px 12px;
+  position: relative;
+  z-index: 2;
+  margin: 6px 12px 12px 46px;
   color: var(--book-ink);
   font-size: 10px;
-  letter-spacing: 2px;
+  letter-spacing: 0;
 }
 [data-style='genshin'] .sidebar-nav {
   margin: 0;
-  padding: 8px 16px 12px 12px;
+  padding: 8px 16px 12px 18px;
   gap: 8px;
+  overflow-x: hidden;
   overflow-y: auto;
 }
 [data-style='genshin'] .sidebar .nav-item {
   --bookmark-tint: #71849c;
   position: relative;
+  z-index: 7;
   isolation: isolate;
   min-height: 52px;
   height: auto;
@@ -399,7 +401,9 @@
   transform: translateX(6px);
 }
 [data-style='genshin'] .sidebar .nav-item.active {
-  transform: translateX(10px);
+  z-index: 10;
+  transform: translateX(-12px);
+  filter: drop-shadow(1px 3px 2px #0004);
 }
 [data-style='genshin'] .sidebar .nav-item:is(.active, :hover)::before {
   background:
@@ -435,7 +439,9 @@
   display: none;
 }
 [data-style='genshin'] .sidebar .nav-section-label {
-  padding: 0 20px;
+  position: relative;
+  z-index: 2;
+  padding: 0 10px 0 28px;
   margin: 10px 0 3px;
   font-size: 9px;
   letter-spacing: 0;
@@ -444,10 +450,13 @@
   display: none;
 }
 [data-style='genshin'] .sidebar .nav-divider {
-  margin: 8px 15px;
+  position: relative;
+  z-index: 2;
+  margin: 8px 8px 8px 28px;
 }
 [data-style='genshin'] .pinned-tool-row {
   position: relative;
+  z-index: 7;
   padding-left: 0;
   margin-bottom: 4px;
   gap: 0;
@@ -458,10 +467,12 @@
   transform: translateX(6px);
 }
 [data-style='genshin'] .pinned-tool-row:has(.nav-item.active) {
-  transform: translateX(10px);
+  z-index: 10;
+  transform: translateX(-12px);
 }
 [data-style='genshin'] .pinned-tool-row .nav-item {
   padding-right: 38px;
+  z-index: auto;
   transform: none;
 }
 [data-style='genshin'] .sidebar .pinned-tool-row .nav-item:is(.active, :hover, :focus-visible) {
@@ -480,7 +491,9 @@
   z-index: 2;
 }
 [data-style='genshin'] .sidebar-style-note {
-  margin: 12px 38px;
+  position: relative;
+  z-index: 2;
+  margin: 12px 10px 12px 46px;
   font-size: 9px;
 }
 [data-style='genshin'] .sidebar-style-note > :last-child {
@@ -490,7 +503,9 @@
   padding: 0;
 }
 [data-style='genshin'] .sidebar-privacy {
-  margin: 0 36px;
+  position: relative;
+  z-index: 2;
+  margin: 0 10px 6px 46px;
   padding: 12px 0;
   gap: 7px;
 }
@@ -499,6 +514,12 @@
 }
 [data-style='genshin'] .sidebar-privacy strong {
   font-size: 9px;
+}
+[data-style='genshin'] .pinned-tools-empty {
+  position: relative;
+  z-index: 2;
+  padding: 0 8px 12px 28px;
+  color: var(--book-ink);
 }
 /* The fore-edge covers the buried end of each ribbon, while its label remains outside. */
 [data-style='genshin'] .route-book::after {
@@ -523,18 +544,18 @@
 }
 @media (min-width: 801px) and (max-width: 1100px) {
   [data-style='genshin'] .main-content {
-    padding: 32px 160px 16px 20px;
+    padding: 20px 160px 16px 20px;
   }
   [data-style='genshin'] .book-leaf {
     padding: 24px 22px;
   }
-  [data-style='genshin'] .route-book > .sidebar {
-    width: 172px;
+  [data-style='genshin'] .route-book {
+    --bookmarks-width: 172px;
   }
 }
 @media (max-width: 800px) {
   [data-style='genshin'] .main-content {
-    padding: 30px 14px 12px;
+    padding: 18px 14px 12px;
   }
   [data-style='genshin'] .topbar {
     position: relative;
@@ -556,8 +577,15 @@
     padding: 6px;
     transition: transform 420ms cubic-bezier(0.22, 0.68, 0, 1);
   }
+  [data-style='genshin'] .route-book::before {
+    inset: -5px;
+    transition: right 420ms cubic-bezier(0.22, 0.68, 0, 1);
+  }
+  [data-style='genshin'] .route-book[data-bookmarks-open='true']::before {
+    right: calc(22px - var(--bookmarks-width));
+  }
   [data-style='genshin'] .route-book[data-bookmarks-open='true'] {
-    transform: translateX(calc(30px - var(--bookmarks-width)));
+    transform: translateX(calc(18px - var(--bookmarks-width)));
     z-index: 21;
   }
   [data-style='genshin'] .book-spread {
@@ -608,15 +636,11 @@
   [data-style='genshin'] .book-folio-single {
     display: inline;
   }
-  [data-style='genshin'] .book-current-bookmark {
-    right: 14px;
-    max-width: min(190px, calc(100% - 28px));
-  }
   [data-style='genshin'] .book-navigation-dismiss {
     display: block;
     position: absolute;
-    inset: 0;
-    z-index: 6;
+    inset: 0 6px 0 0;
+    z-index: 9;
     border: 0;
     border-radius: 6px;
     background: linear-gradient(90deg, #1e253212, #1e25322e);
@@ -624,7 +648,7 @@
   }
   [data-style='genshin'] .route-book > .sidebar {
     position: absolute;
-    inset: 18px auto 18px calc(100% - 30px);
+    inset: 18px auto 18px calc(100% - 42px);
     width: var(--bookmarks-width);
     max-width: none;
     height: auto;
@@ -632,7 +656,7 @@
     background: none;
     border: 0;
     overflow: visible;
-    z-index: 7;
+    z-index: auto;
     transform: none;
     transition: none;
     visibility: hidden;
@@ -653,7 +677,8 @@
 @media (prefers-reduced-motion: reduce) {
   [data-style='genshin'] .sidebar .nav-item,
   [data-style='genshin'] .pinned-tool-row,
-  [data-style='genshin'] .route-book {
+  [data-style='genshin'] .route-book,
+  [data-style='genshin'] .route-book::before {
     transition: none;
   }
 }
