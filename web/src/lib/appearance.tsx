@@ -11,6 +11,8 @@ import { useStoredState } from './storage'
 import { flushSync } from 'react-dom'
 import { translate, type Locale } from './locale'
 import { FluentProvider, webDarkTheme, webLightTheme } from '@fluentui/react-components'
+import { isMobileDevice } from './device'
+import { useNarrowViewport } from './use-narrow-viewport'
 import {
   isGlassGradient,
   isThemeAccents,
@@ -19,6 +21,33 @@ import {
   type OrdinaryStyle,
   type ThemeAccents,
 } from './theme-colors'
+
+const DESKTOP_PRESETS = [
+  {
+    id: 'windows',
+    name: 'Windows',
+    english: 'Windows',
+    description: '清晰的窗口边框、蓝色高亮与居中任务栏。',
+    game: false,
+    opening: '',
+  },
+  {
+    id: 'macos',
+    name: 'macOS',
+    english: 'macOS',
+    description: '交通灯按钮、居中标题与程序坞。',
+    game: false,
+    opening: '',
+  },
+  {
+    id: 'linux',
+    name: 'Linux',
+    english: 'Linux',
+    description: '石墨色顶栏、圆形窗口按钮与紧凑面板。',
+    game: false,
+    opening: '',
+  },
+] as const
 
 export const STYLE_PRESETS = [
   {
@@ -85,9 +114,11 @@ export const STYLE_PRESETS = [
     game: true,
     opening: '世界准备',
   },
+  ...DESKTOP_PRESETS,
 ] as const
 
 export type StyleId = (typeof STYLE_PRESETS)[number]['id']
+export const isDesktopStyle = (id: StyleId) => DESKTOP_PRESETS.some((preset) => preset.id === id)
 export type ThemeMode = 'light' | 'dark'
 export type ThemePreference = ThemeMode | 'system'
 export const isStyleId = (value: unknown): value is StyleId =>
@@ -118,6 +149,9 @@ const englishStyles = {
     'Block landscapes, inventory slots and bevelled crafting controls.',
     'World preparation',
   ],
+  windows: ['Windows', 'Crisp window borders, blue highlights and a centered taskbar.', ''],
+  macos: ['macOS', 'Traffic-light buttons, centered titles and a Dock.', ''],
+  linux: ['Linux', 'A graphite top bar, round window controls and a compact panel.', ''],
 } as const
 export const styleName = (id: StyleId, locale: Locale) =>
   translate(locale, presetFor(id).name, englishStyles[id][0])
@@ -129,6 +163,8 @@ export const styleOpening = (id: StyleId, locale: Locale) =>
 interface Appearance {
   style: StyleId
   setStyle: (style: StyleId) => void
+  desktopAllowed: boolean
+  desktopSelected: boolean
   mode: ThemeMode
   theme: ThemePreference
   setMode: (mode: ThemePreference) => void
@@ -149,7 +185,14 @@ const AppearanceContext = createContext<Appearance>(null!)
 export const useAppearance = () => useContext(AppearanceContext)
 
 export function AppearanceProvider({ children }: { children: ReactNode }) {
-  const [style, setStyle] = useStoredState<StyleId>('style', 'default', isStyleId)
+  const narrow = useNarrowViewport()
+  const desktopAllowed = !narrow && !isMobileDevice()
+  const [savedStyle, saveStyle] = useStoredState<StyleId>('style', 'default', isStyleId)
+  const desktopSelected = isDesktopStyle(savedStyle)
+  const style = desktopSelected && !desktopAllowed ? 'default' : savedStyle
+  const setStyle = (next: StyleId) => {
+    if (desktopAllowed || !isDesktopStyle(next)) saveStyle(next)
+  }
   const [accentColors, setAccentColors] = useStoredState<ThemeAccents>(
     'theme-accents',
     {},
@@ -161,7 +204,7 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
     isGlassGradient,
   )
   const setAccentColor = (color: string) => {
-    if (presetFor(style).game) return
+    if (presetFor(style).game || isDesktopStyle(style)) return
     setAccentColors((colors) => ({ ...colors, [style]: color }))
   }
   const resetAccentColor = () =>
@@ -283,6 +326,8 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
       value={{
         style,
         setStyle,
+        desktopAllowed,
+        desktopSelected,
         mode,
         theme,
         setMode,

@@ -52,7 +52,12 @@ function addKey(map: Map<string, string>, hash: unknown, value: unknown) {
 }
 
 export function parseKeyJson(text: string) {
-  const data: unknown = JSON.parse(text)
+  let data: unknown
+  try {
+    data = JSON.parse(text)
+  } catch {
+    throw new LocalizedError('密钥 JSON 格式无效。', 'The key JSON is invalid.')
+  }
   const keys = new Map<string, string>()
   if (Array.isArray(data)) for (const row of data) {
     if (row && typeof row === 'object') {

@@ -57,7 +57,7 @@ export function ThemeScrollbars() {
       const root = document.scrollingElement as HTMLElement
       for (const element of [root, ...targets]) {
         const isWindow = element === root
-        if (!element.isConnected || element.closest('[inert]')) continue
+        if (!element.isConnected || element.closest('[inert], [data-native-scroll]')) continue
         if ((element.getRootNode() as ShadowRoot).host?.closest('[inert]')) continue
         const css = getComputedStyle(element)
         if (css.visibility === 'hidden' || css.display === 'none') continue
@@ -65,9 +65,12 @@ export function ThemeScrollbars() {
         const rect = isWindow
           ? { left: 0, top: 0, right: innerWidth, bottom: innerHeight }
           : element.getBoundingClientRect()
+        const railInset = element.classList.contains('book-right')
+          ? Number.parseFloat(css.getPropertyValue('--book-rail-inset')) || 0
+          : 0
         let left = Math.max(0, rect.left),
           top = Math.max(0, rect.top)
-        let right = Math.min(innerWidth, rect.right),
+        let right = Math.min(innerWidth, rect.right - railInset),
           bottom = Math.min(innerHeight, rect.bottom)
         for (let parent = parentOf(element); !isWindow && parent; parent = parentOf(parent)) {
           const overflow = getComputedStyle(parent)
@@ -152,7 +155,7 @@ export function ThemeScrollbars() {
       subtree: true,
       characterData: true,
       attributes: true,
-      attributeFilter: ['class', 'style', 'inert'],
+      attributeFilter: ['class', 'style', 'inert', 'data-native-scroll'],
     })
     window.addEventListener('scroll', schedule, true)
     window.addEventListener('resize', schedule)

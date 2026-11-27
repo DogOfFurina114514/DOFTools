@@ -128,7 +128,15 @@ export function ToolFields({
   )
 }
 
-export function ToolWorkspace({ tool, navigation }: { tool: ToolDefinition; navigation?: ReactNode }) {
+export function ToolWorkspace({
+  tool,
+  navigation,
+  compact = false,
+}: {
+  tool: ToolDefinition
+  navigation?: ReactNode
+  compact?: boolean
+}) {
   const { t, resolve, locale } = useLocale()
   const { style } = useAppearance()
   const [values, setValues] = useState<ToolValues>(tool.initialValues)
@@ -218,16 +226,8 @@ export function ToolWorkspace({ tool, navigation }: { tool: ToolDefinition; navi
           </div>
         )}
   </>)
-  return (
-    <ToolUI.Panel
-      right={output}
-      title={
-        <span className="workspace-tool-heading">
-          <ToolIcon tool={tool} size={25} />
-          <span>{resolve(tool.title)}</span>
-        </span>
-      }
-    >
+  const input = (
+    <>
       {navigation}
       <p className="ui-panel-description">{resolve(tool.description)}</p>
         <div className="workspace-input">
@@ -270,6 +270,24 @@ export function ToolWorkspace({ tool, navigation }: { tool: ToolDefinition; navi
             )}
           </div>
         </div>
+    </>
+  )
+  return compact ? (
+    <div className="desktop-tool-workspace">
+      {input}
+      {output}
+    </div>
+  ) : (
+    <ToolUI.Panel
+      right={output}
+      title={
+        <span className="workspace-tool-heading">
+          <ToolIcon tool={tool} size={25} />
+          <span>{resolve(tool.title)}</span>
+        </span>
+      }
+    >
+      {input}
     </ToolUI.Panel>
   )
 }

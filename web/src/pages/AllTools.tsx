@@ -1,10 +1,11 @@
 import { BookSpread } from '../components/BookSpread'
-import { Link, useSearchParams, useNavigate } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { ArrowUpRight, Search, X } from 'lucide-react'
 import { toolTags, isToolTag } from '../data/tags'
 import { useLocale } from '../lib/i18n'
 import { toolRegistry } from '../tools/registry'
 import { filterTools } from '../lib/tool-filter'
+import { ToolLink, useOpenTool } from '../lib/tool-launch'
 import { PinToolButton } from '../components/PinToolButton'
 import { EmptyPanel } from '../components/UI'
 import { ToolIcon } from '../components/ToolIcon'
@@ -18,7 +19,7 @@ export function AllTools({
 }) {
   const { t, resolve } = useLocale()
   const [params, setParams] = useSearchParams()
-  const navigate = useNavigate()
+  const openTool = useOpenTool()
   const selected = [...new Set(params.getAll('tag').filter(isToolTag))]
   const query = params.get('q') ?? ''
   const tools = toolRegistry.list()
@@ -57,7 +58,7 @@ export function AllTools({
               setParams(next, { replace: true })
             }}
             onKeyDown={(event) => {
-              if (event.key === 'Enter' && results[0]) navigate(`/tool/${results[0].id}`)
+              if (event.key === 'Enter' && results[0]) openTool(results[0].id)
             }}
           />
           {query && (
@@ -122,7 +123,7 @@ export function AllTools({
         <div className="all-tools-grid">
           {results.map((tool, index) => (
             <article key={tool.id} className="tool-list-card">
-              <Link to={`/tool/${tool.id}`} className="tool-list-link">
+              <ToolLink toolId={tool.id} className="tool-list-link">
                 <span className="catalog-tool-index" aria-hidden="true">
                   {String(index + 1).padStart(2, '0')}
                 </span>
@@ -134,7 +135,7 @@ export function AllTools({
                 </div>
                 <p>{resolve(tool.description)}</p>
                 <ArrowUpRight size={18} />
-              </Link>
+              </ToolLink>
               <div className="tool-list-footer">
                 <div className="tool-tag-list">
                   {tool.tags.map((id) => (

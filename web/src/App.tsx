@@ -23,6 +23,7 @@ import {
 import {
   ArrowRight,
   ArrowUpRight,
+  AppWindow,
   Check,
   ChevronRight,
   CircleHelp,
@@ -66,6 +67,8 @@ import { SponsorDialog } from './components/SponsorDialog'
 import { TOOL_SUCCEEDED } from './lib/tool-events'
 import { ResourceUpdateToast } from './components/ResourceUpdateToast'
 import { ThemeScenery } from './components/ThemeScenery'
+import { DesktopWindows, useDesktopWindows } from './components/DesktopWindows'
+import { openToolWithClick, ToolWindowLauncher, useToolWindowLauncher } from './lib/tool-launch'
 
 const Dashboard = lazy(() =>
   workspacePages.dashboard().then((module) => ({ default: module.Dashboard })),
@@ -144,6 +147,7 @@ function RegisteredToolPage() {
   const tool = toolRegistry.get(id ?? '')
   const { pinned, togglePin } = useToolbox()
   const { t, resolve } = useLocale()
+  const openWindow = useToolWindowLauncher()
   return tool ? (
     <ToolWorkspace
       key={tool.id}
@@ -158,6 +162,15 @@ function RegisteredToolPage() {
               <span key={id}>{resolve(tagOf(id).label)}</span>
             ))}
           </div>
+          {openWindow && (
+            <IconButton
+              aria-label={t('打开新窗口', 'Open new window')}
+              title={t('打开新窗口', 'Open new window')}
+              onClick={() => openWindow(tool.id)}
+            >
+              <AppWindow size={16} />
+            </IconButton>
+          )}
           <PinToolButton
             title={resolve(tool.title)}
             pinned={pinned.includes(tool.id)}
@@ -276,7 +289,11 @@ function HelpDialog({ onClose }: { onClose: () => void }) {
 
 function Application() {
   const { t, resolve, locale, brand } = useLocale()
-  const { style, setStyle, mode, setMode, openings, reducedMotion } = useAppearance()
+  const { style, setStyle, mode, setMode, openings, reducedMotion, desktopAllowed, desktopSelected } =
+    useAppearance()
+  const windows = useDesktopWindows()
+  const openToolWindow = windows.enabled ? windows.open : null
+  const { showDesktop } = windows
   const [favorites, setFavorites] = useStoredState('favorites', [] as string[], isStringArray)
   const [recent, setRecent] = useStoredState('recent', [] as string[], isStringArray)
   const [pinned, setPinned] = useStoredState('pinned-tools', [] as string[], isStringArray)
@@ -317,6 +334,18 @@ function Application() {
   const desktop = detectAICapability().desktop
   const narrow = useNarrowViewport()
   const navigationRef = useRef<HTMLElement>(null)
+  const mobileMenuRef = useRef<HTMLButtonElement>(null)
+  const mainRef = useRef<HTMLElement>(null)
+  const focusToolSearch = () =>
+    document.querySelector<HTMLInputElement>('.all-tools-search input')?.focus()
+  const openCatalog = () => {
+    showDesktop()
+    if (location.pathname === '/tools') requestAnimationFrame(focusToolSearch)
+    else {
+      searchRequested.current = true
+      navigate('/tools')
+    }
+  }
   const notify = (message: string) => {
     if (toastTimer.current) clearTimeout(toastTimer.current)
     setToast(message)
@@ -359,7 +388,7 @@ function Application() {
     setSplash(id)
   }
   const chooseStyle = (id: StyleId) => {
-    if (style === id) return
+    if (style === id && !(desktopSelected && !desktopAllowed)) return
     setStyle(id)
     if (openings && presetFor(id).game) play(id)
     else setSplash(null)
@@ -379,7 +408,7 @@ function Application() {
   }
   useEffect(() => {
     setMobileOpen(false)
-  }, [location.pathname])
+  }, [location.pathname, narrow])
   useEffect(() => {
     const success = () => {
       if (!sponsorRef.current && !readStorage('sponsor-reminders-disabled', false))
@@ -427,11 +456,7 @@ function Application() {
       if (document.querySelector('.opening') && event.key !== 'Escape') return
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault()
-        searchRequested.current = window.location.pathname !== '/tools'
-        if (searchRequested.current) navigate('/tools')
-        requestAnimationFrame(() =>
-          document.querySelector<HTMLInputElement>('.all-tools-search input')?.focus(),
-        )
+        openCatalog()
       }
       if (event.key === 'Escape') {
         setHelpOpen(false)
@@ -442,22 +467,23 @@ function Application() {
     window.addEventListener('keydown', handle)
     return () => {
       window.removeEventListener('keydown', handle)
-      if (toastTimer.current) clearTimeout(toastTimer.current)
     }
-  }, [navigate])
+  }, [navigate, location.pathname, showDesktop])
+  useEffect(() => () => {
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+  }, [])
   useEffect(() => {
-    if (!mobileOpen) return
+    if (!mobileOpen || !narrow) return
     const original = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     return () => {
       document.body.style.overflow = original
     }
-  }, [mobileOpen])
+  }, [mobileOpen, narrow])
   useEffect(() => {
     if (!mobileOpen || !narrow || style !== 'genshin') return
-    const previous = document.activeElement as HTMLElement | null
+    const nav = navigationRef.current
     const frame = requestAnimationFrame(() => {
-      const nav = navigationRef.current
       const selected = nav?.querySelector<HTMLElement>('.nav-item.active')
       if (nav && selected) {
         const item = selected.getBoundingClientRect()
@@ -468,8 +494,10 @@ function Application() {
     })
     return () => {
       cancelAnimationFrame(frame)
-      if (navigationRef.current?.contains(document.activeElement) && previous?.isConnected)
-        previous.focus({ preventScroll: true })
+      const active = document.activeElement
+      const menu = mobileMenuRef.current
+      if ((active === document.body || nav?.contains(active)) && menu?.getClientRects().length)
+        menu.focus({ preventScroll: true })
     }
   }, [mobileOpen, narrow, style])
   const sectionName =
@@ -557,6 +585,7 @@ function Application() {
                 <NavLink
                   to={`/tool/${id}`}
                   className="nav-item"
+                  onClick={(event) => openToolWithClick(event, openToolWindow, id)}
                   style={
                     {
                       '--bookmark-tint': BOOKMARK_TINTS[index % BOOKMARK_TINTS.length],
@@ -620,7 +649,7 @@ function Application() {
   return (
     <Toolbox.Provider value={context}>
       <div
-        className={`app-shell ${splash && !splashRevealing ? 'has-opening' : ''}`}
+        className={`app-shell ${windows.enabled ? 'has-desktop' : ''} ${splash && !splashRevealing ? 'has-opening' : ''}`}
         inert={!!splash || guide === 'setup'}
         aria-hidden={splash || guide === 'setup' ? true : undefined}
       >
@@ -632,6 +661,7 @@ function Application() {
           <header className="topbar">
             <div className="breadcrumb">
               <IconButton
+                ref={mobileMenuRef}
                 className="mobile-menu"
                 onClick={() => setMobileOpen((open) => !open)}
                 aria-expanded={mobileOpen}
@@ -679,16 +709,17 @@ function Application() {
               </IconButton>
             </div>
           </header>
-          <main className="main-content">
+          <main ref={mainRef} className="main-content" data-native-scroll={windows.enabled ? '' : undefined}>
             <RouteTransition
               navigation={style === 'genshin' ? navigation : undefined}
               bookmarksOpen={bookmarksOpen}
               onCloseBookmarks={() => setMobileOpen(false)}
               onReady={(pathname) => {
-                window.scrollTo({ top: 0 })
+                if (windows.enabled) mainRef.current?.scrollTo({ top: 0 })
+                else window.scrollTo({ top: 0 })
                 if (searchRequested.current && pathname === '/tools') {
                   searchRequested.current = false
-                  document.querySelector<HTMLInputElement>('.all-tools-search input')?.focus()
+                  focusToolSearch()
                 }
               }}
             >
@@ -707,29 +738,31 @@ function Application() {
                       />
                     }
                   >
-                    <Routes location={displayedLocation}>
-                      <Route path="/" element={<Dashboard pinned={pinned} />} />
-                      <Route
-                        path="/tools"
-                        element={<AllTools pinned={pinned} onTogglePin={context.togglePin} />}
-                      />
-                      <Route path="/category/:id" element={<LegacyCategoryPage />} />
-                      <Route path="/tool/:id" element={<RegisteredToolPage />} />
-                      <Route path="/ai" element={<AIPage />} />
-                      <Route
-                        path="/settings"
-                        element={
-                          <SettingsPage
-                            onGuide={openGuide}
-                            onStyle={chooseStyle}
-                            onReplay={() => {
-                              if (presetFor(style).game) play(style)
-                            }}
-                          />
-                        }
-                      />
-                      <Route path="*" element={<UnavailablePage />} />
-                    </Routes>
+                    <ToolWindowLauncher.Provider value={openToolWindow}>
+                      <Routes location={displayedLocation}>
+                        <Route path="/" element={<Dashboard pinned={pinned} />} />
+                        <Route
+                          path="/tools"
+                          element={<AllTools pinned={pinned} onTogglePin={context.togglePin} />}
+                        />
+                        <Route path="/category/:id" element={<LegacyCategoryPage />} />
+                        <Route path="/tool/:id" element={<RegisteredToolPage />} />
+                        <Route path="/ai" element={<AIPage />} />
+                        <Route
+                          path="/settings"
+                          element={
+                            <SettingsPage
+                              onGuide={openGuide}
+                              onStyle={chooseStyle}
+                              onReplay={() => {
+                                if (presetFor(style).game) play(style)
+                              }}
+                            />
+                          }
+                        />
+                        <Route path="*" element={<UnavailablePage />} />
+                      </Routes>
+                    </ToolWindowLauncher.Provider>
                   </Suspense>
                 </PageBoundary>
               )}
@@ -744,6 +777,7 @@ function Application() {
               </button>
             </footer>
           </main>
+          <DesktopWindows manager={windows} onCatalog={openCatalog} />
         </div>
       </div>
       {helpOpen && <HelpDialog onClose={() => setHelpOpen(false)} />}

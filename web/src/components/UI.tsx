@@ -1,7 +1,7 @@
 import { type ReactNode } from 'react'
 import { ArrowUpRight, Check, ChevronRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { STYLE_PRESETS, useAppearance, type StyleId } from '../lib/appearance'
+import { STYLE_PRESETS, isDesktopStyle, useAppearance, type StyleId } from '../lib/appearance'
 import { styleName, styleDescription } from '../lib/appearance'
 import { useLocale } from '../lib/i18n'
 
@@ -23,6 +23,25 @@ export function PreferenceSwitch({
 }
 
 export function StylePreview({ style, small = false }: { style: StyleId; small?: boolean }) {
+  if (isDesktopStyle(style))
+    return (
+      <div
+        className={`style-preview preview-desktop preview-${style} ${small ? 'small' : ''}`}
+        aria-hidden="true"
+      >
+        <span className="preview-window">
+          <i />
+          <i />
+          <i />
+        </span>
+        <span className="preview-window">
+          <i />
+          <i />
+          <i />
+        </span>
+        <span className="preview-taskbar" />
+      </div>
+    )
   return (
     <div className={`style-preview preview-${style} ${small ? 'small' : ''}`} aria-hidden="true">
       <span className="preview-rail" />
@@ -51,29 +70,34 @@ export function StylePreview({ style, small = false }: { style: StyleId; small?:
 
 export function StylePicker({ onSelect }: { onSelect: (style: StyleId) => void }) {
   const { t, locale } = useLocale()
-  const { style } = useAppearance()
+  const { style, desktopAllowed } = useAppearance()
+  const groups = [
+    { id: 'standard', label: t('普通', 'Standard'), note: t('日常使用的界面', 'For everyday use') },
+    { id: 'game', label: t('游戏', 'Games'), note: t('进入另一种世界', 'A world of your own') },
+    ...(desktopAllowed
+      ? [
+          {
+            id: 'desktop',
+            label: t('桌面窗口', 'Desktop windows'),
+            note: t('仅电脑', 'Desktop only'),
+          },
+        ]
+      : []),
+  ]
   return (
     <div className="style-groups">
-      {[false, true].map((game) => (
-        <section
-          key={String(game)}
-          className="style-group"
-          aria-label={game ? t('游戏主题', 'Game themes') : t('普通主题', 'Standard themes')}
-        >
+      {groups.map((group) => (
+        <section key={group.id} className="style-group" aria-label={group.label}>
           <div className="style-group-heading">
-            <h3>{game ? t('游戏', 'Games') : t('普通', 'Standard')}</h3>
-            <span>
-              {game
-                ? t('进入另一种世界', 'A world of your own')
-                : t('日常使用的界面', 'For everyday use')}
-            </span>
+            <h3>{group.label}</h3>
+            <span>{group.note}</span>
           </div>
-          <div
-            className="style-picker"
-            role="radiogroup"
-            aria-label={game ? t('游戏主题', 'Game themes') : t('普通主题', 'Standard themes')}
-          >
-            {STYLE_PRESETS.filter((preset) => preset.game === game).map((preset) => (
+          <div className="style-picker" role="radiogroup" aria-label={group.label}>
+            {STYLE_PRESETS.filter(
+              (preset) =>
+                (isDesktopStyle(preset.id) ? 'desktop' : preset.game ? 'game' : 'standard') ===
+                group.id,
+            ).map((preset) => (
               <button
                 type="button"
                 key={preset.id}
@@ -95,6 +119,8 @@ export function StylePicker({ onSelect }: { onSelect: (style: StyleId) => void }
                       <span className="mini-dot" />
                       {t('专属界面与开屏', 'Unique interface & opening')}
                     </>
+                  ) : group.id === 'desktop' ? (
+                    t('多窗口', 'Multi-window')
                   ) : preset.id === 'material' ? (
                     'Material 3'
                   ) : preset.id === 'fluent' ? (

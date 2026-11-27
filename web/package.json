@@ -1,7 +1,7 @@
 {
   "name": "fufu-toolbox",
   "private": true,
-  "version": "26.2.12",
+  "version": "26.2.13",
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {

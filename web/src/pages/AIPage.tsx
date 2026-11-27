@@ -26,6 +26,7 @@ import { useLocale } from '../lib/i18n'
 import { bilingual, type DisplayText } from '../lib/locale'
 import { useStoredState } from '../lib/storage'
 import { useAppearance } from '../lib/appearance'
+import { ToolLink } from '../lib/tool-launch'
 
 function LocalImage({ blob, alt }: { blob: Blob; alt: string }) {
   const [url, setUrl] = useState('')
@@ -80,7 +81,7 @@ function Message({ item }: { item: ChatItem }) {
         </span>
       ))}
       {item.tools?.map((tool) => (
-        <Link className="ai-tool-card" to={`/tool/${tool.id}`} key={tool.id}>
+        <ToolLink className="ai-tool-card" toolId={tool.id} key={tool.id}>
           <span className="ai-tool-icon">
             <ToolIcon tool={toolRegistry.get(tool.id) ?? tool} size={24} />
           </span>
@@ -92,7 +93,7 @@ function Message({ item }: { item: ChatItem }) {
             {t('前往工具', 'Open tool')}
             <ArrowUpRight size={16} />
           </span>
-        </Link>
+        </ToolLink>
       ))}
       {item.pending && item.progress !== undefined && (
         <ToolUI.Progress label={t('正在处理', 'Processing')} value={item.progress} />

@@ -152,7 +152,7 @@
   display: block;
   position: absolute;
   top: 8px;
-  bottom: 40px;
+  bottom: 0;
   left: 50%;
   width: 32px;
   transform: translateX(-50%);
@@ -551,6 +551,13 @@
   }
   [data-style='genshin'] .route-book {
     --bookmarks-width: 172px;
+  }
+}
+@media (width > 800px) {
+  [data-style='genshin'] .book-right {
+    /* Leave room for the rail between the text and the active ribbon. */
+    --book-rail-inset: 34px;
+    padding-right: calc(16px + var(--book-rail-inset));
   }
 }
 @media (max-width: 800px) {

@@ -1,5 +1,6 @@
 import type { DisplayText } from './locale'
 import type { AIThinkingLevel } from './ai-thinking'
+import { isMobileDevice } from './device'
 export const LOCAL_MODEL = {
   name: 'Qwen3.5-0.8B',
   id: 'Qwen/Qwen3.5-0.8B',
@@ -24,11 +25,7 @@ export interface AICapability {
   secure: boolean
 }
 export function detectAICapability(): AICapability {
-  const mobile =
-    (navigator as Navigator & { userAgentData?: { mobile: boolean } }).userAgentData?.mobile ||
-    /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ||
-    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
-  return { desktop: !mobile, webgpu: 'gpu' in navigator, secure: window.isSecureContext }
+  return { desktop: !isMobileDevice(), webgpu: 'gpu' in navigator, secure: window.isSecureContext }
 }
 
 export type AIContentPart = { type: 'text'; text: string } | { type: 'image'; image: Blob }

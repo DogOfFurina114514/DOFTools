@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#f7f9f5" />
     <meta
       name="description"
-      content="芙芙的狗工具箱：纯前端个人工具箱框架，预留图片、视频、音频、文档与其他分类，支持八种界面风格与电脑端本地 AI 接口。"
+      content="芙芙的狗工具箱：浏览器内运行的图片、视频、音频和文档工具，支持十一种主题、桌面多窗口与电脑端本地 AI。"
     />
     <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg?v=furina" />
     <title>芙芙的狗工具箱</title>
@@ -73,7 +73,15 @@
         document.documentElement.lang = language === 'en' ? 'en' : 'zh-CN'
         document.documentElement.dataset.language = language === 'en' ? 'en' : 'zh-CN'
         if (language === 'en') document.title = 'DogOfFurina Toolbox'
+        const desktopStyle = ['windows', 'macos', 'linux'].includes(style)
+        const desktopAllowed =
+          desktopStyle &&
+          !matchMedia('(max-width: 800px)').matches &&
+          !navigator.userAgentData?.mobile &&
+          !/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) &&
+          !(navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
         if (
+          desktopAllowed ||
           [
             'default',
             'material',

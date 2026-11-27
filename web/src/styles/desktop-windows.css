@@ -1,0 +1,705 @@
+:root[data-style='windows'] {
+  --green: #145da8;
+  --soft-green: #e1effc;
+  --accent: #287cc7;
+  --desktop-wall: #edf3f9;
+  --desktop-bar: #f5f9fd;
+  --desktop-title: #f7faff;
+  --desktop-title-inactive: #eff2f6;
+  --desktop-edge: #a7b7c9;
+  --desktop-highlight: #9abbdf;
+  --desktop-radius: 8px;
+  --desktop-bar-height: 52px;
+  --interface-font: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+}
+
+:root[data-style='macos'] {
+  --green: #00677b;
+  --soft-green: #dceff2;
+  --accent: #0c8194;
+  --desktop-wall: #edf2f1;
+  --desktop-bar: #e2eae9;
+  --desktop-title: #f0f4f3;
+  --desktop-title-inactive: #f6f7f7;
+  --desktop-edge: #afbdbb;
+  --desktop-highlight: #83acaf;
+  --desktop-radius: 8px;
+  --desktop-bar-height: 62px;
+  --interface-font: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'PingFang SC', sans-serif;
+}
+
+:root[data-style='linux'] {
+  --green: #9c3a37;
+  --soft-green: #fbe8e4;
+  --accent: #ba4e48;
+  --desktop-wall: #f0f1ef;
+  --desktop-bar: #292a29;
+  --desktop-title: #ebeeeb;
+  --desktop-title-inactive: #f3f4f2;
+  --desktop-edge: #acaeaa;
+  --desktop-highlight: #ba9a95;
+  --desktop-radius: 6px;
+  --desktop-bar-height: 42px;
+  --interface-font: system-ui, 'Noto Sans', 'Microsoft YaHei', sans-serif;
+}
+
+:root:is([data-style='windows'], [data-style='macos'], [data-style='linux']) {
+  --bg: var(--desktop-wall);
+  --surface: #fff;
+  --sidebar: #f9fafb;
+  --text: #252a30;
+  --muted: #5f6771;
+  --secondary: #515a64;
+  --line: #d9dee2;
+  --green-dark: var(--green);
+  --hover: color-mix(in srgb, var(--soft-green), var(--surface) 45%);
+  --hero: var(--soft-green);
+  --hero-border: var(--line);
+  --promo: var(--hover);
+  --on-primary: #fff;
+  --radius: 8px;
+  --button-radius: 6px;
+  --container-radius: 8px;
+  --heading-font: var(--interface-font);
+  --desktop-scroll: color-mix(in srgb, var(--text) 36%, transparent);
+  --desktop-bar-ink: var(--text);
+  color: var(--text);
+  background: var(--bg);
+}
+
+:root[data-style='linux'] {
+  --desktop-bar-ink: #f8f8f6;
+}
+
+:root:is([data-style='windows'], [data-style='macos'], [data-style='linux'])[data-theme='dark'] {
+  --surface: #25282a;
+  --sidebar: #222529;
+  --text: #f0f1f2;
+  --muted: #b0b5bc;
+  --secondary: #c8ccd0;
+  --line: #41474c;
+  --on-primary: #111416;
+  --desktop-edge: #555e66;
+}
+
+:root[data-style='windows'][data-theme='dark'] {
+  --green: #9bcaff;
+  --soft-green: #263b50;
+  --accent: #81bafb;
+  --desktop-wall: #1c2229;
+  --desktop-bar: #212a36;
+  --desktop-title: #2e3845;
+  --desktop-title-inactive: #2b2f34;
+  --desktop-highlight: #648fb4;
+}
+
+:root[data-style='macos'][data-theme='dark'] {
+  --green: #94d6df;
+  --soft-green: #233c3f;
+  --accent: #79bbc4;
+  --desktop-wall: #1c2526;
+  --desktop-bar: #283536;
+  --desktop-title: #303a3b;
+  --desktop-title-inactive: #2b3233;
+  --desktop-highlight: #668e91;
+}
+
+:root[data-style='linux'][data-theme='dark'] {
+  --green: #ffa9a0;
+  --soft-green: #47302e;
+  --accent: #ef978b;
+  --desktop-wall: #212321;
+  --desktop-bar: #191a19;
+  --desktop-title: #383b36;
+  --desktop-title-inactive: #2e302d;
+  --desktop-highlight: #a46e68;
+}
+
+.app-shell.has-desktop {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.has-desktop .sidebar {
+  position: relative;
+  flex: 0 0 clamp(168px, 18vw, 242px);
+  width: auto;
+  height: 100%;
+  padding-inline: 14px;
+}
+
+.has-desktop .sidebar .brand {
+  margin-inline: 0;
+}
+
+.has-desktop .sidebar .brand strong,
+.has-desktop .nav-item {
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+
+.has-desktop .main-shell {
+  display: grid;
+  grid-template: auto minmax(0, 1fr) auto / minmax(0, 1fr);
+  margin: 0;
+}
+
+.has-desktop .topbar {
+  position: relative;
+  grid-area: 1 / 1;
+  height: 50px;
+  min-width: 0;
+  gap: 16px;
+  padding-inline: clamp(14px, 2.5vw, 36px);
+  background: var(--desktop-bar);
+  color: var(--desktop-bar-ink);
+}
+
+.has-desktop .breadcrumb {
+  min-width: 0;
+  color: inherit;
+}
+
+.has-desktop .breadcrumb > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.has-desktop .breadcrumb-home,
+.has-desktop .topbar .icon-button,
+.has-desktop .topbar .sponsor-trigger {
+  color: inherit;
+}
+
+[data-style='macos'] .has-desktop .topbar {
+  height: 46px;
+  background: var(--desktop-title);
+}
+
+[data-style='linux'] .has-desktop .topbar {
+  height: 42px;
+}
+
+.has-desktop .main-content {
+  grid-area: 2 / 1;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  max-width: none;
+  padding: 26px clamp(18px, 3vw, 42px) 0;
+  overflow: auto;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+  scroll-padding-block: 18px;
+}
+
+.has-desktop .main-content > :where(.route-page, .main-footer) {
+  max-width: 1510px;
+  margin-inline: auto;
+}
+
+.has-desktop .welcome-heading .tool-total {
+  margin-bottom: 6px;
+}
+
+.has-desktop .welcome-heading .tool-total strong {
+  font-size: 32px;
+  letter-spacing: 0;
+}
+
+.has-desktop .welcome-heading h1 {
+  font-size: 30px;
+  letter-spacing: 0;
+}
+
+.has-desktop .all-tools-grid,
+.has-desktop .style-picker {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+}
+
+.has-desktop [data-native-scroll],
+.has-desktop [data-native-scroll] :where(*) {
+  scrollbar-width: thin;
+  scrollbar-color: var(--desktop-scroll) transparent;
+}
+
+.has-desktop [data-native-scroll]::-webkit-scrollbar,
+.has-desktop [data-native-scroll] :where(*)::-webkit-scrollbar {
+  display: block;
+  width: 8px;
+  height: 8px;
+}
+
+.has-desktop [data-native-scroll]::-webkit-scrollbar-thumb,
+.has-desktop [data-native-scroll] :where(*)::-webkit-scrollbar-thumb {
+  background: var(--desktop-scroll);
+  border-radius: 4px;
+}
+
+.desktop-window-layer {
+  grid-area: 2 / 1;
+  position: relative;
+  z-index: 10;
+  min-width: 0;
+  min-height: 0;
+  pointer-events: none;
+}
+
+:is(.desktop-window-layer, .desktop-window, .desktop-taskbar)[hidden] {
+  display: none;
+}
+
+.desktop-window {
+  position: absolute;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  pointer-events: auto;
+  border: 1px solid var(--desktop-edge);
+  border-radius: var(--desktop-radius);
+  background: var(--surface);
+  box-shadow: 0 5px 16px rgb(0 0 0 / 12%);
+}
+
+.desktop-window[data-active='true'] {
+  border-color: var(--desktop-highlight);
+  box-shadow: 0 12px 30px rgb(0 0 0 / 22%);
+}
+
+.desktop-window[data-maximized='true'] {
+  box-shadow: none;
+}
+
+.desktop-window:focus-visible,
+.desktop-window :is(button, a):focus-visible,
+.desktop-taskbar button:focus-visible {
+  outline-offset: -3px;
+}
+
+.desktop-window-bar {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 38px;
+  min-width: 0;
+  overflow: hidden;
+  border-bottom: 1px solid var(--line);
+  background: var(--desktop-title-inactive);
+  user-select: none;
+}
+
+.desktop-window[data-active='true'] .desktop-window-bar {
+  background: var(--desktop-title);
+}
+
+.desktop-window-drag {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  padding-inline: 12px;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: grab;
+  touch-action: none;
+}
+
+.desktop-window-drag > span,
+.desktop-task > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.desktop-window-drag > svg {
+  color: var(--green);
+}
+
+.desktop-window-drag:active {
+  cursor: grabbing;
+}
+
+.desktop-window[data-maximized='true'] .desktop-window-drag {
+  cursor: default;
+}
+
+.desktop-window-controls {
+  display: flex;
+  flex: none;
+  align-items: center;
+}
+
+.desktop-window-controls button {
+  display: grid;
+  width: 36px;
+  height: 100%;
+  padding: 0;
+  place-items: center;
+}
+
+.desktop-window-controls button:hover {
+  background: var(--hover);
+}
+
+.desktop-window-controls button[data-action='close']:hover {
+  background: #bf3337;
+  color: #fff;
+}
+
+[data-style='macos'] .desktop-window-bar {
+  height: 41px;
+}
+
+[data-style='macos'] .desktop-window-drag {
+  justify-content: center;
+  padding-inline: 75px;
+}
+
+[data-style='macos'] .desktop-window-controls {
+  position: absolute;
+  inset: 0 auto 0 10px;
+  gap: 5px;
+}
+
+[data-style='macos'] .desktop-window-controls button,
+[data-style='linux'] .desktop-window-controls button {
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+}
+
+[data-style='macos'] .desktop-window-controls button {
+  width: 16px;
+  height: 16px;
+  border: 1px solid rgb(0 0 0 / 16%);
+  color: #201b19;
+  background: var(--light-color);
+}
+
+[data-style='macos'] .desktop-window-controls [data-action='close'] {
+  --light-color: #ff615a;
+}
+[data-style='macos'] .desktop-window-controls [data-action='minimize'] {
+  --light-color: #ffbf36;
+}
+[data-style='macos'] .desktop-window-controls [data-action='maximize'] {
+  --light-color: #2bce48;
+}
+[data-style='macos'] .desktop-window-controls button svg {
+  width: 10px;
+  height: 10px;
+}
+[data-style='macos'] .desktop-window-controls:not(:hover) button:not(:focus-visible) svg {
+  opacity: 0;
+}
+
+[data-style='macos'] .desktop-window-controls button:hover {
+  background: var(--light-color);
+  color: #201b19;
+}
+
+[data-style='linux'] .desktop-window-controls {
+  gap: 4px;
+  padding-right: 7px;
+}
+
+[data-style='linux'] .desktop-window-controls button {
+  background: color-mix(in srgb, var(--text) 9%, transparent);
+}
+
+[data-style='linux'] .desktop-window-controls button:hover {
+  background: var(--soft-green);
+}
+
+[data-style='linux'] .desktop-window-drag {
+  justify-content: center;
+  padding-left: 92px;
+}
+
+.desktop-window-body {
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+  container-type: inline-size;
+}
+
+.desktop-tool-workspace {
+  padding: 16px 18px 24px;
+}
+
+.desktop-tool-workspace .ui-field-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.desktop-tool-workspace .ui-field-grid > div {
+  min-width: 0;
+}
+
+@container (min-width: 570px) {
+  .desktop-tool-workspace .ui-field-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.desktop-tool-workspace .ui-result {
+  margin-top: 16px;
+}
+
+.desktop-tool-workspace .ui-result .ui-button {
+  justify-content: flex-start;
+  max-width: 100%;
+  height: auto;
+  min-height: 34px;
+  white-space: normal;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.desktop-resize {
+  position: absolute;
+  display: grid;
+  right: 1px;
+  bottom: 1px;
+  width: 19px;
+  height: 19px;
+  border-radius: 3px;
+  padding: 0;
+  place-items: center;
+  background: var(--desktop-title);
+  color: var(--secondary);
+  cursor: nwse-resize;
+  touch-action: none;
+}
+
+.desktop-taskbar {
+  grid-area: 3 / 1;
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: var(--desktop-bar-height);
+  min-width: 0;
+  padding: 2px 10px;
+  border-top: 1px solid var(--line);
+  background: var(--desktop-bar);
+  color: var(--desktop-bar-ink);
+}
+
+.desktop-taskbar button {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  min-width: 0;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding-inline: 9px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  font-size: 12px;
+}
+
+.desktop-taskbar button:hover,
+.desktop-taskbar button[aria-pressed='true'] {
+  background: color-mix(in srgb, currentColor 11%, transparent);
+  border-color: color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.desktop-task-command {
+  width: 36px;
+}
+
+.desktop-task-list {
+  display: flex;
+  min-width: 0;
+  gap: 4px;
+  padding: 3px 2px 5px;
+  overflow: auto hidden;
+}
+
+.desktop-task-list:empty {
+  display: none;
+}
+
+.desktop-taskbar .desktop-task {
+  max-width: 155px;
+}
+
+.desktop-task::after {
+  position: absolute;
+  inset: auto calc(50% - 5px) 1px;
+  height: 2px;
+  border-radius: 2px;
+  background: currentColor;
+  opacity: 0.4;
+  content: '';
+}
+
+.desktop-task[aria-pressed='true']::after {
+  inset-inline: calc(50% - 9px);
+  background: var(--accent);
+  opacity: 1;
+}
+
+.desktop-task[data-minimized='true'] {
+  opacity: 0.68;
+}
+
+[data-style='macos'] .desktop-taskbar {
+  justify-self: center;
+  max-width: calc(100% - 18px);
+  margin-bottom: 7px;
+  height: calc(var(--desktop-bar-height) - 7px);
+  padding-inline: 7px;
+  border: 1px solid var(--desktop-edge);
+  border-radius: 8px;
+}
+
+[data-style='macos'] .desktop-taskbar button {
+  width: 34px;
+  height: 38px;
+  padding-inline: 0;
+  border-radius: 7px;
+}
+
+[data-style='macos'] .desktop-taskbar button > span {
+  display: none;
+}
+
+[data-style='macos'] .desktop-task::after,
+[data-style='macos'] .desktop-task[aria-pressed='true']::after {
+  inset: auto calc(50% - 2px) 1px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+}
+
+[data-style='linux'] .desktop-taskbar {
+  justify-content: flex-start;
+  border-color: transparent;
+}
+
+[data-style='linux'] .desktop-taskbar button {
+  height: 28px;
+  border-radius: 3px;
+}
+
+[data-style='linux'] .desktop-task-list {
+  padding-block: 2px;
+  scrollbar-color: rgb(255 255 255 / 38%) transparent;
+}
+
+.preview-desktop {
+  --preview-wall: #dceaf8;
+  --preview-strip: #f5f8fc;
+  --preview-edge: #869db6;
+  --preview-panel: #f0f5fc;
+  --preview-controls: #53799f;
+  --preview-radius: 4px;
+  position: relative;
+  overflow: hidden;
+  background: var(--preview-wall);
+}
+
+.preview-macos {
+  --preview-wall: #d6e5e2;
+  --preview-strip: #edf2f0;
+  --preview-edge: #809997;
+  --preview-panel: #fbfcfc;
+  --preview-radius: 6px;
+}
+
+.preview-linux {
+  --preview-wall: #e1e5dc;
+  --preview-strip: #242824;
+  --preview-edge: #959e90;
+  --preview-panel: #dfe4dc;
+  --preview-controls: #94463a;
+}
+
+.preview-window {
+  position: absolute;
+  inset: 15% 33% 33% 9%;
+  display: flex;
+  justify-content: flex-end;
+  gap: 2px;
+  padding: 3px 3px 0;
+  border: 1px solid var(--preview-edge);
+  border-radius: var(--preview-radius);
+  background: linear-gradient(to bottom, var(--preview-panel) 9px, #fff 9px);
+  box-shadow: 0 3px 6px rgb(0 0 0 / 13%);
+}
+
+.preview-window:nth-child(2) {
+  inset: 31% 9% 19% 34%;
+}
+
+.preview-window i {
+  display: block;
+  width: 3px;
+  height: 3px;
+  background: var(--preview-controls);
+}
+
+.preview-macos .preview-window {
+  justify-content: flex-start;
+}
+
+.preview-macos .preview-window i,
+.preview-linux .preview-window i {
+  border-radius: 50%;
+}
+
+.preview-macos .preview-window i:nth-child(1) {
+  background: #ee5d4f;
+}
+.preview-macos .preview-window i:nth-child(2) {
+  background: #e5a524;
+}
+.preview-macos .preview-window i:nth-child(3) {
+  background: #34a653;
+}
+
+.preview-taskbar {
+  position: absolute;
+  inset: auto 0 0;
+  display: grid;
+  place-items: center;
+  height: 13%;
+  background: var(--preview-strip);
+}
+
+.preview-taskbar::after {
+  width: 4px;
+  height: 4px;
+  margin-right: 15px;
+  border-radius: 1px;
+  background: #2678cb;
+  box-shadow:
+    8px 0 #73a857,
+    16px 0 #d68446;
+  content: '';
+}
+
+.preview-macos .preview-taskbar {
+  inset-inline: 28%;
+  bottom: 3%;
+  border-radius: 4px;
+}
+
+.preview-linux .preview-taskbar {
+  justify-items: start;
+  padding-left: 8%;
+}

@@ -4,6 +4,7 @@ import {
   useRef,
   useState,
   type ButtonHTMLAttributes,
+  type ComponentPropsWithRef,
   type ReactNode,
 } from 'react'
 import { createPortal } from 'react-dom'
@@ -49,7 +50,7 @@ export function IconButton({
   className = '',
   type = 'button',
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement>) {
+}: ComponentPropsWithRef<'button'>) {
   return (
     <button {...props} type={type} className={`icon-button ${className}`}>
       {children}

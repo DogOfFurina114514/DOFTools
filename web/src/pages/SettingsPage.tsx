@@ -12,7 +12,7 @@ import {
   Sun,
   Trash2,
 } from 'lucide-react'
-import { useAppearance, presetFor, type StyleId } from '../lib/appearance'
+import { isDesktopStyle, useAppearance, presetFor, type StyleId } from '../lib/appearance'
 import { PageHeading, PreferenceSwitch, StylePicker, ThemedButton } from '../components/UI'
 import { useLocale } from '../lib/i18n'
 import { styleName, styleOpening } from '../lib/appearance'
@@ -199,7 +199,7 @@ export function SettingsPage({
         </div>
         <StylePicker onSelect={onStyle} />
       </section>
-      {!preset.game && (
+      {!preset.game && !isDesktopStyle(style) && (
         <section className="settings-panel appearance-colors">
           <h2>{t('主题色', 'Theme accent')}</h2>
           <div className="settings-row color-settings-row">

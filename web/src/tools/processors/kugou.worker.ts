@@ -88,13 +88,23 @@ async function decrypt(
       .toLowerCase()
     if (!/^[a-f\d]{32}$/.test(hash))
       throw new LocalizedError('KGG 音频标识无效。', 'The KGG audio hash is invalid.')
-    const key = keys.get(hash) ?? directKey
-    if (!key)
+    const importedKey = keys.get(hash)
+    if (!importedKey && !directKey)
       throw new LocalizedError(
         `KGG v5 缺少 hash=${hash} 对应的密钥。请导入含该条目的密钥文件，或填写该曲的 ekey。`,
         `No KGG v5 key matches hash=${hash}. Import a key file containing this entry or paste the track's ekey.`,
       )
-    candidates.push(qmcCipher(deriveQmcKey(key)))
+    let keyError: LocalizedError | undefined
+    for (const key of new Set([importedKey, directKey])) {
+      if (!key) continue
+      try {
+        candidates.push(qmcCipher(deriveQmcKey(key)))
+      } catch (error) {
+        if (!(error instanceof LocalizedError)) throw error
+        keyError = error
+      }
+    }
+    if (!candidates.length && keyError) throw keyError
   } else
     throw new LocalizedError(
       `暂不支持加密版本 ${version}；当前支持 v2 / v3 / v4 / v5。`,
@@ -155,8 +165,18 @@ self.onmessage = async ({ data }: MessageEvent<{ values: ToolValues }>) => {
     const text = String(values.ekey ?? '').trim()
     let directKey = ''
     if (text.startsWith('{') || text.startsWith('[')) {
-      const { parseKeyJson } = await import('./kugou-keys')
-      for (const [hash, key] of parseKeyJson(text)) keys.set(hash, key)
+      try {
+        const { parseKeyJson } = await import('./kugou-keys')
+        for (const [hash, key] of parseKeyJson(text)) keys.set(hash, key)
+      } catch (error) {
+        const message = errorMessage(error)
+        details.push(
+          b(
+            `粘贴的密钥 JSON：${localize('zh-CN', message)}`,
+            `Pasted key JSON: ${localize('en', message)}`,
+          ),
+        )
+      }
     } else directKey = text
     for (const file of values.keyFiles as File[]) {
       status(`正在读取本地密钥 · ${file.name}`, `Reading local keys · ${file.name}`)

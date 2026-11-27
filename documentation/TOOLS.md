@@ -35,7 +35,7 @@
 
 入口 `/tool/kugou-decrypt`，音频标签，独立钥匙图标。选择 Android / Windows 下载的 `.kge / .kgm / .kgma / .vpr / .kgg`，也接受加密数据使用 `.flac` 或 `.kgg.flac` 等后缀的文件。识别以文件头与加密版本为准，正常音频原样导出。当前实现旧版 v2 / v4（包括 VPR）、v3（概念版 KGE / KGM 密钥槽位 1及旧版兼容候选）与 v5（KGG / KGM）；仅接受能解出有效音频头的候选，未知版本与不匹配的结果明确报错。
 
-v2 / v3 / v4 无需导入密钥；v5 必须提供音频 hash 对应的 ekey：Windows 可导入 `KGMusicV3.db`（明文 SQLite 或支持的 1024 字节页加密库），Android 可导入 `mggkey_multi_process` MMKV 文件。也支持其他工具导出的 `kgg.key` / `kgg.keys` 文本（每行 `hash$ekey`），以及导入或填写 `{"32位hash":"Base64 ekey"}` JSON。单个 ekey 可直接填写，仅对匹配文件有效。浏览器无法自动读取客户端目录；无法获得对应密钥的 v5 文件不能解密。密钥库中的 hash 会规范为小写，批量为每个文件匹配密钥。
+v2 / v3 / v4 无需导入密钥；v5 必须提供音频 hash 对应的 ekey：Windows 可导入 `KGMusicV3.db`（明文 SQLite 或支持的 1024 字节页加密库），Android 可导入 `mggkey_multi_process` MMKV 文件。也支持其他工具导出的 `kgg.key` / `kgg.keys` 文本（每行 `hash$ekey`），以及导入或填写 `{"32位hash":"Base64 ekey"}` JSON。单个 ekey 可直接填写，仅对匹配文件有效；没有可用的库条目时会尝试手填的 ekey。粘贴 JSON 格式有误会在批次明细提示，不影响有其他可用密钥或不需要密钥的文件。浏览器无法自动读取客户端目录；无法获得对应密钥的 v5 文件不能解密。密钥库中的 hash 会规范为小写，批量为每个文件匹配密钥。
 
 音乐文件总大小最多 256 MiB，密钥文件总大小最多 64 MiB。处理在可取消 Worker 内进行，按原始 FLAC / MP3 / OGG / WAV / M4A / AAC 数据导出，不转码或重新编码；再次上传继续追加，局部失败保留其他输出。旧版直接在 Worker 内查表，无需下载大掩码或使用浏览器 gzip 解压；SQL/WASM 随站点打包。完整保存离线资源后无需外部 API，文件与密钥不上传、不持久保存。算法来源及 MIT 许可见 [第三方说明](third-party/KUGOU-SOURCES.md)。
 
