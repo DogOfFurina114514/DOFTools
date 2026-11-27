@@ -21,6 +21,14 @@
 
 ## 更新与开发
 
+### Beta 发布渠道
+
+稳定版从本仓库 `main:/docs` 部署；Beta 源码从 `beta` 分支发布为 GitHub Prerelease，标签格式 `v26.2.14-Beta`，应用内显示 `26.2.14 Beta`。Beta 站点是独立的 [DOFTools-Beta Pages](https://dogoffurina114514.github.io/DOFTools-Beta/)，首次打开需主动加入；在设置的「发布渠道」可以退出并返回稳定版。两站的浏览器偏好、历史和离线缓存独立。
+
+在 Beta 分支执行 `npm --prefix web run build:beta`，将 `.site-build/beta-pages/` 的内容部署到 `DOFTools-Beta` 仓库 `main:/`，不带稳定版 `CNAME` 和完整模型。Beta 从稳定 CDN 读取运行时和模型，其资源清单从已发布的 `docs/offline-manifest.json` 继承这些条目。只使用与该稳定 CDN 相符的 `docs` 快照；不要将 Beta 的应用或资源清单部署到稳定站。
+
+### 稳定站构建
+
 在仓库根目录执行：
 
 ```sh

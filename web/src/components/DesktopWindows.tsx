@@ -5,23 +5,34 @@ import {
   useState,
   type KeyboardEvent,
   type PointerEvent,
+  type ReactNode,
 } from 'react'
-import { AppWindow, Grid2X2, Grip, Minus, PanelsTopLeft, Square, X } from 'lucide-react'
-import { useLocation } from 'react-router-dom'
+import { Grip, Minus, PanelsTopLeft, Square, X } from 'lucide-react'
 import { isDesktopStyle, useAppearance } from '../lib/appearance'
 import { useLocale } from '../lib/i18n'
-import { toolRegistry, ToolWorkspace, type ToolDefinition } from '../tools'
+import { useWindowMotion, type WindowBounds } from '../lib/use-window-motion'
+import { toolRegistry, ToolWorkspace } from '../tools'
+import {
+  desktopAppKey,
+  desktopAppTitle,
+  DesktopAppIcon,
+  programApp,
+  type DesktopApp,
+  type DesktopProgram,
+} from './DesktopApp'
 import { PageBoundary } from './PageBoundary'
-import { ToolIcon } from './ToolIcon'
 
 type Size = { width: number; height: number }
-type Bounds = Size & { left: number; top: number }
-type ToolWindow = {
+type Bounds = WindowBounds
+export type DesktopWindow = {
   id: number
-  tool: ToolDefinition
+  app: DesktopApp
   bounds?: Bounds
+  search?: string
   minimized: boolean
   maximized: boolean
+  closing?: boolean
+  layout?: number
 }
 
 const edge = 8
@@ -40,9 +51,12 @@ function fitBounds(rect: Bounds, area: Size): Bounds {
   }
 }
 
-function initialBounds(id: number, area: Size): Bounds {
-  const width = Math.round(clamp(area.width * 0.68, 460, 730))
-  const height = Math.round(clamp(area.height * 0.84, 350, 650))
+function initialBounds(item: DesktopWindow, area: Size): Bounds {
+  const large =
+    item.app.kind === 'program' && ['catalog', 'settings', 'ai'].includes(item.app.program)
+  const width = Math.round(clamp(area.width * (large ? 0.77 : 0.64), 460, large ? 1000 : 730))
+  const height = Math.round(clamp(area.height * 0.85, 350, large ? 800 : 650))
+  const id = item.id
   const offset = ((id - 1) % 6) * 22
   return fitBounds(
     {
@@ -56,86 +70,158 @@ function initialBounds(id: number, area: Size): Bounds {
 }
 
 export function useDesktopWindows() {
-  const { style, desktopSelected } = useAppearance()
+  const { style, desktopSelected, reducedMotion } = useAppearance()
   const enabled = isDesktopStyle(style)
-  const { pathname } = useLocation()
-  const [windows, setWindows] = useState<ToolWindow[]>([])
+  const motion = enabled && !reducedMotion
+  const [frames, setWindows] = useState<DesktopWindow[]>([])
   const sequence = useRef(0)
-  const open = useCallback(
-    (toolId: string) => {
-      const tool = toolRegistry.get(toolId)
-      if (!tool || !enabled) return
+  const closeHandlers = useRef(new Map<number, () => void>())
+  const onClose = useCallback((id: number, run: () => void) => {
+    closeHandlers.current.set(id, run)
+    return () => {
+      closeHandlers.current.delete(id)
+    }
+  }, [])
+  const launch = useCallback(
+    (app: DesktopApp, reuse: boolean, search?: string) => {
+      if (!enabled) return
       const id = ++sequence.current
-      setWindows((items) => [...items, { id, tool, minimized: false, maximized: false }])
+      setWindows((items) => {
+        const existing =
+          reuse &&
+          items.find((item) => !item.closing && desktopAppKey(item.app) === desktopAppKey(app))
+        return existing
+          ? [
+              ...items.filter((item) => item !== existing),
+              {
+                ...existing,
+                minimized: false,
+                search: search ?? existing.search,
+              },
+            ]
+          : [...items, { id, app, search, minimized: false, maximized: false }]
+      })
     },
     [enabled],
   )
-  const update = (id: number, patch: Partial<ToolWindow>) =>
+  const open = useCallback(
+    (toolId: string, reuse = false) => {
+      const tool = toolRegistry.get(toolId)
+      if (tool) launch({ kind: 'tool', tool }, reuse)
+    },
+    [launch],
+  )
+  const openProgram = useCallback(
+    (program: DesktopProgram, search?: string) => launch(programApp(program), true, search),
+    [launch],
+  )
+  const update = (id: number, patch: Partial<DesktopWindow>) =>
     setWindows((items) => items.map((item) => (item.id === id ? { ...item, ...patch } : item)))
   const raise = (id: number) =>
     setWindows((items) => {
       const item = items.find((candidate) => candidate.id === id)
-      if (!item || (items.at(-1) === item && !item.minimized)) return items
+      if (!item || item.closing || (items.at(-1) === item && !item.minimized)) return items
       return [...items.filter((candidate) => candidate !== item), { ...item, minimized: false }]
     })
   const showDesktop = useCallback(
     () =>
       setWindows((items) =>
-        items.some((item) => !item.minimized)
-          ? items.map((item) => ({ ...item, minimized: true }))
+        items.some((item) => !item.minimized && !item.closing)
+          ? items.map((item) =>
+              item.closing || item.minimized ? item : { ...item, minimized: true },
+            )
           : items,
       ),
     [],
   )
   useLayoutEffect(() => {
-    showDesktop()
-  }, [pathname, showDesktop])
-  useLayoutEffect(() => {
     if (!desktopSelected) setWindows((items) => (items.length ? [] : items))
   }, [desktopSelected])
+
+  const dispose = useCallback((id: number) => {
+    setWindows((items) => items.filter((item) => item.id !== id))
+  }, [])
 
   return {
     enabled,
     desktopSelected,
-    windows,
+    motion,
+    frames,
+    windows: frames.filter((item) => !item.closing),
     update,
     raise,
     showDesktop,
     open,
-    close: (id: number) => setWindows((items) => items.filter((item) => item.id !== id)),
+    openProgram,
+    onClose,
+    dispose,
+    close: (id: number) => {
+      const item = frames.find((candidate) => candidate.id === id)
+      if (!item || item.closing) return
+      closeHandlers.current.get(id)?.()
+      if (motion && !item.minimized) update(id, { closing: true })
+      else dispose(id)
+    },
     arrange: (bounds: Map<number, Bounds>) =>
       setWindows((items) =>
         items.map((item) => {
           const rect = bounds.get(item.id)
-          return rect ? { ...item, bounds: rect, maximized: false, minimized: false } : item
+          return rect && !item.closing
+            ? {
+                ...item,
+                bounds: rect,
+                maximized: false,
+                minimized: false,
+                layout: (item.layout ?? 0) + 1,
+              }
+            : item
         }),
       ),
   }
 }
 
-type Manager = ReturnType<typeof useDesktopWindows>
+export type DesktopWindowManager = ReturnType<typeof useDesktopWindows>
+export type DesktopWindowActions = {
+  active: DesktopWindow | undefined
+  canTile: boolean
+  tile: () => void
+}
 
-function DesktopToolWindow({
+function DesktopWindowFrame({
   item,
   manager,
   active,
   order,
   area,
+  renderProgram,
 }: {
-  item: ToolWindow
-  manager: Manager
+  item: DesktopWindow
+  manager: DesktopWindowManager
   active: boolean
   order: number
   area: Size
+  renderProgram: (program: DesktopProgram, item: DesktopWindow) => ReactNode
 }) {
   const { t, resolve } = useLocale()
   const { style } = useAppearance()
-  const { id, tool, maximized, minimized } = item
-  const title = resolve(tool.title)
+  const { id, app, maximized, minimized, closing } = item
+  const title = resolve(desktopAppTitle(app, style))
+  const frame = useRef<HTMLElement>(null)
   const [draft, setDraft] = useState<Bounds>()
   const rect = maximized
     ? { left: 0, top: 0, ...area }
-    : fitBounds(draft ?? item.bounds ?? initialBounds(id, area), area)
+    : fitBounds(draft ?? item.bounds ?? initialBounds(item, area), area)
+  const hidden = useWindowMotion(frame, {
+    id,
+    appKey: desktopAppKey(app),
+    bounds: rect,
+    phase: closing ? 'closing' : minimized ? 'minimized' : 'visible',
+    maximized,
+    layout: item.layout ?? 0,
+    enabled: manager.motion,
+    duration: style === 'macos' ? 225 : 180,
+    dispose: manager.dispose,
+  })
   const position = (dx: number, dy: number, resizing: boolean, from = rect): Bounds => {
     if (!resizing) return fitBounds({ ...from, left: from.left + dx, top: from.top + dy }, area)
     const availWidth = Math.max(0, area.width - from.left)
@@ -207,13 +293,17 @@ function DesktopToolWindow({
       : (['minimize', 'maximize', 'close'] as const)
   return (
     <section
+      ref={frame}
       className="desktop-window"
       id={`tool-window-${id}`}
       aria-labelledby={`tool-window-title-${id}`}
       tabIndex={-1}
       data-active={active}
       data-maximized={maximized}
-      hidden={minimized}
+      data-program={app.kind === 'program' ? app.program : undefined}
+      data-desktop-window={id}
+      hidden={hidden}
+      inert={minimized || closing}
       style={{ ...rect, left: rect.left + edge, top: rect.top + edge, zIndex: order }}
       onPointerDownCapture={() => manager.raise(id)}
       onFocusCapture={() => manager.raise(id)}
@@ -227,7 +317,7 @@ function DesktopToolWindow({
           onPointerMove={(event) => drag(event, false)}
           onLostPointerCapture={stop}
         >
-          <ToolIcon tool={tool} size={16} />
+          <DesktopAppIcon app={app} size={16} />
           <span id={`tool-window-title-${id}`}>{title}</span>
         </div>
         <div className="desktop-window-controls">
@@ -245,9 +335,13 @@ function DesktopToolWindow({
           ))}
         </div>
       </header>
-      <div className="desktop-window-body">
+      <div className={`desktop-window-body ${app.kind === 'program' ? 'desktop-program' : ''}`}>
         <PageBoundary>
-          <ToolWorkspace tool={tool} compact />
+          {app.kind === 'tool' ? (
+            <ToolWorkspace tool={app.tool} compact />
+          ) : (
+            renderProgram(app.program, item)
+          )}
         </PageBoundary>
       </div>
       {!maximized && (
@@ -270,25 +364,26 @@ function DesktopToolWindow({
 
 export function DesktopWindows({
   manager,
-  onCatalog,
+  renderProgram,
+  renderChrome,
 }: {
-  manager: Manager
-  onCatalog: () => void
+  manager: DesktopWindowManager
+  renderProgram: (program: DesktopProgram, item: DesktopWindow) => ReactNode
+  renderChrome: (actions: DesktopWindowActions) => ReactNode
 }) {
-  const { t, resolve } = useLocale()
   const layer = useRef<HTMLDivElement>(null)
-  const catalog = useRef<HTMLButtonElement>(null)
   const [size, setSize] = useState<Size>({ width: 0, height: 0 })
   const area = {
     width: Math.max(0, size.width - 2 * edge),
     height: Math.max(0, size.height - 2 * edge),
   }
-  const ordered = manager.windows
+  const ordered = manager.frames
     .map((item, order) => ({ item, order }))
     .sort((a, b) => a.item.id - b.item.id)
-  const activeId = manager.enabled
-    ? manager.windows.filter((item) => !item.minimized).at(-1)?.id
+  const active = manager.enabled
+    ? manager.windows.filter((item) => !item.minimized).at(-1)
     : undefined
+  const activeId = active?.id
   const priorActive = useRef<number | undefined>(undefined)
   useLayoutEffect(() => {
     const element = layer.current
@@ -306,21 +401,28 @@ export function DesktopWindows({
     if (activeId !== undefined) {
       const front = document.getElementById(`tool-window-${activeId}`)
       if (!front?.contains(document.activeElement)) front?.focus({ preventScroll: true })
-    } else if (previous !== undefined && document.activeElement === document.body) {
-      catalog.current?.focus({ preventScroll: true })
+    } else if (
+      previous !== undefined &&
+      (document.activeElement === document.body || document.activeElement?.closest('[inert]'))
+    ) {
+      document
+        .querySelector<HTMLButtonElement>('[data-desktop-launch]')
+        ?.focus({ preventScroll: true })
     }
   }, [activeId, manager.enabled])
   const gap = 8
-  const columns = Math.min(ordered.length, Math.floor((area.width + gap) / (minWidth + gap)))
-  const rows = Math.ceil(ordered.length / Math.max(1, columns))
-  const canTile = ordered.length > 1 && columns > 0 && rows * (minHeight + gap) - gap <= area.height
+  const tileable = ordered.filter(({ item }) => !item.closing)
+  const columns = Math.min(tileable.length, Math.floor((area.width + gap) / (minWidth + gap)))
+  const rows = Math.ceil(tileable.length / Math.max(1, columns))
+  const canTile =
+    tileable.length > 1 && columns > 0 && rows * (minHeight + gap) - gap <= area.height
   const tile = () => {
     if (!canTile) return
     const width = Math.floor((area.width - (columns - 1) * gap) / columns)
     const height = Math.floor((area.height - (rows - 1) * gap) / rows)
     manager.arrange(
       new Map(
-        ordered.map(({ item }, index) => [
+        tileable.map(({ item }, index) => [
           item.id,
           {
             width,
@@ -333,8 +435,6 @@ export function DesktopWindows({
     )
   }
   if (!manager.desktopSelected) return null
-  const catalogLabel = t('所有工具', 'All tools')
-  const tileLabel = t('平铺窗口', 'Tile windows')
   return (
     <>
       <div
@@ -344,77 +444,14 @@ export function DesktopWindows({
         hidden={!manager.enabled}
       >
         {ordered.map(({ item, order }) => (
-          <DesktopToolWindow
+          <DesktopWindowFrame
             key={item.id}
-            {...{ item, order, area, manager }}
+            {...{ item, order, area, manager, renderProgram }}
             active={activeId === item.id}
           />
         ))}
       </div>
-      <div
-        className="desktop-taskbar"
-        role="group"
-        aria-label={t('窗口任务栏', 'Window taskbar')}
-        hidden={!manager.enabled}
-      >
-        <button
-          type="button"
-          ref={catalog}
-          className="desktop-task-command"
-          title={catalogLabel}
-          aria-label={catalogLabel}
-          onClick={onCatalog}
-        >
-          <Grid2X2 size={19} />
-        </button>
-        <div className="desktop-task-list" data-native-scroll>
-          {ordered.map(({ item }) => {
-            const title = resolve(item.tool.title)
-            const active = activeId === item.id
-            const label = t('{tool}，窗口 {number}', '{tool}, window {number}', {
-              tool: title,
-              number: item.id,
-            })
-            return (
-              <button
-                type="button"
-                className="desktop-task"
-                key={item.id}
-                title={label}
-                aria-label={label}
-                aria-pressed={active}
-                aria-controls={`tool-window-${item.id}`}
-                data-minimized={item.minimized}
-                onClick={(event) => {
-                  if (active) manager.update(item.id, { minimized: true })
-                  else {
-                    manager.raise(item.id)
-                    document
-                      .getElementById(`tool-window-${item.id}`)
-                      ?.focus({ preventScroll: true })
-                  }
-                  event.currentTarget.scrollIntoView({ block: 'nearest', inline: 'nearest' })
-                }}
-              >
-                <ToolIcon tool={item.tool} size={18} />
-                <span>{title}</span>
-              </button>
-            )
-          })}
-        </div>
-        {ordered.length > 1 && (
-          <button
-            type="button"
-            className="desktop-task-command"
-            title={tileLabel}
-            aria-label={tileLabel}
-            disabled={!canTile}
-            onClick={tile}
-          >
-            <AppWindow size={19} />
-          </button>
-        )}
-      </div>
+      {manager.enabled && renderChrome({ active, canTile, tile })}
     </>
   )
 }

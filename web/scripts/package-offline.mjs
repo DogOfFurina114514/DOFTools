@@ -4,11 +4,17 @@ import { build } from 'esbuild'
 import { fileURLToPath } from 'node:url'
 import { packageOfflineBundles } from './package-offline-bundles.mjs'
 
-const root = new URL('../../docs/', import.meta.url)
-const { version } = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'))
-const currentAssets = new Set(
-  JSON.parse(await readFile(new URL('asset-history.json', root), 'utf8')).builds[0],
+const beta = process.argv.includes('--beta')
+const stableRoot = new URL('../../docs/', import.meta.url)
+const root = beta ? new URL('../../.site-build/beta-pages/', import.meta.url) : stableRoot
+const { version: packageVersion } = JSON.parse(
+  await readFile(new URL('../package.json', import.meta.url), 'utf8'),
 )
+if (beta !== packageVersion.endsWith('-beta')) throw new Error('Release channel mismatch')
+const version = packageVersion.replace(/-beta$/, ' Beta')
+const currentAssets = beta
+  ? null
+  : new Set(JSON.parse(await readFile(new URL('asset-history.json', root), 'utf8')).builds[0])
 const skipped = new Set([
   'CNAME',
   '.nojekyll',
@@ -50,7 +56,11 @@ async function inspect(directory, prefix = '') {
     if (entry.isSymbolicLink()) throw new Error(`Unexpected symbolic link: ${path}`)
     if (entry.isDirectory()) await inspect(new URL(entry.name + '/', directory), path + '/')
     else {
-      if (skipped.has(path) || (prefix === 'assets/' && !currentAssets.has(entry.name))) continue
+      if (
+        skipped.has(path) ||
+        (prefix === 'assets/' && currentAssets && !currentAssets.has(entry.name))
+      )
+        continue
       const bytes = await readFile(new URL(entry.name, directory))
       const blocks = []
       for (let offset = 0; offset < bytes.length; offset += 128 * 1024)
@@ -62,7 +72,9 @@ async function inspect(directory, prefix = '') {
         hash: hash(bytes),
         blocks,
         source:
-          /^(models|runtime)\//.test(path) || /ort-wasm.*\.wasm$/.test(path) ? 'pages' : 'site',
+          !beta && (/^(models|runtime)\//.test(path) || /ort-wasm.*\.wasm$/.test(path))
+            ? 'pages'
+            : 'site',
         group: /^models\//.test(path) ? 'model' : 'site',
         aiRequired:
           /^models\/qwen3\.5-0\.8b\//.test(path) &&
@@ -77,6 +89,21 @@ async function inspect(directory, prefix = '') {
 await inspect(root)
 resources.sort((a, b) => a.path.localeCompare(b.path, 'en'))
 const bundles = await packageOfflineBundles(root, resources)
+if (beta) {
+  const stable = JSON.parse(await readFile(new URL('offline-manifest.json', stableRoot), 'utf8'))
+  const shared = stable.resources.filter(
+    (item) => item.source === 'pages' && /^(models|runtime)\//.test(item.path),
+  )
+  if (!shared.some((item) => item.aiRequired)) throw new Error('Stable model manifest is missing')
+  resources.push(...shared)
+  const paths = new Set(shared.map((item) => item.path))
+  bundles.push(
+    ...stable.bundles.filter(
+      (bundle) => bundle.source === 'pages' && bundle.members.every(({ path }) => paths.has(path)),
+    ),
+  )
+  resources.sort((a, b) => a.path.localeCompare(b.path, 'en'))
+}
 const manifest = {
   format: 1,
   version,

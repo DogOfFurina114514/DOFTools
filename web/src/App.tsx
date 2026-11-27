@@ -2,6 +2,7 @@ import {
   createContext,
   lazy,
   Suspense,
+  useCallback,
   useContext,
   useEffect,
   useLayoutEffect,
@@ -12,6 +13,7 @@ import {
 } from 'react'
 import {
   Link,
+  matchPath,
   NavLink,
   Route,
   Routes,
@@ -23,7 +25,6 @@ import {
 import {
   ArrowRight,
   ArrowUpRight,
-  AppWindow,
   Check,
   ChevronRight,
   CircleHelp,
@@ -48,7 +49,13 @@ import { BOOKMARK_TINTS } from './components/RouteBook'
 import { useNarrowViewport } from './lib/use-narrow-viewport'
 import { isStringArray, useStoredState, readStorage, writeStorage } from './lib/storage'
 import { detectAICapability } from './lib/ai'
-import { AppearanceProvider, presetFor, useAppearance, type StyleId } from './lib/appearance'
+import {
+  AppearanceProvider,
+  isDesktopStyle,
+  presetFor,
+  useAppearance,
+  type StyleId,
+} from './lib/appearance'
 import { ToolboxMark } from './components/Brand'
 import { EmptyPanel, ThemedButton } from './components/UI'
 import { SplashScreen } from './components/SplashScreen'
@@ -67,8 +74,12 @@ import { SponsorDialog } from './components/SponsorDialog'
 import { TOOL_SUCCEEDED } from './lib/tool-events'
 import { ResourceUpdateToast } from './components/ResourceUpdateToast'
 import { ThemeScenery } from './components/ThemeScenery'
-import { DesktopWindows, useDesktopWindows } from './components/DesktopWindows'
-import { openToolWithClick, ToolWindowLauncher, useToolWindowLauncher } from './lib/tool-launch'
+import { useDesktopWindows, type DesktopWindow } from './components/DesktopWindows'
+import { DesktopShell } from './components/DesktopShell'
+import { BetaEntry } from './components/BetaEntry'
+import { hasJoinedBeta, isBetaChannel, joinBeta, releaseVersion } from './lib/release-channel'
+import { desktopAppTitle, programApp, type DesktopProgram } from './components/DesktopApp'
+import { ToolWindowLauncher } from './lib/tool-launch'
 
 const Dashboard = lazy(() =>
   workspacePages.dashboard().then((module) => ({ default: module.Dashboard })),
@@ -147,7 +158,6 @@ function RegisteredToolPage() {
   const tool = toolRegistry.get(id ?? '')
   const { pinned, togglePin } = useToolbox()
   const { t, resolve } = useLocale()
-  const openWindow = useToolWindowLauncher()
   return tool ? (
     <ToolWorkspace
       key={tool.id}
@@ -162,15 +172,6 @@ function RegisteredToolPage() {
               <span key={id}>{resolve(tagOf(id).label)}</span>
             ))}
           </div>
-          {openWindow && (
-            <IconButton
-              aria-label={t('打开新窗口', 'Open new window')}
-              title={t('打开新窗口', 'Open new window')}
-              onClick={() => openWindow(tool.id)}
-            >
-              <AppWindow size={16} />
-            </IconButton>
-          )}
           <PinToolButton
             title={resolve(tool.title)}
             pinned={pinned.includes(tool.id)}
@@ -289,11 +290,18 @@ function HelpDialog({ onClose }: { onClose: () => void }) {
 
 function Application() {
   const { t, resolve, locale, brand } = useLocale()
-  const { style, setStyle, mode, setMode, openings, reducedMotion, desktopAllowed, desktopSelected } =
-    useAppearance()
+  const {
+    style,
+    setStyle,
+    mode,
+    setMode,
+    openings,
+    reducedMotion,
+    desktopAllowed,
+    desktopSelected,
+  } = useAppearance()
   const windows = useDesktopWindows()
-  const openToolWindow = windows.enabled ? windows.open : null
-  const { showDesktop } = windows
+  const { enabled: desktopShell, open: openToolWindow, openProgram, showDesktop } = windows
   const [favorites, setFavorites] = useStoredState('favorites', [] as string[], isStringArray)
   const [recent, setRecent] = useStoredState('recent', [] as string[], isStringArray)
   const [pinned, setPinned] = useStoredState('pinned-tools', [] as string[], isStringArray)
@@ -335,17 +343,48 @@ function Application() {
   const narrow = useNarrowViewport()
   const navigationRef = useRef<HTMLElement>(null)
   const mobileMenuRef = useRef<HTMLButtonElement>(null)
-  const mainRef = useRef<HTMLElement>(null)
   const focusToolSearch = () =>
     document.querySelector<HTMLInputElement>('.all-tools-search input')?.focus()
-  const openCatalog = () => {
-    showDesktop()
+  const openCatalog = useCallback(() => {
+    if (desktopShell) {
+      openProgram('catalog')
+      requestAnimationFrame(() =>
+        document
+          .querySelector<HTMLInputElement>('[data-program="catalog"] .all-tools-search input')
+          ?.focus(),
+      )
+      return
+    }
     if (location.pathname === '/tools') requestAnimationFrame(focusToolSearch)
     else {
       searchRequested.current = true
       navigate('/tools')
     }
-  }
+  }, [desktopShell, location.pathname, navigate, openProgram])
+  const desktopLocation = useRef<string | undefined>(undefined)
+  useLayoutEffect(() => {
+    if (!desktopShell) {
+      if (!desktopSelected) desktopLocation.current = undefined
+      return
+    }
+    if (desktopLocation.current === location.key) return
+    desktopLocation.current = location.key
+    const { pathname, search } = location
+    if (pathname === '/') showDesktop()
+    else if (pathname === '/tools') openProgram('catalog', search)
+    else if (pathname === '/settings') openProgram('settings')
+    else if (pathname === '/ai') openProgram('ai')
+    else {
+      const toolId = matchPath('/tool/:id', pathname)?.params.id
+      const tagId = matchPath('/category/:id', pathname)?.params.id
+      if (toolId && toolRegistry.get(toolId)) openToolWindow(toolId, true)
+      else if (tagId && isToolTag(tagId)) {
+        const params = new URLSearchParams(search)
+        params.set('tag', tagId)
+        openProgram('catalog', params.toString())
+      } else openProgram('missing')
+    }
+  }, [desktopSelected, desktopShell, location, openProgram, openToolWindow, showDesktop])
   const notify = (message: string) => {
     if (toastTimer.current) clearTimeout(toastTimer.current)
     setToast(message)
@@ -390,6 +429,9 @@ function Application() {
   const chooseStyle = (id: StyleId) => {
     if (style === id && !(desktopSelected && !desktopAllowed)) return
     setStyle(id)
+    if (desktopShell && !isDesktopStyle(id) && location.pathname !== '/settings')
+      navigate('/settings', { replace: true })
+    if (isDesktopStyle(id)) setGuide((current) => (current === 'tour' ? null : current))
     if (openings && presetFor(id).game) play(id)
     else setSplash(null)
   }
@@ -403,7 +445,8 @@ function Application() {
   }
   const finishSetup = (tour: boolean) => {
     writeStorage('onboarded', true)
-    setGuide(tour ? 'tour' : null)
+    setGuide(tour && !desktopShell ? 'tour' : null)
+    if (tour && desktopShell) openProgram('help')
     if (tour && openings && presetFor(style).game) play(style)
   }
   useEffect(() => {
@@ -468,10 +511,13 @@ function Application() {
     return () => {
       window.removeEventListener('keydown', handle)
     }
-  }, [navigate, location.pathname, showDesktop])
-  useEffect(() => () => {
-    if (toastTimer.current) clearTimeout(toastTimer.current)
-  }, [])
+  }, [openCatalog])
+  useEffect(
+    () => () => {
+      if (toastTimer.current) clearTimeout(toastTimer.current)
+    },
+    [],
+  )
   useEffect(() => {
     if (!mobileOpen || !narrow) return
     const original = document.body.style.overflow
@@ -516,8 +562,8 @@ function Application() {
                 )
               : t('页面未找到', 'Page not found')
   useEffect(() => {
-    document.title = `${sectionName} · ${brand}`
-  }, [sectionName, brand])
+    document.title = `${desktopShell ? styleName(style, locale) : sectionName} · ${brand}${isBetaChannel ? ` · ${releaseVersion}` : ''}`
+  }, [sectionName, brand, desktopShell, style, locale])
   const context: ToolboxContext = {
     pinned,
     togglePin: (id) => {
@@ -585,7 +631,6 @@ function Application() {
                 <NavLink
                   to={`/tool/${id}`}
                   className="nav-item"
-                  onClick={(event) => openToolWithClick(event, openToolWindow, id)}
                   style={
                     {
                       '--bookmark-tint': BOOKMARK_TINTS[index % BOOKMARK_TINTS.length],
@@ -646,6 +691,73 @@ function Application() {
       </div>
     </aside>
   )
+  const sponsor = () => {
+    setHelpOpen(false)
+    setMobileOpen(false)
+    setSponsorPending(false)
+    setSponsorMode('manual')
+  }
+  const settingsPage = (
+    <SettingsPage
+      onGuide={openGuide}
+      onStyle={chooseStyle}
+      onReplay={() => {
+        if (presetFor(style).game) play(style)
+      }}
+    />
+  )
+  const renderProgram = (program: DesktopProgram, item: DesktopWindow) => (
+    <Suspense
+      fallback={
+        <div className="page-loading" role="status">
+          {t('正在打开…', 'Opening…')}
+        </div>
+      }
+    >
+      {program === 'settings' ? (
+        settingsPage
+      ) : program === 'ai' ? (
+        <AIPage
+          desktopWindow={{
+            close: () => windows.close(item.id),
+            onClose: (unload) => windows.onClose(item.id, unload),
+          }}
+        />
+      ) : program === 'catalog' ? (
+        <AllTools
+          pinned={pinned}
+          onTogglePin={context.togglePin}
+          onOpenProgram={openProgram}
+          windowFilters={{
+            search: item.search ?? '',
+            onChange: (search) => windows.update(item.id, { search }),
+          }}
+        />
+      ) : program === 'overview' ? (
+        <Dashboard pinned={pinned} />
+      ) : program === 'help' ? (
+        <section className="desktop-help">
+          <ToolboxMark className="help-logo" />
+          <h2>{brand}</h2>
+          <p>
+            {t(
+              '从应用菜单打开程序。从任务栏或 Dock 返回已打开的窗口；最小化会保留当前工作。',
+              'Open apps from the launcher and return to them from the taskbar or Dock. Minimizing keeps your work in place.',
+            )}
+          </p>
+          <div className="ui-actions">
+            {(['catalog', 'settings', 'ai'] as const).map((target) => (
+              <ThemedButton key={target} variant="secondary" onClick={() => openProgram(target)}>
+                {resolve(desktopAppTitle(programApp(target), style))}
+              </ThemedButton>
+            ))}
+          </div>
+        </section>
+      ) : (
+        <UnavailablePage />
+      )}
+    </Suspense>
+  )
   return (
     <Toolbox.Provider value={context}>
       <div
@@ -654,131 +766,123 @@ function Application() {
         aria-hidden={splash || guide === 'setup' ? true : undefined}
       >
         <ThemeScenery suspended={!!splash || guide === 'setup'} />
-        {style !== 'genshin' && navigationBackdrop}
-        {style !== 'genshin' && navigation}
-        <div className="main-shell">
-          {style === 'genshin' && navigationBackdrop}
-          <header className="topbar">
-            <div className="breadcrumb">
-              <IconButton
-                ref={mobileMenuRef}
-                className="mobile-menu"
-                onClick={() => setMobileOpen((open) => !open)}
-                aria-expanded={mobileOpen}
-                aria-controls="main-navigation"
-                aria-label={
-                  mobileOpen ? t('关闭导航', 'Close navigation') : t('打开导航', 'Open navigation')
-                }
-              >
-                {mobileOpen ? <X size={21} /> : <Menu size={21} />}
-              </IconButton>
-              <span className="breadcrumb-home">
-                <Home size={15} />
-                {t('工具箱', 'Toolbox')}
-              </span>
-              <ChevronRight size={13} />
-              <span>{sectionName}</span>
-            </div>
-            <div className="topbar-actions">
-              <button
-                type="button"
-                className="sponsor-trigger"
-                onClick={() => {
-                  setHelpOpen(false)
-                  setMobileOpen(false)
-                  setSponsorPending(false)
-                  setSponsorMode('manual')
-                }}
-              >
-                {t('赞助', 'Sponsor')}
-              </button>
-              <LanguageSlider />
-              <span className="topbar-divider" />
-              <IconButton
-                onClick={() => setMode(mode === 'light' ? 'dark' : 'light')}
-                aria-label={
-                  mode === 'light'
-                    ? t('切换深色主题', 'Switch to dark theme')
-                    : t('切换浅色主题', 'Switch to light theme')
-                }
-              >
-                {mode === 'light' ? <Sun size={19} /> : <Moon size={19} />}
-              </IconButton>
-              <IconButton onClick={() => setHelpOpen(true)} aria-label={t('使用指南', 'Guide')}>
-                <CircleHelp size={19} />
-              </IconButton>
-            </div>
-          </header>
-          <main ref={mainRef} className="main-content" data-native-scroll={windows.enabled ? '' : undefined}>
-            <RouteTransition
-              navigation={style === 'genshin' ? navigation : undefined}
-              bookmarksOpen={bookmarksOpen}
-              onCloseBookmarks={() => setMobileOpen(false)}
-              onReady={(pathname) => {
-                if (windows.enabled) mainRef.current?.scrollTo({ top: 0 })
-                else window.scrollTo({ top: 0 })
-                if (searchRequested.current && pathname === '/tools') {
-                  searchRequested.current = false
-                  focusToolSearch()
-                }
-              }}
-            >
-              {(displayedLocation) => (
-                <PageBoundary key={displayedLocation.pathname}>
-                  <Suspense
-                    fallback={
-                      <BookSpread
-                        left={
-                          <div className="page-loading" role="status">
-                            <span />
-                            {t('正在准备页面…', 'Preparing the page…')}
-                          </div>
-                        }
-                        right={null}
-                      />
+        {!desktopShell && (
+          <>
+            {style !== 'genshin' && navigationBackdrop}
+            {style !== 'genshin' && navigation}
+            <div className="main-shell">
+              {style === 'genshin' && navigationBackdrop}
+              <header className="topbar">
+                <div className="breadcrumb">
+                  <IconButton
+                    ref={mobileMenuRef}
+                    className="mobile-menu"
+                    onClick={() => setMobileOpen((open) => !open)}
+                    aria-expanded={mobileOpen}
+                    aria-controls="main-navigation"
+                    aria-label={
+                      mobileOpen
+                        ? t('关闭导航', 'Close navigation')
+                        : t('打开导航', 'Open navigation')
                     }
                   >
-                    <ToolWindowLauncher.Provider value={openToolWindow}>
-                      <Routes location={displayedLocation}>
-                        <Route path="/" element={<Dashboard pinned={pinned} />} />
-                        <Route
-                          path="/tools"
-                          element={<AllTools pinned={pinned} onTogglePin={context.togglePin} />}
-                        />
-                        <Route path="/category/:id" element={<LegacyCategoryPage />} />
-                        <Route path="/tool/:id" element={<RegisteredToolPage />} />
-                        <Route path="/ai" element={<AIPage />} />
-                        <Route
-                          path="/settings"
-                          element={
-                            <SettingsPage
-                              onGuide={openGuide}
-                              onStyle={chooseStyle}
-                              onReplay={() => {
-                                if (presetFor(style).game) play(style)
-                              }}
-                            />
-                          }
-                        />
-                        <Route path="*" element={<UnavailablePage />} />
-                      </Routes>
-                    </ToolWindowLauncher.Provider>
-                  </Suspense>
-                </PageBoundary>
-              )}
-            </RouteTransition>
-            <footer className="main-footer">
-              <span>
-                © {new Date().getFullYear()} {brand}
-              </span>
-              <button onClick={() => setHelpOpen(true)}>
-                {t('使用指南', 'Guide')}
-                <ArrowUpRight size={12} />
-              </button>
-            </footer>
-          </main>
-          <DesktopWindows manager={windows} onCatalog={openCatalog} />
-        </div>
+                    {mobileOpen ? <X size={21} /> : <Menu size={21} />}
+                  </IconButton>
+                  <span className="breadcrumb-home">
+                    <Home size={15} />
+                    {t('工具箱', 'Toolbox')}
+                  </span>
+                  <ChevronRight size={13} />
+                  <span>{sectionName}</span>
+                </div>
+                <div className="topbar-actions">
+                  <button type="button" className="sponsor-trigger" onClick={sponsor}>
+                    {t('赞助', 'Sponsor')}
+                  </button>
+                  <LanguageSlider />
+                  <span className="topbar-divider" />
+                  <IconButton
+                    onClick={() => setMode(mode === 'light' ? 'dark' : 'light')}
+                    aria-label={
+                      mode === 'light'
+                        ? t('切换深色主题', 'Switch to dark theme')
+                        : t('切换浅色主题', 'Switch to light theme')
+                    }
+                  >
+                    {mode === 'light' ? <Sun size={19} /> : <Moon size={19} />}
+                  </IconButton>
+                  <IconButton onClick={() => setHelpOpen(true)} aria-label={t('使用指南', 'Guide')}>
+                    <CircleHelp size={19} />
+                  </IconButton>
+                </div>
+              </header>
+              <main className="main-content">
+                <RouteTransition
+                  navigation={style === 'genshin' ? navigation : undefined}
+                  bookmarksOpen={bookmarksOpen}
+                  onCloseBookmarks={() => setMobileOpen(false)}
+                  onReady={(pathname) => {
+                    window.scrollTo({ top: 0 })
+                    if (searchRequested.current && pathname === '/tools') {
+                      searchRequested.current = false
+                      focusToolSearch()
+                    }
+                  }}
+                >
+                  {(displayedLocation) => (
+                    <PageBoundary key={displayedLocation.pathname}>
+                      <Suspense
+                        fallback={
+                          <BookSpread
+                            left={
+                              <div className="page-loading" role="status">
+                                <span />
+                                {t('正在准备页面…', 'Preparing the page…')}
+                              </div>
+                            }
+                            right={null}
+                          />
+                        }
+                      >
+                        <Routes location={displayedLocation}>
+                          <Route path="/" element={<Dashboard pinned={pinned} />} />
+                          <Route
+                            path="/tools"
+                            element={<AllTools pinned={pinned} onTogglePin={context.togglePin} />}
+                          />
+                          <Route path="/category/:id" element={<LegacyCategoryPage />} />
+                          <Route path="/tool/:id" element={<RegisteredToolPage />} />
+                          <Route path="/ai" element={<AIPage />} />
+                          <Route path="/settings" element={settingsPage} />
+                          <Route path="*" element={<UnavailablePage />} />
+                        </Routes>
+                      </Suspense>
+                    </PageBoundary>
+                  )}
+                </RouteTransition>
+                <footer className="main-footer">
+                  <span>
+                    © {new Date().getFullYear()} {brand}
+                  </span>
+                  <button onClick={() => setHelpOpen(true)}>
+                    {t('使用指南', 'Guide')}
+                    <ArrowUpRight size={12} />
+                  </button>
+                </footer>
+              </main>
+            </div>
+          </>
+        )}
+        {desktopSelected && (
+          <ToolWindowLauncher.Provider value={desktopShell ? openToolWindow : null}>
+            <DesktopShell
+              manager={windows}
+              pinned={pinned}
+              renderProgram={renderProgram}
+              onSponsor={sponsor}
+            />
+          </ToolWindowLauncher.Provider>
+        )}
       </div>
       {helpOpen && <HelpDialog onClose={() => setHelpOpen(false)} />}
       {sponsorMode && (
@@ -805,7 +909,9 @@ function Application() {
           onClose={() => finishSetup(false)}
         />
       )}
-      {guide === 'tour' && !splash && <GuidedTour onFinish={() => setGuide(null)} />}
+      {guide === 'tour' && !splash && !desktopShell && (
+        <GuidedTour onFinish={() => setGuide(null)} />
+      )}
       <ThemeScrollbars />
       {splash && (
         <SplashScreen
@@ -843,12 +949,22 @@ function Application() {
 }
 
 export default function App() {
+  const [joinedBeta, setJoinedBeta] = useState(hasJoinedBeta)
   return (
     <LocaleProvider>
       <AppearanceProvider>
-        <AISessionProvider>
-          <Application />
-        </AISessionProvider>
+        {isBetaChannel && !joinedBeta ? (
+          <BetaEntry
+            onJoin={() => {
+              joinBeta()
+              setJoinedBeta(true)
+            }}
+          />
+        ) : (
+          <AISessionProvider>
+            <Application />
+          </AISessionProvider>
+        )}
       </AppearanceProvider>
     </LocaleProvider>
   )

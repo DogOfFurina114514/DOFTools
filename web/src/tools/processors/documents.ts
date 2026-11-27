@@ -14,6 +14,7 @@ import PptxGenJS from 'pptxgenjs'
 import * as XLSX from '@e965/xlsx'
 import { BlobReader, BlobWriter, ZipWriter } from '@zip.js/zip.js'
 import { bilingual as b, LocalizedError } from '../../lib/locale'
+import { resourceBase } from '../../lib/site-resources'
 import type { ToolRunContext, ToolValues } from '../registry'
 import { blankPage, openOffice, readWord, renderWord, type ContentPage } from './office'
 import { readPowerPoint, wrapText } from './powerpoint'
@@ -33,12 +34,17 @@ const mimes: Record<string, string> = {
 async function readPdf(file: File, appearance: boolean, context: ToolRunContext) {
   const pdfjs = await import('pdfjs-dist')
   pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl
+  const site = new URL(import.meta.env.BASE_URL, location.href).href
+  const pdfRuntime = new URL(
+    'runtime/pdf/',
+    import.meta.env.MODE === 'beta' ? resourceBase(site) : site,
+  ).href
   const loading = pdfjs.getDocument({
     data: new Uint8Array(await file.arrayBuffer()),
-    cMapUrl: '/runtime/pdf/cmaps/',
+    cMapUrl: `${pdfRuntime}cmaps/`,
     cMapPacked: true,
-    standardFontDataUrl: '/runtime/pdf/standard_fonts/',
-    wasmUrl: '/runtime/pdf/wasm/',
+    standardFontDataUrl: `${pdfRuntime}standard_fonts/`,
+    wasmUrl: `${pdfRuntime}wasm/`,
   })
   const abort = () => {
     void loading.destroy()

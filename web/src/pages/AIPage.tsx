@@ -1,5 +1,5 @@
 import { BookSpread } from '../components/BookSpread'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   ArrowUpRight,
@@ -124,7 +124,14 @@ function Message({ item }: { item: ChatItem }) {
   )
 }
 
-export function AIPage() {
+export function AIPage({
+  desktopWindow,
+}: {
+  desktopWindow?: {
+    close: () => void
+    onClose: (unload: () => void) => () => void
+  }
+}) {
   const [noticeDismissed, setNoticeDismissed] = useStoredState(
     'ai-notice-dismissed',
     false,
@@ -133,6 +140,7 @@ export function AIPage() {
   const { t, resolve } = useLocale()
   const capability = detectAICapability()
   const ai = useLocalAI()
+  useLayoutEffect(() => desktopWindow?.onClose(ai.unload), [desktopWindow, ai.unload])
   const navigate = useNavigate()
   const prompt = ai.draft
   const files = ai.attachments
@@ -212,7 +220,7 @@ export function AIPage() {
   )
   return (
     <>
-      {style !== 'genshin' && heading}
+      {style !== 'genshin' && !desktopWindow && heading}
       <div className="ai-workspace">
         <BookSpread
           rightRef={rightPage}
@@ -235,8 +243,11 @@ export function AIPage() {
                 </span>
                 <IconButton
                   onClick={() => {
-                    ai.unload()
-                    navigate('/')
+                    if (desktopWindow) desktopWindow.close()
+                    else {
+                      ai.unload()
+                      navigate('/')
+                    }
                   }}
                   aria-label={t('关闭 AI 助手', 'Close AI assistant')}
                 >

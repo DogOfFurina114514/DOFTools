@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Check, Monitor, Moon, Sparkles, Sun, X } from 'lucide-react'
 import { useLocale } from '../lib/i18n'
-import { useAppearance, type StyleId } from '../lib/appearance'
+import { isDesktopStyle, useAppearance, type StyleId } from '../lib/appearance'
 import { detectAICapability } from '../lib/ai'
 import { useNarrowViewport } from '../lib/use-narrow-viewport'
 import { ToolboxMark } from './Brand'
@@ -19,7 +19,7 @@ export function SetupWizard({
   onStyle: (style: StyleId) => void
 }) {
   const { locale, setLocale, t } = useLocale()
-  const { theme, setMode } = useAppearance()
+  const { theme, setMode, style } = useAppearance()
   const [step, setStep] = useState(0)
   const dialog = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -163,7 +163,9 @@ export function SetupWizard({
           <ThemedButton onClick={() => (step < 2 ? setStep(step + 1) : onFinish())}>
             {step < 2
               ? t('下一步', 'Next')
-              : t('进入工具箱并开始教学', 'Enter toolbox & start tour')}
+              : isDesktopStyle(style)
+                ? t('进入桌面', 'Enter desktop')
+                : t('进入工具箱并开始教学', 'Enter toolbox & start tour')}
             <ArrowRight size={16} />
           </ThemedButton>
         </div>

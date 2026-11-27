@@ -4,6 +4,7 @@ import {
   CircleHelp,
   Database,
   Download,
+  FlaskConical,
   Monitor,
   Moon,
   Play,
@@ -24,6 +25,7 @@ import {
   type DownloadThreads,
 } from '../lib/download-preferences'
 import { ColorChoices } from '../components/ColorChoices'
+import { betaSite, isBetaChannel, leaveBeta, releaseVersion } from '../lib/release-channel'
 import type { OrdinaryStyle } from '../lib/theme-colors'
 import {
   clearModelResources,
@@ -625,7 +627,22 @@ export function SettingsPage({
               )}
             </p>
           </div>
-          <span className="version-badge">v{version}</span>
+          <span className="version-badge">v{releaseVersion}</span>
+        </div>
+        <div className="settings-row">
+          <div>
+            <h3>{t('发布渠道', 'Release channel')}</h3>
+            <p>{isBetaChannel ? 'Beta' : t('稳定版', 'Stable')}</p>
+          </div>
+          <ThemedButton
+            variant="secondary"
+            onClick={isBetaChannel ? leaveBeta : () => window.location.assign(betaSite)}
+          >
+            <FlaskConical size={16} />
+            {isBetaChannel
+              ? t('退出 Beta，返回稳定版', 'Leave Beta and return to stable')
+              : t('参加 Beta 测试', 'Join Beta')}
+          </ThemedButton>
         </div>
         {desktop && (
           <div className="settings-row">
@@ -693,4 +710,3 @@ export function SettingsPage({
     </>
   )
 }
-import { version } from '../../package.json'
