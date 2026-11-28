@@ -6,13 +6,13 @@ const { version } = JSON.parse(await readFile(new URL('build.json', build), 'utf
 if (typeof version !== 'string' || !/^\d+\.\d+\.\d+ Beta$/.test(version))
   throw new Error('Invalid Beta version')
 
-const page = await readFile(new URL('index.html', build))
+const page = (await readFile(new URL('index.html', build), 'utf8')).replace(/\r+\n/g, '\n')
 if (!page.includes("'/beta/'") || !page.includes('/assets/'))
   throw new Error('Invalid Beta entry paths')
 
 const assets = (await readdir(new URL('assets/', build))).sort()
 const missing = []
-let addedBytes = page.length
+let addedBytes = Buffer.byteLength(page)
 for (const name of assets) {
   if (!/^[\w.-]+$/.test(name) || name.startsWith('.')) throw new Error('Invalid asset path')
   const source = new URL(`assets/${name}`, build)

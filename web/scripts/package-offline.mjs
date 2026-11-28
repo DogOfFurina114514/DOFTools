@@ -39,7 +39,10 @@ const hash = (bytes) => createHash('sha256').update(bytes).digest('hex')
 // HTML may be rewritten by a hosting platform or an HTTP proxy. Download an
 // immutable binary copy for offline navigation, retaining the original hashes
 // and serving the verified bytes as HTML from the resource cache.
-const index = await readFile(new URL('index.html', root))
+const indexPath = new URL('index.html', root)
+const indexHtml = await readFile(indexPath, 'utf8')
+const index = Buffer.from(indexHtml.replace(/\r+\n/g, '\n'))
+await writeFile(indexPath, index)
 const indexDownloadPath = `offline/index.${hash(index)}.bin`
 await mkdir(new URL('offline/', root), { recursive: true })
 await writeFile(new URL(indexDownloadPath, root), index)

@@ -4,7 +4,7 @@ import { gzipSync } from 'node:zlib'
 
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex')
 const MAX_BYTES = 1024 * 1024
-const BETA_RESERVE = 6 * 1024 * 1024
+const BETA_RESERVE = 3 * 1024 * 1024
 async function size(directory, omitted = new Set()) {
   let bytes = 0
   for (const entry of await readdir(directory, { withFileTypes: true })) {

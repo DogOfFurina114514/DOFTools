@@ -5,9 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>芙芙的狗工具箱</title>
     <script>
-      location.replace(
-        '/?__route=' + encodeURIComponent(location.pathname + location.search + location.hash),
-      )
+      const beta = '/beta/'
+      const { pathname, search, hash } = location
+      const insideBeta = pathname.startsWith(beta)
+      if (pathname === beta) location.replace('/settings')
+      else {
+        const base = insideBeta ? beta : '/'
+        const route = insideBeta ? pathname.slice(beta.length - 1) : pathname
+        location.replace(base + '?__route=' + encodeURIComponent(route + search + hash))
+      }
     </script>
   </head>
   <body></body>

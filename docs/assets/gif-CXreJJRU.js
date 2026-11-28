@@ -1,0 +1,1 @@
+import{a6 as t}from"./index-DNCk5q-p.js";import{r as i}from"./worker-client-DoU_yQET.js";function p(r,e,o){return t(r,128),i(new Worker(new URL("/assets/gif.worker-eYlmSP98.js",import.meta.url),{type:"module"}),{...r,mode:o},e)}export{p as convertGif};
