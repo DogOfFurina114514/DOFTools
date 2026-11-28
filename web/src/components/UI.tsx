@@ -1,7 +1,7 @@
 import { type ReactNode } from 'react'
 import { ArrowUpRight, Check, ChevronRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { STYLE_PRESETS, isDesktopStyle, useAppearance, type StyleId } from '../lib/appearance'
+import { STYLE_PRESETS, useAppearance, type StyleId } from '../lib/appearance'
 import { styleName, styleDescription } from '../lib/appearance'
 import { useLocale } from '../lib/i18n'
 
@@ -23,25 +23,6 @@ export function PreferenceSwitch({
 }
 
 export function StylePreview({ style, small = false }: { style: StyleId; small?: boolean }) {
-  if (isDesktopStyle(style))
-    return (
-      <div
-        className={`style-preview preview-desktop preview-${style} ${small ? 'small' : ''}`}
-        aria-hidden="true"
-      >
-        <span className="preview-window">
-          <i />
-          <i />
-          <i />
-        </span>
-        <span className="preview-window">
-          <i />
-          <i />
-          <i />
-        </span>
-        <span className="preview-taskbar" />
-      </div>
-    )
   return (
     <div className={`style-preview preview-${style} ${small ? 'small' : ''}`} aria-hidden="true">
       <span className="preview-rail" />
@@ -70,19 +51,10 @@ export function StylePreview({ style, small = false }: { style: StyleId; small?:
 
 export function StylePicker({ onSelect }: { onSelect: (style: StyleId) => void }) {
   const { t, locale } = useLocale()
-  const { style, desktopAllowed } = useAppearance()
+  const { style } = useAppearance()
   const groups = [
     { id: 'standard', label: t('普通', 'Standard'), note: t('日常使用的界面', 'For everyday use') },
     { id: 'game', label: t('游戏', 'Games'), note: t('进入另一种世界', 'A world of your own') },
-    ...(desktopAllowed
-      ? [
-          {
-            id: 'desktop',
-            label: t('桌面窗口', 'Desktop windows'),
-            note: t('仅电脑', 'Desktop only'),
-          },
-        ]
-      : []),
   ]
   return (
     <div className="style-groups">
@@ -94,9 +66,7 @@ export function StylePicker({ onSelect }: { onSelect: (style: StyleId) => void }
           </div>
           <div className="style-picker" role="radiogroup" aria-label={group.label}>
             {STYLE_PRESETS.filter(
-              (preset) =>
-                (isDesktopStyle(preset.id) ? 'desktop' : preset.game ? 'game' : 'standard') ===
-                group.id,
+              (preset) => (preset.game ? 'game' : 'standard') === group.id,
             ).map((preset) => (
               <button
                 type="button"

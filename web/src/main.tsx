@@ -18,7 +18,6 @@ import './styles/sponsor.css'
 import './styles/game-worlds.css'
 import './styles/handbook.css'
 import './styles/page-transitions.css'
-import './styles/desktop-windows.css'
 import '@fontsource/roboto/latin-400.css'
 import '@fontsource/roboto/latin-500.css'
 

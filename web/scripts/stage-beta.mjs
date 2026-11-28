@@ -1,7 +1,11 @@
 import { copyFile, mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises'
+import { resolve, sep } from 'node:path'
+import { pathToFileURL } from 'node:url'
 
 const docs = new URL('../../docs/', import.meta.url)
-const build = new URL('../../.site-build/beta-build/', import.meta.url)
+const build = process.argv[2]
+  ? pathToFileURL(resolve(process.argv[2]) + sep)
+  : new URL('../../.site-build/beta-build/', import.meta.url)
 const { version } = JSON.parse(await readFile(new URL('build.json', build), 'utf8'))
 if (typeof version !== 'string' || !/^\d+\.\d+\.\d+ Beta$/.test(version))
   throw new Error('Invalid Beta version')

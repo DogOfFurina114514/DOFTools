@@ -1,25 +1,30 @@
 import { useEffect, useState } from 'react'
-import { ArrowUpRight } from 'lucide-react'
+import { ArrowUpRight, RefreshCw } from 'lucide-react'
 import { useLocale } from '../lib/i18n'
 import { useOnlineStatus } from '../lib/offline'
 import {
-  currentRelease,
+  compareReleases,
   hasJoinedBeta,
+  installedRelease,
   isBetaChannel,
   joinBeta,
-  leaveBeta,
+  latestRelease,
   optOutOfBeta,
-  releaseVersion,
+  releaseSettingsPath,
+  type ChannelRelease,
 } from '../lib/release-channel'
-import { BETA_PATH } from '../lib/site-resources'
 import { PreferenceSwitch, ThemedButton } from './UI'
 
 export function ReleaseChannelSettings() {
   const { t } = useLocale()
   const online = useOnlineStatus()
-  const [stable, setStable] = useState<string | null>()
-  const [beta, setBeta] = useState<string | null>()
-  const [joined, setJoined] = useState(() => isBetaChannel || hasJoinedBeta())
+  const [joined, setJoined] = useState(hasJoinedBeta)
+  const [attempt, setAttempt] = useState(0)
+  const [result, setResult] = useState<{
+    joined: boolean
+    attempt: number
+    release: ChannelRelease | null
+  }>()
   useEffect(() => {
     const sync = () => setJoined(hasJoinedBeta())
     window.addEventListener('storage', sync)
@@ -28,79 +33,77 @@ export function ReleaseChannelSettings() {
   useEffect(() => {
     if (!online) return
     const controller = new AbortController()
-    const check = (channel: 'stable' | 'beta', update: (version: string | null) => void) =>
-      void currentRelease(channel, controller.signal)
-        .catch(() => null)
-        .then((version) => {
-          if (!controller.signal.aborted) update(version)
-        })
-    check('stable', setStable)
-    if (joined) check('beta', setBeta)
+    void latestRelease(
+      joined,
+      AbortSignal.any([controller.signal, AbortSignal.timeout(8000)]),
+    ).then((release) => {
+      if (!controller.signal.aborted) setResult({ joined, attempt, release })
+    })
     return () => controller.abort()
-  }, [online, joined])
+  }, [online, joined, attempt])
 
-  const stableVersion = stable ?? (!isBetaChannel ? releaseVersion : undefined)
-  const canOpenStable = isBetaChannel || (online && stable && stable !== releaseVersion)
-  const canOpenBeta = online && beta && (!isBetaChannel || beta !== releaseVersion)
-
+  const checked = result?.joined === joined && result.attempt === attempt
+  const available = online && checked ? result.release : null
+  const returningToStable = isBetaChannel && !joined
+  const update = available && compareReleases(available, installedRelease) > 0 ? available : null
+  const target = returningToStable ? releaseSettingsPath('stable') : update && releaseSettingsPath(update.channel)
+  const updateStatus = !online
+    ? t('离线', 'Offline')
+    : !checked
+      ? t('正在检查更新…', 'Checking for updates…')
+      : !available
+        ? t('暂时无法获取版本', 'Version unavailable')
+        : update || returningToStable
+          ? t('最新版本：{version}', 'Latest version: {version}', { version: available.version })
+          : t('已是最新版本', 'Up to date')
   return (
-    <>
+    <section className="settings-panel resource-settings">
+      <h2>
+        <RefreshCw size={20} />
+        {t('更新', 'Updates')}
+      </h2>
       <div className="settings-row">
-        <div>
-          <h3>{t('发布渠道', 'Release channel')}</h3>
-          <p>{t('参加 Beta 测试', 'Join Beta testing')}</p>
-        </div>
+        <h3>{t('加入 Beta 测试', 'Join Beta testing')}</h3>
         <PreferenceSwitch
-          label={t('参加 Beta 测试', 'Join Beta testing')}
+          label={t('加入 Beta 测试', 'Join Beta testing')}
           checked={joined}
           onChange={(value) => {
             if (value) joinBeta()
-            else if (isBetaChannel) {
-              leaveBeta()
-              return
-            } else {
+            else {
               optOutOfBeta()
-              setBeta(undefined)
+              if (isBetaChannel) {
+                window.location.replace(releaseSettingsPath('stable'))
+                return
+              }
             }
+            setResult(undefined)
             setJoined(value)
           }}
         />
       </div>
-      <div className="settings-row">
-        <div>
-          <h3>{t('最新稳定版', 'Latest stable')}</h3>
-          <p role="status">{stableVersion ?? t('版本暂不可用', 'Version unavailable')}</p>
-        </div>
-        {canOpenStable && (
-          <ThemedButton variant="secondary" onClick={() => window.location.assign('/settings')}>
-            <ArrowUpRight size={16} />
-            {t('打开稳定版', 'Open stable')}
+      <div className="resource-status">
+        <strong role="status">{updateStatus}</strong>
+        <p>{t('当前版本：{version}', 'Current version: {version}', installedRelease)}</p>
+        <div className="resource-actions">
+          <ThemedButton
+            variant="secondary"
+            disabled={!online || !checked}
+            onClick={() => setAttempt((previous) => previous + 1)}
+          >
+            <RefreshCw size={15} />
+            {t('检查更新', 'Check for updates')}
           </ThemedButton>
-        )}
-      </div>
-      {joined && (
-        <div className="settings-row">
-          <div>
-            <h3>{t('最新 Beta', 'Latest Beta')}</h3>
-            <p role="status">
-              {beta ??
-                (isBetaChannel
-                  ? releaseVersion
-                  : !online
-                    ? t('Beta 需要联网', 'Beta requires a connection')
-                    : beta === undefined
-                      ? t('正在检查 Beta', 'Checking for Beta')
-                      : t('暂无可用 Beta', 'No Beta available'))}
-            </p>
-          </div>
-          {canOpenBeta && (
-            <ThemedButton variant="secondary" onClick={() => window.location.assign(BETA_PATH)}>
+          {target && (
+            <ThemedButton
+              variant="secondary"
+              onClick={() => window.location.assign(target)}
+            >
               <ArrowUpRight size={16} />
-              {t('打开 Beta', 'Open Beta')}
+              {returningToStable ? t('返回稳定版', 'Return to stable') : t('立即更新', 'Update now')}
             </ThemedButton>
           )}
         </div>
-      )}
-    </>
+      </div>
+    </section>
   )
 }

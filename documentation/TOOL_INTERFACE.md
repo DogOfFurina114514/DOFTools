@@ -41,7 +41,7 @@ function OutputName() {
 
 各主题使用同一套 React / CSS 自绘控件，由主题 token 适配外观。Select 使用按钮 combobox 与 portal listbox，支持方向键、Home / End、字符搜索、Enter 确认、Escape 取消、Tab 离开，并随滚动、变换和移动视口调整位置。滑块支持拖动和键盘；数字框用文本编辑与自绘加减按钮，保留小数输入中间态，失焦按 min / max / step 归一。弹窗使用 portal 管理遮罩、背景 inert、焦点循环、嵌套弹窗及焦点恢复，不依赖 HTMLDialogElement.showModal。文本编辑和隐藏的文件 input 保留浏览器的基础能力；页面可见的选择按钮和文件列表均自绘。
 
-26.2.13：桌面主题通过 `ToolWindowLauncher` 将目录、搜索回车、固定项和 AI 工具链接连接到 `DesktopWindows`。普通链接行为与直接 `/tool/<id>` 页面保留。每个窗口使用独立的 `ToolWorkspace` 实例，最小化不会卸载，关闭时由工作台中止未完成的运行。窗口与下层目录使用原生滚动，避免全局滚动条浮层穿过其他窗口。
+26.2.16 正式版的工具使用普通链接和 `/tool/<id>` 页面。独立工具窗口和桌面主题仅由 Beta 提供。
 
 ## 添加一个工具
 

@@ -16,9 +16,6 @@ const makeCopy = (t: ReturnType<typeof useLocale>['t']) => ({
   zenless: t('切换频道，随心登场', 'Tune in to your own channel'),
   endfield: t('从这里，建立新的起点', 'Build your next starting point'),
   minecraft: t('从一个方块，开始创造', 'Build from the first block'),
-  windows: t('Windows 工作区', 'Windows workspace'),
-  macos: t('macOS 工作区', 'macOS workspace'),
-  linux: t('Linux 工作区', 'Linux workspace'),
 })
 
 export function Dashboard({ pinned = [] }: { pinned?: string[] }) {

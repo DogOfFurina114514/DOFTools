@@ -12,7 +12,7 @@ import {
   Sun,
   Trash2,
 } from 'lucide-react'
-import { isDesktopStyle, useAppearance, presetFor, type StyleId } from '../lib/appearance'
+import { useAppearance, presetFor, type StyleId } from '../lib/appearance'
 import { PageHeading, PreferenceSwitch, StylePicker, ThemedButton } from '../components/UI'
 import { useLocale } from '../lib/i18n'
 import { styleName, styleOpening } from '../lib/appearance'
@@ -201,7 +201,7 @@ export function SettingsPage({
         </div>
         <StylePicker onSelect={onStyle} />
       </section>
-      {!preset.game && !isDesktopStyle(style) && (
+      {!preset.game && (
         <section className="settings-panel appearance-colors">
           <h2>{t('主题色', 'Theme accent')}</h2>
           <div className="settings-row color-settings-row">
@@ -481,7 +481,7 @@ export function SettingsPage({
               }}
             >
               <RefreshCw size={15} />
-              {t('检查更新', 'Check for updates')}
+              {t('检查离线资源更新', 'Check for offline resource updates')}
             </ThemedButton>
           </div>
           {online &&
@@ -600,63 +600,7 @@ export function SettingsPage({
           </>
         )}
       </section>
-      <section className="settings-panel about-panel">
-        <div className="settings-row">
-          <div>
-            <h3>{t('欢迎向导', 'Welcome guide')}</h3>
-            <p>
-              {t(
-                '重新选择语言、明暗和风格，再跟着教学熟悉各个页面。',
-                'Choose language, colors and style again, then follow a tour of the pages.',
-              )}
-            </p>
-          </div>
-          <ThemedButton variant="secondary" onClick={onGuide}>
-            <CircleHelp size={16} />
-            {t('重新打开向导', 'Restart guide')}
-          </ThemedButton>
-        </div>
-        <h2>{t('关于这个小空间', 'About')}</h2>
-        <div className="settings-row">
-          <div>
-            <h3>{t('芙芙的狗工具箱', 'DogOfFurina Toolbox')}</h3>
-            <p>
-              {t(
-                '通过标签与搜索查找工具，可将常用工具固定到侧边栏。支持本地压缩、转换、MIDI、网盘及社交平台解析，社交解析可选择画质等媒体选项。',
-                'Find tools by tags and search, and pin frequent tools to the sidebar. Includes local compression, conversion, MIDI, cloud drive and social platform parsing with media quality options.',
-              )}
-            </p>
-          </div>
-          <span className="version-badge">v{releaseVersion}</span>
-        </div>
-        <ReleaseChannelSettings />
-        {desktop && (
-          <div className="settings-row">
-            <div>
-              <h3>{t('电脑端 AI', 'Desktop AI')}</h3>
-              <p>
-                {t(
-                  '支持对话、图片识别、推荐工具和处理文件。聊天记录保存在本地。',
-                  'Chat, understand images, find tools and process files. Conversations are saved locally.',
-                )}
-              </p>
-            </div>
-            <Monitor size={23} className="green-text" />
-          </div>
-        )}
-        <div className="settings-row">
-          <div>
-            <h3>{t('本地偏好', 'Local preferences')}</h3>
-            <p>
-              {t(
-                '风格、明暗和动画偏好保存在当前浏览器。',
-                'Language, style, color theme and opening preferences are saved in this browser.',
-              )}
-            </p>
-          </div>
-          <ShieldCheck size={23} className="green-text" />
-        </div>
-      </section>
+      <ReleaseChannelSettings />
       <Disclosure className="visual-references" title={t('风格的灵感来源', 'Style references')}>
         <p>
           {t(
@@ -692,6 +636,62 @@ export function SettingsPage({
           </a>
         </div>
       </Disclosure>
+      <section className="settings-panel about-panel">
+        <h2>{t('关于这个小空间', 'About')}</h2>
+        <div className="settings-row">
+          <div>
+            <h3>{t('欢迎向导', 'Welcome guide')}</h3>
+            <p>
+              {t(
+                '重新选择语言、明暗和风格，再跟着教学熟悉各个页面。',
+                'Choose language, colors and style again, then follow a tour of the pages.',
+              )}
+            </p>
+          </div>
+          <ThemedButton variant="secondary" onClick={onGuide}>
+            <CircleHelp size={16} />
+            {t('重新打开向导', 'Restart guide')}
+          </ThemedButton>
+        </div>
+        <div className="settings-row">
+          <div>
+            <h3>{t('芙芙的狗工具箱', 'DogOfFurina Toolbox')}</h3>
+            <p>
+              {t(
+                '通过标签与搜索查找工具，可将常用工具固定到侧边栏。支持本地压缩、转换、MIDI、网盘及社交平台解析，社交解析可选择画质等媒体选项。',
+                'Find tools by tags and search, and pin frequent tools to the sidebar. Includes local compression, conversion, MIDI, cloud drive and social platform parsing with media quality options.',
+              )}
+            </p>
+          </div>
+          <span className="version-badge">v{releaseVersion}</span>
+        </div>
+        {desktop && (
+          <div className="settings-row">
+            <div>
+              <h3>{t('电脑端 AI', 'Desktop AI')}</h3>
+              <p>
+                {t(
+                  '支持对话、图片识别、推荐工具和处理文件。聊天记录保存在本地。',
+                  'Chat, understand images, find tools and process files. Conversations are saved locally.',
+                )}
+              </p>
+            </div>
+            <Monitor size={23} className="green-text" />
+          </div>
+        )}
+        <div className="settings-row">
+          <div>
+            <h3>{t('本地偏好', 'Local preferences')}</h3>
+            <p>
+              {t(
+                '风格、明暗和动画偏好保存在当前浏览器。',
+                'Language, style, color theme and opening preferences are saved in this browser.',
+              )}
+            </p>
+          </div>
+          <ShieldCheck size={23} className="green-text" />
+        </div>
+      </section>
       </>} />
     </>
   )
