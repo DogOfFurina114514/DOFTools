@@ -1,0 +1,1 @@
+import{ac as o}from"./index-CLOT1lQC.js";import{r as t}from"./worker-client-Cu482NKI.js";function n(r,e){return o(r,128),t(new Worker(new URL("/assets/archive.worker-DmnATJHw.js",import.meta.url),{type:"module"}),r,e)}export{n as recoverArchive};
