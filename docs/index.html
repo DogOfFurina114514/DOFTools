@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#f7f9f5" />
     <meta
       name="description"
-      content="芙芙的狗工具箱：浏览器内运行的图片、视频、音频和文档工具，支持十一种主题、桌面多窗口与电脑端本地 AI。"
+      content="芙芙的狗工具箱：浏览器内运行的图片、视频、音频和文档工具，支持八种主题与电脑端本地 AI。"
     />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=furina" />
     <title>芙芙的狗工具箱</title>
@@ -73,15 +73,7 @@
         document.documentElement.lang = language === 'en' ? 'en' : 'zh-CN'
         document.documentElement.dataset.language = language === 'en' ? 'en' : 'zh-CN'
         if (language === 'en') document.title = 'DogOfFurina Toolbox'
-        const desktopStyle = ['windows', 'macos', 'linux'].includes(style)
-        const desktopAllowed =
-          desktopStyle &&
-          !matchMedia('(max-width: 800px)').matches &&
-          !navigator.userAgentData?.mobile &&
-          !/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) &&
-          !(navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
         if (
-          desktopAllowed ||
           [
             'default',
             'material',
@@ -108,8 +100,8 @@
           document.documentElement.dataset.bootOpening = style
       })()
     </script>
-    <script type="module" crossorigin src="/assets/index-DNCk5q-p.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-D86CZKci.css">
+    <script type="module" crossorigin src="/assets/index-D_4FVDNA.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-C9V2jMjT.css">
   </head>
   <body>
     <div id="boot-opening" aria-label="DogOfFurina Toolbox"><span>DogOfFurina Toolbox</span></div>

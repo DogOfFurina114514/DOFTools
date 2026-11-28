@@ -15,6 +15,23 @@ async function size(directory, omitted = new Set()) {
   return bytes
 }
 
+async function pruneOldestBuild(root) {
+  const historyPath = new URL('asset-history.json', root)
+  const history = JSON.parse(await readFile(historyPath, 'utf8'))
+  if (history.builds.length < 4) return
+  const beta = await readFile(new URL('beta/channel.json', root), 'utf8').catch((error) => {
+    if (error.code !== 'ENOENT') throw error
+  })
+  const oldest = history.builds.pop()
+  const retained = new Set([...history.builds.flat(), ...(beta ? JSON.parse(beta).assets : [])])
+  const retired = oldest.filter((name) => !retained.has(name))
+  if (retired.some((name) => !/^[\w.-]+$/.test(name) || name.startsWith('.')))
+    throw new Error('Invalid historical asset path')
+  for (const name of retired) await unlink(new URL(`assets/${name}`, root))
+  await writeFile(historyPath, JSON.stringify(history, null, 2) + '\n')
+  console.log(`Retired ${retired.length} files from the oldest build to fit the offline runtime`)
+}
+
 export async function packageOfflineBundles(root, resources) {
   const folder = new URL('offline/', root)
   for (const entry of await readdir(folder, { withFileTypes: true })) {
@@ -82,21 +99,29 @@ export async function packageOfflineBundles(root, resources) {
   const metadata = Buffer.byteLength(
     JSON.stringify({ resources, bundles: candidates.map(({ bundle }) => bundle) }),
   )
-  let remaining = Math.max(
-    0,
+  const availableSpace = async () =>
     1_000_000_000 -
-      BETA_RESERVE -
-      (await size(root, new Set(['offline-manifest.json', 'sw.js']))) -
-      metadata * 2 -
-      512 * 1024,
-  )
+    BETA_RESERVE -
+    (await size(root, new Set(['offline-manifest.json', 'sw.js']))) -
+    metadata * 2 -
+    512 * 1024
+  const priority = ({ bundle }) =>
+    Number(
+      bundle.members.some(
+        (member) => member.path === 'runtime/ort-wasm-simd-threaded.asyncify.wasm',
+      ),
+    )
+  const requiredBytes = candidates
+    .filter(priority)
+    .reduce((sum, { bytes }) => sum + bytes.length, 0)
+  let remaining = await availableSpace()
+  if (remaining < requiredBytes) {
+    await pruneOldestBuild(root)
+    remaining = await availableSpace()
+  }
+  if (remaining < requiredBytes)
+    throw new Error('Not enough Pages space for the complete compressed ORT runtime')
   candidates.sort((a, b) => {
-    const priority = ({ bundle }) =>
-      Number(
-        bundle.members.some(
-          (member) => member.path === 'runtime/ort-wasm-simd-threaded.asyncify.wasm',
-        ),
-      )
     const score = ({ bytes, bundle }) =>
       (bundle.decodedBytes - bytes.length + bundle.members.length * 4096) / bytes.length
     return priority(b) - priority(a) || score(b) - score(a)
@@ -106,7 +131,7 @@ export async function packageOfflineBundles(root, resources) {
   for (const { bytes, bundle } of candidates) {
     if (
       bytes.length > remaining ||
-      (bytes.length >= bundle.decodedBytes && bundle.members.length === 1)
+      (!priority({ bundle }) && bytes.length >= bundle.decodedBytes && bundle.members.length === 1)
     )
       continue
     await writeFile(new URL(bundle.path, root), bytes)

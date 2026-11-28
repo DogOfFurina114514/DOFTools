@@ -38,7 +38,7 @@ npm run preview
 
 同时提交 `web/` 中修改的源文件和重建后的 `docs/` 网页资源，然后推送 `main`。不要提交 `node_modules`、开发用的原始权重或测试输出。阿里云 ESA 的备用网址使用 `npm --prefix web run build:esa`，详见 [ESA 部署说明](ALIYUN_ESA.md)。
 
-构建通过 `scripts/retain-assets.ts` 和 `docs/asset-history.json` 保留前三次构建的完整哈希资源列表及依赖。旧缓存入口仍能动态加载转换模块与 Worker，避免更新后出现 `Failed to fetch dynamically imported module`。重复构建相同资源不推进历史；`pages:check` 将保留资源一并计入站点大小。
+构建通过 `scripts/retain-assets.ts` 和 `docs/asset-history.json` 保留最近三次历史构建的完整哈希资源列表及依赖。空间不足以打包完整离线 AI 运行时时，只淘汰最旧的一组，保留当前版、前两次正式构建及在线 Beta 资产。重复构建相同资源不推进历史；`pages:check` 将保留资源一并计入站点大小。
 
 后续客户端复用同一份网页，壳工程独立维护。移动端沿用无 AI 的导航与向导，可在打包时排除模型权重。
 
