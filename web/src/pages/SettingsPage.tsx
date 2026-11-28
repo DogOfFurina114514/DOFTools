@@ -25,7 +25,7 @@ import {
 } from '../lib/download-preferences'
 import { ColorChoices } from '../components/ColorChoices'
 import { ReleaseChannelSettings } from '../components/ReleaseChannelSettings'
-import { releaseVersion } from '../lib/release-channel'
+import { isBetaChannel, releaseVersion } from '../lib/release-channel'
 import type { OrdinaryStyle } from '../lib/theme-colors'
 import {
   clearModelResources,
@@ -382,7 +382,9 @@ export function SettingsPage({
       <section className="settings-panel resource-settings">
         <h2>
           <Database size={20} />
-          {t('资源与离线使用', 'Resources & offline use')}
+          {isBetaChannel
+            ? t('共用资源与稳定版离线设置', 'Shared resources & stable offline settings')
+            : t('资源与离线使用', 'Resources & offline use')}
         </h2>
         <div className="settings-row">
           <div>

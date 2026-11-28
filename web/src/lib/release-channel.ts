@@ -27,7 +27,5 @@ export async function currentRelease(
   if (!response.ok) return null
   const data: { version?: unknown } = await response.json()
   const format = channel === 'beta' ? /^\d+\.\d+\.\d+ Beta$/ : /^\d+\.\d+\.\d+$/
-  return typeof data.version === 'string' && format.test(data.version)
-    ? data.version
-    : null
+  return typeof data.version === 'string' && format.test(data.version) ? data.version : null
 }

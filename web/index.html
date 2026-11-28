@@ -47,7 +47,8 @@
     </style>
     <script>
       ;(() => {
-        const base = '%BASE_URL%'
+        const beta = '%MODE%' === 'beta'
+        const base = beta ? '/beta/' : '%BASE_URL%'
         const url = new URL(location.href)
         const restored = url.searchParams.get('__route')
         const legacy = url.hash.startsWith('#/') ? url.hash.slice(1) : null
@@ -100,6 +101,7 @@
             .matches
             ? 'dark'
             : 'light'
+        if (beta && read('beta-opted-in') !== true) return
         if (read('onboarded') !== true) document.documentElement.dataset.bootSetup = ''
         else if (
           ['genshin', 'zenless', 'endfield', 'minecraft'].includes(style) &&

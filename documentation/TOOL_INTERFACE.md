@@ -43,6 +43,8 @@ function OutputName() {
 
 26.2.13：桌面主题通过 `ToolWindowLauncher` 将目录、搜索回车、固定项和 AI 工具链接连接到 `DesktopWindows`。普通链接行为与直接 `/tool/<id>` 页面保留。每个窗口使用独立的 `ToolWorkspace` 实例，最小化不会卸载，关闭时由工作台中止未完成的运行。窗口与下层目录使用原生滚动，避免全局滚动条浮层穿过其他窗口。
 
+26.1.15 Beta：`DesktopShell` 管理系统栏、应用启动器、分组与自绘右键菜单，任务栏固定键 `fufu:desktop-task-pins` 与普通书签独立。`DesktopWindows` 管理工具和单实例内置程序的窗口状态。直达路由在桌面主题中聚焦对应程序，目录中的参数独立保存在窗口，最小化不卸载程序。明确关闭 AI 程序会释放模型。原路由在非桌面主题中仍显示原页面。
+
 ## 添加一个工具
 
 1. 在 `src/tools/` 新增定义，使用 `ToolDefinition`。

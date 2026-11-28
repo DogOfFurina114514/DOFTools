@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App'
+import { appBase } from './lib/release-channel'
 import './styles.css'
 import './styles/themes.css'
 import './styles/openings.css'
@@ -24,7 +25,7 @@ import '@fontsource/roboto/latin-500.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '') || '/'}>
+    <BrowserRouter basename={appBase.replace(/\/$/, '') || '/'}>
       <App />
     </BrowserRouter>
   </React.StrictMode>,
