@@ -1577,6 +1577,7 @@ h2 {
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 16px 20px;
+  margin-bottom: 22px;
 }
 .visual-references > button {
   cursor: pointer;

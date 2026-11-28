@@ -150,13 +150,16 @@ export function AIPage({
   const transcript = useRef<HTMLDivElement>(null)
   const rightPage = useRef<HTMLDivElement>(null)
   const { style } = useAppearance()
+  const embedded = Boolean(desktopWindow)
   const follow = useRef(true)
   useEffect(() => {
     if (!follow.current) return
-    if (style === 'genshin' && rightPage.current)
+    if (embedded && transcript.current)
+      transcript.current.scrollTop = transcript.current.scrollHeight
+    else if (style === 'genshin' && rightPage.current)
       rightPage.current.scrollTop = rightPage.current.scrollHeight
     else end.current?.scrollIntoView({ block: 'nearest' })
-  }, [ai.chat, style])
+  }, [ai.chat, style, embedded])
   if (!capability.desktop)
     return (
       <BookSpread

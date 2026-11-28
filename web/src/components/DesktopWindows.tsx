@@ -36,13 +36,15 @@ export type DesktopWindow = {
 }
 
 const edge = 8
-const minWidth = 290
-const minHeight = 168
+const minimumSize = (app: DesktopApp): Size =>
+  app.kind === 'program' && app.program === 'ai'
+    ? { width: 560, height: 480 }
+    : { width: 290, height: 168 }
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(value, max))
 
-function fitBounds(rect: Bounds, area: Size): Bounds {
-  const width = clamp(rect.width, Math.min(minWidth, area.width), area.width)
-  const height = clamp(rect.height, Math.min(minHeight, area.height), area.height)
+function fitBounds(rect: Bounds, area: Size, minimum: Size): Bounds {
+  const width = clamp(rect.width, Math.min(minimum.width, area.width), area.width)
+  const height = clamp(rect.height, Math.min(minimum.height, area.height), area.height)
   return {
     width,
     height,
@@ -66,6 +68,7 @@ function initialBounds(item: DesktopWindow, area: Size): Bounds {
       top: Math.max(0, (area.height - height) * 0.25) + offset,
     },
     area,
+    minimumSize(item.app),
   )
 }
 
@@ -205,12 +208,13 @@ function DesktopWindowFrame({
   const { t, resolve } = useLocale()
   const { style } = useAppearance()
   const { id, app, maximized, minimized, closing } = item
+  const minimum = minimumSize(app)
   const title = resolve(desktopAppTitle(app, style))
   const frame = useRef<HTMLElement>(null)
   const [draft, setDraft] = useState<Bounds>()
   const rect = maximized
     ? { left: 0, top: 0, ...area }
-    : fitBounds(draft ?? item.bounds ?? initialBounds(item, area), area)
+    : fitBounds(draft ?? item.bounds ?? initialBounds(item, area), area, minimum)
   const hidden = useWindowMotion(frame, {
     id,
     appKey: desktopAppKey(app),
@@ -223,13 +227,14 @@ function DesktopWindowFrame({
     dispose: manager.dispose,
   })
   const position = (dx: number, dy: number, resizing: boolean, from = rect): Bounds => {
-    if (!resizing) return fitBounds({ ...from, left: from.left + dx, top: from.top + dy }, area)
+    if (!resizing)
+      return fitBounds({ ...from, left: from.left + dx, top: from.top + dy }, area, minimum)
     const availWidth = Math.max(0, area.width - from.left)
     const availHeight = Math.max(0, area.height - from.top)
     return {
       ...from,
-      width: clamp(from.width + dx, Math.min(minWidth, availWidth), availWidth),
-      height: clamp(from.height + dy, Math.min(minHeight, availHeight), availHeight),
+      width: clamp(from.width + dx, Math.min(minimum.width, availWidth), availWidth),
+      height: clamp(from.height + dy, Math.min(minimum.height, availHeight), availHeight),
     }
   }
   const gesture = useRef<{ id: number; x: number; y: number; rect: Bounds; draft?: Bounds } | null>(
@@ -335,7 +340,9 @@ function DesktopWindowFrame({
           ))}
         </div>
       </header>
-      <div className={`desktop-window-body ${app.kind === 'program' ? 'desktop-program' : ''}`}>
+      <div
+        className={`desktop-window-body ${app.kind === 'program' ? `desktop-program desktop-program-${app.program}` : ''}`}
+      >
         <PageBoundary>
           {app.kind === 'tool' ? (
             <ToolWorkspace tool={app.tool} compact />
@@ -412,6 +419,9 @@ export function DesktopWindows({
   }, [activeId, manager.enabled])
   const gap = 8
   const tileable = ordered.filter(({ item }) => !item.closing)
+  const sizes = tileable.map(({ item }) => minimumSize(item.app))
+  const minWidth = Math.max(1, ...sizes.map(({ width }) => width))
+  const minHeight = Math.max(1, ...sizes.map(({ height }) => height))
   const columns = Math.min(tileable.length, Math.floor((area.width + gap) / (minWidth + gap)))
   const rows = Math.ceil(tileable.length / Math.max(1, columns))
   const canTile =
