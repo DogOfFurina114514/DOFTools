@@ -8,6 +8,8 @@ export function retainAssets(): Plugin {
   let output = ''
   let previous: string[][] = []
   const saved = new Map<string, Buffer>()
+  const betaPages = new Map<string, Buffer>()
+  let betaAssets: string[] = []
   return {
     name: 'retain-previous-assets',
     apply: 'build',
@@ -34,7 +36,19 @@ export function retainAssets(): Plugin {
         ]
       }
       previous = previous.filter((build) => build.length > 0)
-      for (const name of new Set(previous.slice(0, 4).flat())) {
+      const beta = join(output, 'beta')
+      try {
+        const channel = await readFile(join(beta, 'channel.json'))
+        const { assets } = JSON.parse(channel.toString('utf8'))
+        if (!Array.isArray(assets)) throw new Error('Invalid Beta asset list')
+        betaAssets = assets
+        betaPages.set('index.html', await readFile(join(beta, 'index.html')))
+        betaPages.set('channel.json', channel)
+      } catch (error) {
+        if (!(error instanceof Error && 'code' in error && error.code === 'ENOENT')) throw error
+        if (betaAssets.length) throw new Error('Incomplete Beta deployment', { cause: error })
+      }
+      for (const name of new Set([...previous.slice(0, 4).flat(), ...betaAssets])) {
         if (typeof name !== 'string' || !/^[\w.-]+$/.test(name) || name.startsWith('.'))
           throw new Error('Invalid retained asset path')
         saved.set(name, await readFile(join(folder, name)))
@@ -53,7 +67,7 @@ export function retainAssets(): Plugin {
           : [current, ...previous.slice(0, 3)]
       await mkdir(folder, { recursive: true })
       const emitted = new Set(current)
-      for (const name of new Set(builds.slice(1).flat())) {
+      for (const name of new Set([...builds.slice(1).flat(), ...betaAssets])) {
         if (!emitted.has(name)) {
           const bytes = saved.get(name)
           if (!bytes) throw new Error(`Missing retained asset: ${name}`)
@@ -64,6 +78,11 @@ export function retainAssets(): Plugin {
         join(output, 'asset-history.json'),
         JSON.stringify({ version: 1, builds }, null, 2) + '\n',
       )
+      if (betaPages.size) {
+        const beta = join(output, 'beta')
+        await mkdir(beta, { recursive: true })
+        for (const [name, content] of betaPages) await writeFile(join(beta, name), content)
+      }
     },
   }
 }

@@ -24,6 +24,8 @@ import {
   type DownloadThreads,
 } from '../lib/download-preferences'
 import { ColorChoices } from '../components/ColorChoices'
+import { ReleaseChannelSettings } from '../components/ReleaseChannelSettings'
+import { releaseVersion } from '../lib/release-channel'
 import type { OrdinaryStyle } from '../lib/theme-colors'
 import {
   clearModelResources,
@@ -625,8 +627,9 @@ export function SettingsPage({
               )}
             </p>
           </div>
-          <span className="version-badge">v{version}</span>
+          <span className="version-badge">v{releaseVersion}</span>
         </div>
+        <ReleaseChannelSettings />
         {desktop && (
           <div className="settings-row">
             <div>
@@ -693,4 +696,3 @@ export function SettingsPage({
     </>
   )
 }
-import { version } from '../../package.json'

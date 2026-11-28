@@ -46,7 +46,7 @@ const resources = []
 async function inspect(directory, prefix = '') {
   for (const entry of await readdir(directory, { withFileTypes: true })) {
     const path = prefix + entry.name
-    if (path === 'offline') continue
+    if (path === 'offline' || path === 'beta') continue
     if (entry.isSymbolicLink()) throw new Error(`Unexpected symbolic link: ${path}`)
     if (entry.isDirectory()) await inspect(new URL(entry.name + '/', directory), path + '/')
     else {

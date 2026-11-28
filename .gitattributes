@@ -3,6 +3,7 @@ docs/models/** -text
 web/public/models/** -text
 web/public/models/qwen3.5-0.8b/README.md -whitespace
 docs/assets/** -text -whitespace
+docs/beta/** -text
 docs/runtime/** -text -whitespace
 docs/licenses/** -text
 docs/offline/** -text

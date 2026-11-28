@@ -4,6 +4,7 @@ import { gzipSync } from 'node:zlib'
 
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex')
 const MAX_BYTES = 1024 * 1024
+const BETA_RESERVE = 6 * 1024 * 1024
 async function size(directory, omitted = new Set()) {
   let bytes = 0
   for (const entry of await readdir(directory, { withFileTypes: true })) {
@@ -84,6 +85,7 @@ export async function packageOfflineBundles(root, resources) {
   let remaining = Math.max(
     0,
     1_000_000_000 -
+      BETA_RESERVE -
       (await size(root, new Set(['offline-manifest.json', 'sw.js']))) -
       metadata * 2 -
       512 * 1024,

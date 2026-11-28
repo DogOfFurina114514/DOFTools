@@ -19,7 +19,7 @@ import { decodeBundle, gzipAvailable, receiveBytes, validBundles } from './lib/o
 import { createDownloadPool } from './lib/model-assets'
 import { createModelRequest, createResourceRequest } from './lib/model-network'
 import { retryResource } from './lib/resource-retry'
-import { PAGES_RESOURCE_BASE } from './lib/site-resources'
+import { BETA_PATH, PAGES_RESOURCE_BASE } from './lib/site-resources'
 
 declare const __OFFLINE_MANIFEST__: OfflineManifest
 const sw = self as unknown as ServiceWorkerGlobalScope
@@ -662,6 +662,7 @@ sw.addEventListener('fetch', (event) => {
   const request = event.request
   if (request.method !== 'GET') return
   const url = new URL(request.url)
+  if (url.origin === siteBase.origin && url.pathname.startsWith(BETA_PATH)) return
   if (
     request.mode === 'navigate' &&
     url.origin === siteBase.origin &&
