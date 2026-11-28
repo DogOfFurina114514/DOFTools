@@ -14,6 +14,7 @@ const skipped = new Set([
   '.nojekyll',
   '404.html',
   'asset-history.json',
+  'channel.json',
   'offline-manifest.json',
   'sw.js',
 ])
@@ -85,6 +86,7 @@ const manifest = {
   bundles,
 }
 await writeFile(new URL('offline-manifest.json', root), JSON.stringify(manifest) + '\n')
+await writeFile(new URL('channel.json', root), JSON.stringify({ version }) + '\n')
 await build({
   entryPoints: [fileURLToPath(new URL('../src/offline.worker.ts', import.meta.url))],
   outfile: fileURLToPath(new URL('sw.js', root)),
